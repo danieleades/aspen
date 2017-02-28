@@ -9,3 +9,5 @@ THIS FILE SHOULD BE REPLACED WITH AN ISSUE TRACKER ONCE A GIT HOST IS DECIDED
   just means the control nodes do this but leaves don't (this sound correct at
   this moment).
 · Add tests for each node type plus nodes linked together
+· Improve documentation on public items. Specifically, specify that the T in the
+  behavior tree is the world state.

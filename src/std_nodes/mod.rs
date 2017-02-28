@@ -2,6 +2,7 @@
 
 pub use self::sequence::Sequence;
 pub use self::selector::Selector;
+pub use self::parallel::Parallel;
 pub use self::decorator::Decorator;
 pub use self::decorator::Reset;
 pub use self::decorator::Retry;
@@ -13,6 +14,7 @@ pub use self::constants::AlwaysRunning;
 
 mod sequence;
 mod selector;
+mod parallel;
 mod decorator;
 mod action;
 mod condition;

@@ -28,4 +28,10 @@ impl<T: Sync> BehaviorTree<T>
 	{
 		(*self.root).tick(&mut self.world)
 	}
+
+	/// Reset the tree so that it can be run again
+	pub fn reset(&mut self)
+	{
+		(*self.root).reset()
+	}
 }

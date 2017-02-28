@@ -1,43 +1,41 @@
 //! Nodes that have children and tick them in a sequential order
+//!
+//! NOTE: There is no Sequence* node, since the choice of not having the nodes
+//! automatically reset causes a normal Sequence node to have the same behavior
+//! as a Sequence*.
 
 use node::Node;
 use status::Status;
 
-/// Implements a Sequence* node
-pub struct SequencePersistent<T: Sync>
+/// Implements a Sequence node
+///
+/// This node will tick all of its children in order until one of them returns
+/// either `Status::Running` or `Status::Failed`. If none do, this node succeeds.
+pub struct Sequence<T: Sync>
 {
 	/// Vector containing the children of this node
 	children: Vec<Box<Node<T>>>,
 
-	/// Next child to be ticked
-	next_tick_index: usize,
-
 	/// Current status of the node
-	status: Status,
+	status: Status, // Do we really need this? Why not tick current child?
 }
-impl<T: Sync> SequencePersistent<T>
+impl<T: Sync> Sequence<T>
 {
 	/// Creates a new Sequence* node from a vector of Nodes
-	pub fn new(children: Vec<Box<Node<T>>>) -> SequencePersistent<T>
+	pub fn new(children: Vec<Box<Node<T>>>) -> Sequence<T>
 	{
-		SequencePersistent {
+		Sequence {
 			children: children,
-			next_tick_index: 0,
 			status: Status::Running,
 		}
 	}
-
-	/// Returns an immutable reference to the children vector
-	pub fn children(&self) -> &Vec<Box<Node<T>>>
-	{
-		&self.children
-	}
 }
-impl<T: Sync> Node<T> for SequencePersistent<T>
+impl<T: Sync> Node<T> for Sequence<T>
 {
 	fn tick(&mut self, world: &mut T) -> Status
 	{
-		for ptr in self.children.iter_mut().skip(self.next_tick_index) {
+		// Tick the children in order
+		for ptr in self.children.iter_mut() {
 			// First, tick the current child to get its status
 			let child_status = (*ptr).tick(world);
 
@@ -53,19 +51,19 @@ impl<T: Sync> Node<T> for SequencePersistent<T>
 		// Do a sanity check
 		assert_eq!(self.status, Status::Succeeded);
 
-		// If none of them were running or failed, we succeeded. This means
-		// that we need to reset ourselves to potentially be run again.
-		self.reset();
-
 		// Return that we succeeded
 		Status::Succeeded
 	}
 
 	fn reset(&mut self)
 	{
-		// Reset our status and put our counter back to the first node
+		// Reset our own status
 		self.status = Status::Running;
-		self.next_tick_index = 0;
+
+		// Then we reset all of our children
+		for ptr in self.children.iter_mut() {
+			(*ptr).reset();
+		}
 	}
 
 	fn status(&self) -> Status

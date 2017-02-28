@@ -1,0 +1,11 @@
+[package]
+name = "aspen"
+version = "0.1.0"
+authors = ["Nathan Kent <nate@nkent.net>"]
+
+description = "A behavior tree implementation in Rust"
+license = "MIT"
+
+publish = false
+
+[dependencies]

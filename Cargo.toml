@@ -5,6 +5,7 @@ authors = ["Nathan Kent <nate@nkent.net>"]
 
 description = "A behavior tree implementation in Rust"
 license = "MIT"
+readme = "README.adoc"
 
 publish = false
 

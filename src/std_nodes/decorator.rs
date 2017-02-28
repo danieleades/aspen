@@ -7,7 +7,7 @@ use status::Status;
 pub struct Decorator<T: Sync>
 {
 	/// Function that is performed on the child's status
-	func: Box<FnMut(&mut T) -> Status>,
+	func: Box<FnMut(Status) -> Status>,
 
 	/// Child node
 	child: Box<Node<T>>,
@@ -18,7 +18,7 @@ pub struct Decorator<T: Sync>
 impl<T: Sync> Decorator<T>
 {
 	/// Creates a new Decorator node with the given child and function
-	pub fn new(child: Box<Node<T>>, func: Box<FnMut(&mut T) -> Status>) -> Decorator<T>
+	pub fn new(child: Box<Node<T>>, func: Box<FnMut(Status) -> Status>) -> Decorator<T>
 	{
 		Decorator {
 			func: func,
@@ -35,8 +35,7 @@ impl<T: Sync> Node<T> for Decorator<T>
 		let child_status = (*self.child).tick(world);
 
 		// Now run it through the function
-		let args = (world, );
-		self.status = (*self.func).call_mut(args);
+		self.status = (*self.func)(child_status);
 
 		// Return our status
 		self.status

@@ -1,0 +1,8 @@
+THIS FILE SHOULD BE REPLACED WITH AN ISSUE TRACKER ONCE A GIT HOST IS DECIDED
+
+· Should Selector and Sequence reset children further along in the sequence
+  once a child causes it to return early? If not, do we add a special node
+  specifically for that?
+· Do I need to make sure nodes return `self.status` if they aren't Running?
+  I'm thinking no... Child nodes may change due to world state.
+· Add tests for each node type plus nodes linked together

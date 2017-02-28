@@ -1,4 +1,5 @@
 use node::Node;
+use status::Status;
 
 /// Main behavior tree struct
 ///
@@ -15,9 +16,16 @@ pub struct BehaviorTree<T: Sync>
 }
 impl<T: Sync> BehaviorTree<T>
 {
-	/// Create a new behavior tree with the given world state object
+	/// Create a new behavior tree with the given world state object and
+	/// root node.
 	pub fn new(state: T, root: Box<Node<T>>) -> BehaviorTree<T>
 	{
 		BehaviorTree { world: state, root: root }
+	}
+
+	/// Tick the behavior tree a single time
+	pub fn tick(&mut self) -> Status
+	{
+		(*self.root).tick(&mut self.world)
 	}
 }

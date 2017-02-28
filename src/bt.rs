@@ -1,3 +1,5 @@
+use node::Node;
+
 /// Main behavior tree struct
 ///
 /// `T` is required to be `Sync` because, in all likelyhood, it will be used
@@ -8,21 +10,14 @@ pub struct BehaviorTree<T: Sync>
 	///
 	/// A mutable reference to this object will be passed to all nodes when
 	/// they are ticked.
-	world: T
+	world: T,
+	root: Box<Node<T>>
 }
 impl<T: Sync> BehaviorTree<T>
 {
 	/// Create a new behavior tree with the given world state object
-	pub fn new(state: T) -> BehaviorTree<T>
+	pub fn new(state: T, root: Box<Node<T>>) -> BehaviorTree<T>
 	{
-		BehaviorTree { world: state }
-	}
-}
-impl<T: Default + Sync> Default for BehaviorTree<T>
-{
-	/// Creates a behavior tree with a default world state object
-	fn default() -> BehaviorTree<T>
-	{
-		BehaviorTree { world: Default::default() }
+		BehaviorTree { world: state, root: root }
 	}
 }

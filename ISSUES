@@ -4,6 +4,7 @@ THIS FILE SHOULD BE REPLACED WITH AN ISSUE TRACKER ONCE A GIT HOST IS DECIDED
   once a child causes it to return early? If not, do we add a special node
   specifically for that? Perhaps leave that open to the user since we have
   exposed the Node trait?
+  BETTER: Create a reseting one in the standard nodes
 · Do I need to make sure nodes return `self.status` if they aren't Running?
   I'm thinking no... Child nodes may change due to world state. Perhaps that
   just means the control nodes do this but leaves don't (this sound correct at

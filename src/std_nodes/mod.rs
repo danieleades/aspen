@@ -19,3 +19,11 @@ mod decorator;
 mod action;
 mod condition;
 mod constants;
+
+#[cfg(test)]
+pub use self::testing::NoTick;
+#[cfg(test)]
+pub use self::testing::YesTick;
+
+#[cfg(test)]
+mod testing;

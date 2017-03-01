@@ -77,7 +77,16 @@ impl<T: Send + Sync + 'static> Node<T> for Action<T>
 
 	fn reset(&mut self)
 	{
-		// TODO
+		// I debated what to do here for a while. I could see someone wanting to detach
+		// the thread due to time constraints, but it seems to me that it would be better
+		// to avoid potential bugs that come from a node only looking like its been
+		// fully reset.
+		self.status = Status::Running;
+		self.flag.store(false, Ordering::SeqCst);
+		if self.thread_handle.is_some() {
+			let handle = self.thread_handle.take();
+			handle.unwrap().join().unwrap();
+		}
 	}
 
 	fn status(&self) -> Status

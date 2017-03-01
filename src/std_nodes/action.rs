@@ -51,7 +51,12 @@ impl<T: Send + Sync + 'static> Node<T> for Action<T>
 {
 	fn tick(&mut self, world: &Arc<T>) -> Status
 	{
-		// If we don't have a thread running, we need to start one
+		// First, check to see if we've already ran
+		if self.status != Status::Running {
+			return self.status;
+		}
+
+		// We haven't already run, so start up a new thread if needed
 		if self.thread_handle.is_none() {
 			self.start_thread(world);
 		}
@@ -60,10 +65,14 @@ impl<T: Send + Sync + 'static> Node<T> for Action<T>
 		self.status = if !self.flag.load(Ordering::SeqCst) {
 			Status::Running
 		} else {
-			// TODO
-			Status::Running
+			// The thread is done, so load up its status. We also know that
+			// we have a thread handle at this point
+			let handle = self.thread_handle.take();
+			handle.unwrap().join().unwrap()
 		};
-		Status::Running
+
+		// Return our status
+		self.status
 	}
 
 	fn reset(&mut self)

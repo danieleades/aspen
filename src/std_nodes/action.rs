@@ -22,6 +22,17 @@ pub struct Action<T: Send + Sync + 'static>
 }
 impl<T: Send + Sync + 'static> Action<T>
 {
+	/// Creates a new Action node
+	pub fn new(func: Arc<Fn(Arc<T>) -> bool + Send + Sync>) -> Action<T>
+	{
+		Action {
+			func: func,
+			thread_handle: None,
+			flag: Arc::new(AtomicBool::new(false)),
+			status: Status::Running,
+		}
+	}
+
 	/// Launches a new worker thread to run the function
 	fn start_thread(&mut self, world: &Arc<T>)
 	{
@@ -92,5 +103,67 @@ impl<T: Send + Sync + 'static> Node<T> for Action<T>
 	fn status(&self) -> Status
 	{
 		self.status
+	}
+}
+
+#[cfg(test)]
+mod test
+{
+	use std::sync::Arc;
+	use std::sync::atomic::{AtomicUsize, Ordering};
+	use std::{thread, time};
+	use node::Node;
+	use status::Status;
+	use std_nodes::*;
+
+	fn action_func(world: Arc<AtomicUsize>) -> bool
+	{
+		while world.load(Ordering::SeqCst) == 0 {
+			thread::yield_now();
+		}
+
+		world.load(Ordering::SeqCst) == 1
+	}
+
+	#[test]
+	fn failure()
+	{
+		let world = Arc::new(AtomicUsize::new(0));
+		let mut action = Action::new(Arc::new(action_func));
+
+		for _ in 0..5 {
+			assert_eq!(action.tick(&world), Status::Running);
+			thread::sleep(time::Duration::from_millis(100));
+		}
+
+		world.store(2, Ordering::SeqCst);
+
+		let mut status = Status::Running;
+		while status == Status::Running {
+			status = action.tick(&world);
+		}
+
+		assert_eq!(status, Status::Failed);
+	}
+
+	#[test]
+	fn success()
+	{
+		let world = Arc::new(AtomicUsize::new(0));
+		let mut action = Action::new(Arc::new(action_func));
+
+		for _ in 0..5 {
+			assert_eq!(action.tick(&world), Status::Running);
+			thread::sleep(time::Duration::from_millis(100));
+		}
+
+		world.store(1, Ordering::SeqCst);
+
+		let mut status = Status::Running;
+		while status == Status::Running {
+			status = action.tick(&world);
+		}
+
+		assert_eq!(status, Status::Succeeded);
 	}
 }

@@ -78,3 +78,56 @@ impl<T: Send + Sync + 'static> Drop for YesTick<T>
 		}
 	}
 }
+
+/// Implements a node that must be ticked a specific number of times (including resets)
+pub struct CountedTick<T: Send + Sync + 'static>
+{
+	pd: PhantomData<T>,
+	status: Status,
+	count: u32,
+	exact: bool,
+}
+impl<T: Send + Sync + 'static> CountedTick<T>
+{
+	/// Creates a new CountedTick that always has the given status
+	pub fn new(status: Status, count: u32, exact: bool) -> CountedTick<T>
+	{
+		CountedTick {
+			pd: PhantomData,
+			status: status,
+			count: count,
+			exact: exact,
+		}
+	}
+}
+impl<T: Send + Sync + 'static> Node<T> for CountedTick<T>
+{
+	fn tick(&mut self, _: &Arc<T>) -> Status
+	{
+		if self.exact && self.count == 0 {
+			panic!("Node was ticked too many times");
+		}
+
+		self.count = self.count.saturating_sub(1);
+		self.status
+	}
+
+	fn reset(&mut self)
+	{
+		// No-op
+	}
+
+	fn status(&self) -> Status
+	{
+		self.status
+	}
+}
+impl<T: Send + Sync + 'static> Drop for CountedTick<T>
+{
+	fn drop(&mut self)
+	{
+		if self.count != 0 {
+			panic!("Node was not ticked enough times: {} remaining", self.count);
+		}
+	}
+}

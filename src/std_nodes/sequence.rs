@@ -71,3 +71,101 @@ impl<T: Send + Sync + 'static> Node<T> for Sequence<T>
 		Status::Succeeded
 	}
 }
+
+#[cfg(test)]
+mod test
+{
+	use std::sync::Arc;
+	use std::sync::atomic::AtomicBool;
+	use node::Node;
+	use status::Status;
+	use std_nodes::*;
+
+	#[test]
+	fn check_running()
+	{
+		// Use an atomic as the world (doesn't actually get used)
+		let world = Arc::new(AtomicBool::new(true));
+
+		// Set up the nodes
+		let succeed = Box::new(YesTick::new(Status::Succeeded));
+		let running = Box::new(YesTick::new(Status::Running));
+		let err = Box::new(NoTick::new());
+
+		// Put them all in a vector
+		let mut children: Vec<Box<Node<AtomicBool>>> = Vec::new();
+		children.push(succeed);
+		children.push(running);
+		children.push(err);
+
+		// Add them to a sequence node
+		let mut seq = Sequence::new(children);
+
+		// Tick the sequence
+		let status = seq.tick(&world);
+
+		// Drop the sequence so the nodes can do their own checks
+		drop(seq);
+
+		// Make sure we got the expected value
+		assert_eq!(status, Status::Running);
+	}
+
+	#[test]
+	fn check_success()
+	{
+		// Use an atomic as the world (doesn't actually get used)
+		let world = Arc::new(AtomicBool::new(true));
+
+		// Set up the nodes
+		let first = Box::new(YesTick::new(Status::Succeeded));
+		let second = Box::new(YesTick::new(Status::Succeeded));
+
+		// Put them all in a vector
+		let mut children: Vec<Box<Node<AtomicBool>>> = Vec::new();
+		children.push(first);
+		children.push(second);
+
+		// Add them to a sequence node
+		let mut seq = Sequence::new(children);
+
+		// Tick the sequence
+		let status = seq.tick(&world);
+
+		// Drop the sequence so the nodes can do their own checks
+		drop(seq);
+
+		// Make sure we got the expected value
+		assert_eq!(status, Status::Succeeded);
+	}
+
+	#[test]
+	fn check_fail()
+	{
+		// Use an atomic as the world (doesn't actually get used)
+		let world = Arc::new(AtomicBool::new(true));
+
+		// Set up the nodes
+		let succeed = Box::new(YesTick::new(Status::Succeeded));
+		let fail = Box::new(YesTick::new(Status::Failed));
+		let err = Box::new(NoTick::new());
+
+		// Put them all in a vector
+		let mut children: Vec<Box<Node<AtomicBool>>> = Vec::new();
+		children.push(succeed);
+		children.push(fail);
+		children.push(err);
+
+		// Add them to a sequence node
+		let mut seq = Sequence::new(children);
+
+		// Tick the sequence
+		let status = seq.tick(&world);
+
+		// Drop the sequence so the nodes can do their own checks
+		drop(seq);
+
+		// Make sure we got the expected value
+		assert_eq!(status, Status::Failed);
+	}
+}

@@ -2,11 +2,18 @@
 name = "aspen"
 version = "0.1.0"
 authors = ["Nathan Kent <nate@nkent.net>"]
+license = "MIT"
 
 description = "A behavior tree implementation in Rust"
-license = "MIT"
+
+documentation = "http://neachdainn.gitlab.io/aspen"
+repository = "https://gitlab.com/neachdainn/aspen.git"
+
 readme = "README.adoc"
 
 publish = false
 
 [dependencies]
+
+[badges]
+gitlab = { repository = "https://gitlab.com/neachdainn/aspen.git" }

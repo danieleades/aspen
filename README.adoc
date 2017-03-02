@@ -1,7 +1,9 @@
+image::https://example.gitlab.com/neachdainn/aspen/badges/master/build.svg[Build Status]
+
 = Aspen: Behavior Trees in Rust =
 
 This is an implementation of behavior trees in Rust.
-It is largely based on behavior trees as described by Marzinotto el al. footnote:[Marzinotto, Alejandro, et al. "Towards a unified behavior trees framework for robot control." Robotics and Automation (ICRA), 2014 IEEE International Conference on. IEEE, 2014.] and was designed for use on an actual robot using http://www.ros.org/[ROS] and https://lcm-proj.github.io/[LCM] for communication.
+It is largely based on behavior trees as described by Marzinotto et al. footnote:[Marzinotto, Alejandro, et al. "Towards a unified behavior trees framework for robot control." Robotics and Automation (ICRA), 2014 IEEE International Conference on. IEEE, 2014.] and was designed for use on an actual robot using http://www.ros.org/[ROS] and https://lcm-proj.github.io/[LCM] for communication.
 
 This is both my first actual Rust crate and has yet to be used on an actual robot.
-Feedback is both welcome and encouraged.
+Feedback would be very much appreciated.

@@ -24,7 +24,7 @@ messages = ["lcm"]
 lcm = { git = "https://github.com/adeschamps/lcm.git", rev = "cd03122", optional = true }
 
 [build-dependencies]
-lcm-gen = { git = "https://github.com/adeschamps/lcm.git", rev = "cd03122" }
+lcm_gen = { git = "https://github.com/adeschamps/lcm.git", rev = "cd03122" }
 
 [badges]
 gitlab = { repository = "https://gitlab.com/neachdainn/aspen.git" }

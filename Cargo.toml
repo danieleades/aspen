@@ -13,6 +13,8 @@ readme = "README.adoc"
 
 publish = false
 
+build = "build.rs"
+
 [features]
 default = []
 
@@ -20,6 +22,9 @@ messages = ["lcm"]
 
 [dependencies]
 lcm = { git = "https://github.com/adeschamps/lcm.git", rev = "cd03122", optional = true }
+
+[build-dependencies]
+lcm-gen = { git = "https://github.com/adeschamps/lcm.git", rev = "cd03122" }
 
 [badges]
 gitlab = { repository = "https://gitlab.com/neachdainn/aspen.git" }

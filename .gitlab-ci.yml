@@ -21,6 +21,7 @@ test:cargo:
 pages:
   only:
   - master
+  stage: deploy
   script:
   - cargo doc
   - rm -rf public

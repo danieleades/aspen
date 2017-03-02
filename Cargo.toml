@@ -13,7 +13,13 @@ readme = "README.adoc"
 
 publish = false
 
+[features]
+default = []
+
+messages = ["lcm"]
+
 [dependencies]
+lcm = { git = "https://github.com/adeschamps/lcm.git", rev = "cd03122", optional = true }
 
 [badges]
 gitlab = { repository = "https://gitlab.com/neachdainn/aspen.git" }

@@ -56,3 +56,34 @@ impl<T: Send + Sync + 'static> Node<T> for Condition<T>
 		self.status
 	}
 }
+
+#[cfg(test)]
+mod test
+{
+	use std::sync::Arc;
+	use std::sync::atomic::{AtomicBool, Ordering};
+	use node::Node;
+	use status::Status;
+	use std_nodes::*;
+
+	fn condition(world: &Arc<AtomicBool>) -> bool
+	{
+		world.load(Ordering::SeqCst)
+	}
+
+	#[test]
+	fn failure()
+	{
+		let world = Arc::new(AtomicBool::new(false));
+		let mut cond = Condition::new(Box::new(condition));
+		assert_eq!(cond.tick(&world), Status::Failed);
+	}
+
+	#[test]
+	fn success()
+	{
+		let world = Arc::new(AtomicBool::new(true));
+		let mut cond = Condition::new(Box::new(condition));
+		assert_eq!(cond.tick(&world), Status::Succeeded);
+	}
+}

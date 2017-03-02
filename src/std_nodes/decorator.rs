@@ -193,3 +193,97 @@ impl<T: Send + Sync + 'static> Node<T> for Retry<T>
 		(*self.child).status()
 	}
 }
+
+#[cfg(test)]
+mod test
+{
+	use std::sync::Arc;
+	use std::sync::atomic::AtomicBool;
+	use node::Node;
+	use status::Status;
+	use std_nodes::*;
+
+	fn rotate(s: Status) -> Status
+	{
+		match s {
+			Status::Succeeded => Status::Running,
+			Status::Running => Status::Failed,
+			Status::Failed => Status::Succeeded,
+		}
+	}
+
+	#[test]
+	fn check_decorator()
+	{
+		// Use an atomic as the world (doesn't actually get used)
+		let world = Arc::new(AtomicBool::new(true));
+
+		// Test the first rotation
+		let suc_child = Box::new(YesTick::new(Status::Succeeded));
+		let mut suc_dec = Decorator::new(suc_child, Box::new(rotate));
+		let suc_status = suc_dec.tick(&world);
+		drop(suc_dec);
+		assert_eq!(suc_status, Status::Running);
+
+		// Test the second rotation
+		let run_child = Box::new(YesTick::new(Status::Running));
+		let mut run_dec = Decorator::new(run_child, Box::new(rotate));
+		let run_status = run_dec.tick(&world);
+		drop(run_dec);
+		assert_eq!(run_status, Status::Failed);
+
+		// Test the final rotation
+		let fail_child = Box::new(YesTick::new(Status::Failed));
+		let mut fail_dec = Decorator::new(fail_child, Box::new(rotate));
+		let fail_status = fail_dec.tick(&world);
+		drop(fail_dec);
+		assert_eq!(fail_status, Status::Succeeded);
+	}
+
+	#[test]
+	fn check_reset()
+	{
+		// Use an atomic as the world (not actually used)
+		let world = Arc::new(AtomicBool::new(true));
+
+		// No good way to test ticking indefinitely, so we'll tick a
+		// specified number of times
+		let child = Box::new(CountedTick::new(Status::Succeeded, 5, true));
+		let mut reset = Reset::with_limit(child, 5);
+
+		// Tick it five times
+		let mut status = Status::Running;
+		for _ in 0..5 {
+			status = reset.tick(&world);
+		}
+
+		// Drop the node so the testing nodes can panic
+		drop(reset);
+
+		// Now make sure we got the right output
+		assert_eq!(status, Status::Succeeded);
+	}
+
+	#[test]
+	fn check_retry()
+	{
+		// Use an atomic for the world (because necessary)
+		let world = Arc::new(AtomicBool::new(true));
+
+		// We can test to make sure that the "indefinite" only ticks while failed
+		let child1 = Box::new(CountedTick::new(Status::Succeeded, 1, true));
+		let mut retry1 = Retry::new(child1);
+		let mut status1 = Status::Running;
+		while status1 == Status::Running { status1 = retry1.tick(&world); };
+		drop(retry1);
+		assert_eq!(status1, Status::Succeeded);
+
+		// No good way to test infinite retrying, so use a limited number
+		let child2 = Box::new(CountedTick::new(Status::Failed, 5, true));
+		let mut retry2 = Retry::with_limit(child2, 5);
+		let mut status2 = Status::Running;
+		for _ in 0..5 { status2 = retry2.tick(&world); }
+		drop(retry2);
+		assert_eq!(status2, Status::Failed);
+	}
+}

@@ -24,6 +24,8 @@ mod constants;
 pub use self::testing::NoTick;
 #[cfg(test)]
 pub use self::testing::YesTick;
+#[cfg(test)]
+pub use self::testing::CountedTick;
 
 #[cfg(test)]
 mod testing;

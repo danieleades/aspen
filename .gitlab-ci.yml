@@ -7,6 +7,8 @@ variables:
 # Use cargo to test the project
 test:cargo:
   script:
+  - mkdir -p target
+  - mkdir -p cargo
   - du -hs target
   - du -hs cargo
   - rustc --version && cargo --version      # Print version info for debugging

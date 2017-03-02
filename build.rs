@@ -17,6 +17,9 @@ fn lcm_gen()
 	lcm_gen::LcmGen::new()
 	                .add_directory(lcm_source_dir)
 	                .run();
+
+	// Now make sure Cargo includes the files
+	println!("cargo:include={}", std::env::var("OUT_DIR").unwrap());
 }
 
 #[cfg(not(feature = "messages"))]

@@ -126,7 +126,7 @@ impl<T: Send + Sync + 'static> Node<T> for Action<T>
 			id: self.id,
 			num_children: 0,
 			children: Vec::new(),
-			status: self.status,
+			status: self.status() as i32,
 			type_name: "Action".to_string(),
 		}
 	}

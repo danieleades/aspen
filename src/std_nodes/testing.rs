@@ -56,7 +56,7 @@ impl<T: Send + Sync + 'static> Node<T> for NoTick<T>
 			id: self.id,
 			num_children: 0,
 			children: Vec::new(),
-			status: self.status(),
+			status: self.status() as i32,
 			type_name: "NoTick".to_string(),
 		}
 	}
@@ -125,7 +125,7 @@ impl<T: Send + Sync + 'static> Node<T> for YesTick<T>
 			id: self.id,
 			num_children: 0,
 			children: Vec::new(),
-			status: self.status(),
+			status: self.status() as i32,
 			type_name: "YesTick".to_string(),
 		}
 	}
@@ -211,7 +211,7 @@ impl<T: Send + Sync + 'static> Node<T> for CountedTick<T>
 			id: self.id,
 			num_children: 0,
 			children: Vec::new(),
-			status: self.status(),
+			status: self.status() as i32,
 			type_name: "CountedTick".to_string(),
 		}
 	}

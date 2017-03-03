@@ -2,7 +2,7 @@ use std::sync::Arc;
 use status::Status;
 
 /// Type used for node UIDs
-pub type IdType = u32;
+pub type IdType = i32;
 
 /// Represents a node in the behavior tree
 pub trait Node<T: Send + Sync + 'static>
@@ -32,7 +32,7 @@ pub trait Node<T: Send + Sync + 'static>
 	///
 	/// In theory, this should be unique but I do not know how to enforce that
 	/// in Rust. The function `uid()` will always return a value that it hasn't
-	/// returned before (within the limits of `u32`).
+	/// returned before (within the limits of `IdType`).
 	fn id(&self) -> IdType;
 
 	#[cfg(feature = "messages")]
@@ -82,10 +82,10 @@ impl<'a, T: 'static> Iterator for Iter<'a, T>
 
 pub fn uid() -> IdType
 {
-	use std::sync::atomic::{AtomicUsize, Ordering};
-	static COUNTER: AtomicUsize = AtomicUsize::new(0);
+	use std::sync::atomic::{AtomicIsize, Ordering, ATOMIC_ISIZE_INIT};
+	static COUNTER: AtomicIsize = ATOMIC_ISIZE_INIT;
 
-	COUNTER.fetch_add(1, Ordering::SeqCst)
+	COUNTER.fetch_add(1, Ordering::SeqCst) as IdType
 }
 
 #[cfg(test)]

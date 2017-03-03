@@ -55,7 +55,7 @@ impl<T: Send + Sync + 'static> Node<T> for AlwaysFail<T>
 			id: self.id,
 			num_children: 0,
 			children: Vec::new(),
-			status: Status::Failed,
+			status: Status::Failed as i32,
 			type_name: "AlwaysFail".to_string(),
 		}
 	}
@@ -113,7 +113,7 @@ impl<T: Send + Sync + 'static> Node<T> for AlwaysSucceed<T>
 			id: self.id,
 			num_children: 0,
 			children: Vec::new(),
-			status: Status::Succeeded,
+			status: Status::Succeeded as i32,
 			type_name: "AlwaysSucceed".to_string(),
 		}
 	}
@@ -171,7 +171,7 @@ impl<T: Send + Sync + 'static> Node<T> for AlwaysRunning<T>
 			id: self.id,
 			num_children: 0,
 			children: Vec::new(),
-			status: Status::Running,
+			status: Status::Running as i32,
 			type_name: "AlwaysRunning".to_string(),
 		}
 	}

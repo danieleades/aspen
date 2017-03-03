@@ -62,7 +62,6 @@ impl<T: Send + Sync + 'static> Node<T> for Decorator<T>
 		self.id
 	}
 
-
 	#[cfg(feature = "messages")]
 	fn as_message(&self) -> ::node_message::NodeMsg
 	{
@@ -70,7 +69,7 @@ impl<T: Send + Sync + 'static> Node<T> for Decorator<T>
 			id: self.id,
 			num_children: 1,
 			children: vec![(*self.child).id()],
-			status: self.status(),
+			status: self.status() as i32,
 			type_name: "Decorator".to_string(),
 		}
 	}
@@ -111,6 +110,7 @@ impl<T: Send + Sync + 'static> Reset<T>
 			child: child,
 			attempt_limit: Some(limit),
 			attempts: 0,
+			id: ::node::uid(),
 		}
 	}
 }
@@ -163,7 +163,6 @@ impl<T: Send + Sync + 'static> Node<T> for Reset<T>
 		self.id
 	}
 
-
 	#[cfg(feature = "messages")]
 	fn as_message(&self) -> ::node_message::NodeMsg
 	{
@@ -171,7 +170,7 @@ impl<T: Send + Sync + 'static> Node<T> for Reset<T>
 			id: self.id,
 			num_children: 1,
 			children: vec![(*self.child).id()],
-			status: self.status(),
+			status: self.status() as i32,
 			type_name: "Reset".to_string(),
 		}
 	}
@@ -212,6 +211,7 @@ impl<T: Send + Sync + 'static> Retry<T>
 			child: child,
 			attempt_limit: Some(limit),
 			attempts: 0,
+			id: ::node::uid(),
 		}
 	}
 }
@@ -264,7 +264,6 @@ impl<T: Send + Sync + 'static> Node<T> for Retry<T>
 		self.id
 	}
 
-
 	#[cfg(feature = "messages")]
 	fn as_message(&self) -> ::node_message::NodeMsg
 	{
@@ -272,7 +271,7 @@ impl<T: Send + Sync + 'static> Node<T> for Retry<T>
 			id: self.id,
 			num_children: 1,
 			children: vec![(*self.child).id()],
-			status: self.status(),
+			status: self.status() as i32,
 			type_name: "Retry".to_string(),
 		}
 	}

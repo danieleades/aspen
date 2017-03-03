@@ -85,9 +85,9 @@ impl<T: Send + Sync + 'static> Node<T> for Selector<T>
 	{
 		::node_message::NodeMsg {
 			id: self.id,
-			num_children: self.children.len(),
+			num_children: self.children.len() as i32,
 			children: self.children.iter().map(|x| (*x).id()).collect(),
-			status: self.status(),
+			status: self.status() as i32,
 			type_name: "Selector".to_string(),
 		}
 	}

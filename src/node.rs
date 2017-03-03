@@ -21,4 +21,16 @@ pub trait Node<T: Send + Sync + 'static>
 	///
 	/// This value will match the return value of the last call to `tick`
 	fn status(&self) -> Status;
+
+	#[cfg(feature = "messages")]
+	fn to_message(&self, msg_list: &mut Vec<node_message::NodeMsg>);
+}
+
+#[cfg(feature = "messages")]
+pub fn uid() -> usize
+{
+	use std::sync::atomic::{AtomicUsize, Ordering};
+	static COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+	COUNTER.fetch_add(1, Ordering::SeqCst)
 }

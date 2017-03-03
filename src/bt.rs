@@ -85,4 +85,14 @@ impl<T: Send + Sync + 'static> BehaviorTree<T>
 
 		return status;
 	}
+
+	#[cfg(feature = "messages")]
+	/// Creates a `Vec` with a list of `NodeMsg`s that represent this tree
+	pub fn to_message(&self) -> Vec<node_message::NodeMsg>
+	{
+		let mut messages = Vec::new();
+		(*self.root).to_message(&mut messages);
+
+		messages
+	}
 }

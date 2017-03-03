@@ -25,6 +25,3 @@ lcm = { git = "https://github.com/adeschamps/lcm.git", rev = "cd03122", optional
 
 [build-dependencies]
 lcm_gen = { git = "https://github.com/adeschamps/lcm.git", rev = "cd03122" }
-
-[badges]
-gitlab = { repository = "https://gitlab.com/neachdainn/aspen.git" }

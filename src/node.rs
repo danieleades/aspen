@@ -22,8 +22,48 @@ pub trait Node<T: Send + Sync + 'static>
 	/// This value will match the return value of the last call to `tick`
 	fn status(&self) -> Status;
 
+	fn iter(&self) -> Iter<T>;
+
 	#[cfg(feature = "messages")]
 	fn to_message(&self, msg_list: &mut Vec<node_message::NodeMsg>);
+}
+
+pub struct Iter<'a, T: 'static> {
+	me: Option<&'a Node<T>>,
+	upcoming: Option<Vec<Iter<'a, T>>>,
+}
+impl<'a, T: 'static> Iter<'a, T>
+{
+	pub fn new(me: &'a Node<T>, children: Option<Vec<Iter<'a, T>>>) -> Self
+	{
+		Iter { me: Some(me), upcoming: children }
+	}
+}
+impl<'a, T: 'static> Iterator for Iter<'a, T>
+{
+	type Item = &'a Node<T>;
+
+	fn next(&mut self) -> Option<Self::Item>
+	{
+		// First, check if we've iterated over our own node
+		if self.me.is_some() {
+			return self.me.take();
+		}
+
+		// If we haven't, try iterating over the children
+		if let Some(ref mut v) = self.upcoming {
+			// We have children, so try to get values from them in order
+			for child_iter in v.iter_mut() {
+				let next = child_iter.next();
+				if next.is_some() {
+					return next;
+				}
+			}
+		}
+
+		// Either no children or they're all exhausted
+		None
+	}
 }
 
 #[cfg(feature = "messages")]

@@ -74,3 +74,40 @@ pub fn uid() -> usize
 
 	COUNTER.fetch_add(1, Ordering::SeqCst)
 }
+
+#[cfg(test)]
+mod test
+{
+	use std::sync::atomic::AtomicBool;
+	use super::Node;
+	use status::Status;
+	use std_nodes::*;
+
+	#[test]
+	fn iter_test()
+	{
+		let succeed = Box::new(AlwaysSucceed::new());
+		let running = Box::new(AlwaysRunning::new());
+		let fail = Box::new(AlwaysFail::new());
+
+		let children: Vec<Box<Node<AtomicBool>>> = vec![succeed, running, fail];
+
+		let root = Sequence::new(children);
+		let mut iter = root.iter();
+
+		// root
+		assert_eq!(Status::Running, iter.next().unwrap().status());
+
+		// succeed
+		assert_eq!(Status::Succeeded, iter.next().unwrap().status());
+
+		// running
+		assert_eq!(Status::Running, iter.next().unwrap().status());
+
+		// fail
+		assert_eq!(Status::Failed, iter.next().unwrap().status());
+
+		// fin
+		assert!(iter.next().is_none());
+	}
+}

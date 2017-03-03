@@ -2,7 +2,7 @@
 use std::sync::Arc;
 use std::marker::PhantomData;
 use std::ops::Drop;
-use node::Node;
+use node::{Node, Iter};
 use status::Status;
 
 /// Implements a node that will panic upon being ticked
@@ -33,6 +33,11 @@ impl<T: Send + Sync + 'static> Node<T> for NoTick<T>
 	fn status(&self) -> Status
 	{
 		Status::Running
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		Iter::new(self, None)
 	}
 }
 
@@ -67,6 +72,11 @@ impl<T: Send + Sync + 'static> Node<T> for YesTick<T>
 	fn status(&self) -> Status
 	{
 		self.status
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		Iter::new(self, None)
 	}
 }
 impl<T: Send + Sync + 'static> Drop for YesTick<T>
@@ -120,6 +130,11 @@ impl<T: Send + Sync + 'static> Node<T> for CountedTick<T>
 	fn status(&self) -> Status
 	{
 		self.status
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		Iter::new(self, None)
 	}
 }
 impl<T: Send + Sync + 'static> Drop for CountedTick<T>

@@ -23,6 +23,7 @@ pub trait Node<T: Send + Sync + 'static>
 	fn status(&self) -> Status;
 
 	#[cfg(feature = "messages")]
+	/// Adds this node's and all of children's information to the vector
 	fn to_message(&self, msg_list: &mut Vec<node_message::NodeMsg>);
 }
 

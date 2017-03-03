@@ -1,6 +1,6 @@
 //! Nodes that tick their children in parallel
 use std::sync::Arc;
-use node::Node;
+use node::{Node, Iter};
 use status::Status;
 
 /// Implements a standard Parallel node
@@ -91,6 +91,12 @@ impl<T: Send + Sync + 'static> Node<T> for Parallel<T>
 			// Status is still undetermined
 			Status::Running
 		}
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		let kids: Vec<_> = self.children.iter().map(|x| (*x).iter()).collect();
+		Iter::new(self, Some(kids))
 	}
 }
 

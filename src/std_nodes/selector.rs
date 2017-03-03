@@ -5,7 +5,7 @@
 //! automatically reset causes a normal Selector node to have the same behavior
 //! as a Selector*.
 use std::sync::Arc;
-use node::Node;
+use node::{Node, Iter};
 use status::Status;
 
 /// Implements a Selector node
@@ -62,6 +62,12 @@ impl<T: Send + Sync + 'static> Node<T> for Selector<T>
 
 		// All children failed
 		Status::Failed
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		let kids: Vec<_> = self.children.iter().map(|x| (*x).iter()).collect();
+		Iter::new(self, Some(kids))
 	}
 }
 

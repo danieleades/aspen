@@ -5,7 +5,7 @@
 //! automatically reset causes a normal Sequence node to have the same behavior
 //! as a Sequence*.
 use std::sync::Arc;
-use node::Node;
+use node::{Node, Iter};
 use status::Status;
 
 /// Implements a Sequence node
@@ -69,6 +69,12 @@ impl<T: Send + Sync + 'static> Node<T> for Sequence<T>
 
 		// All children succeeded
 		Status::Succeeded
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		let kids: Vec<_> = self.children.iter().map(|x| (*x).iter()).collect();
+		Iter::new(self, Some(kids))
 	}
 }
 

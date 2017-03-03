@@ -1,7 +1,7 @@
 //! Nodes that have a constant, well-defined behavior
 use std::sync::Arc;
 use std::marker::PhantomData;
-use node::Node;
+use node::{Node, Iter};
 use status::Status;
 
 /// Implements a node that always returns that it has failed
@@ -33,6 +33,11 @@ impl<T: Send + Sync + 'static> Node<T> for AlwaysFail<T>
 	fn status(&self) -> Status
 	{
 		Status::Failed
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		Iter::new(self, None)
 	}
 }
 
@@ -66,6 +71,11 @@ impl<T: Send + Sync + 'static> Node<T> for AlwaysSucceed<T>
 	{
 		Status::Succeeded
 	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		Iter::new(self, None)
+	}
 }
 
 /// Implements a node that always returns that it is currently running
@@ -97,5 +107,10 @@ impl<T: Send + Sync + 'static> Node<T> for AlwaysRunning<T>
 	fn status(&self) -> Status
 	{
 		Status::Running
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		Iter::new(self, None)
 	}
 }

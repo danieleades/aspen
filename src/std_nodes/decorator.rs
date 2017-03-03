@@ -1,7 +1,7 @@
 //! Nodes that have a single child and whose status is some function of the
 //! child's status.
 use std::sync::Arc;
-use node::Node;
+use node::{Node, Iter};
 use status::Status;
 
 /// Implements a generic Decorator node
@@ -45,6 +45,12 @@ impl<T: Send + Sync + 'static> Node<T> for Decorator<T>
 	fn status(&self) -> Status
 	{
 		(*self.func)(self.child.status())
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		let child_iter = vec![(*self.child).iter()];
+		Iter::new(self, Some(child_iter))
 	}
 }
 
@@ -119,6 +125,12 @@ impl<T: Send + Sync + 'static> Node<T> for Reset<T>
 		// Not sure if this should report Running if we haven't hit our reset limit
 		(*self.child).status()
 	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		let child_iter = vec![(*self.child).iter()];
+		Iter::new(self, Some(child_iter))
+	}
 }
 
 /// Implements a node that will reset its child after the child fails
@@ -191,6 +203,12 @@ impl<T: Send + Sync + 'static> Node<T> for Retry<T>
 	{
 		// Should this report Running if the child is Failed?
 		(*self.child).status()
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		let child_iter = vec![(*self.child).iter()];
+		Iter::new(self, Some(child_iter))
 	}
 }
 

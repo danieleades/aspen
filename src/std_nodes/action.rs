@@ -2,7 +2,8 @@
 use std::thread;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use node::Node;
+use node::{Node, Iter};
+#[cfg(feature = "messages")] use node_message::NodeMsg;
 use status::Status;
 
 /// Implements a standard action node.
@@ -103,6 +104,11 @@ impl<T: Send + Sync + 'static> Node<T> for Action<T>
 	fn status(&self) -> Status
 	{
 		self.status
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		Iter::new(self, None)
 	}
 }
 

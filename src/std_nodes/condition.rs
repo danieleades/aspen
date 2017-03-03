@@ -1,6 +1,6 @@
 //! Nodes whose status is determined by a function
 use std::sync::Arc;
-use node::Node;
+use node::{Node, Iter};
 use status::Status;
 
 /// A node whose success depends on a function that can be run in a single tick
@@ -54,6 +54,11 @@ impl<T: Send + Sync + 'static> Node<T> for Condition<T>
 	fn status(&self) -> Status
 	{
 		self.status
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		Iter::new(self, None)
 	}
 }
 

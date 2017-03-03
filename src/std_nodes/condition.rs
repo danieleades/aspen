@@ -1,6 +1,6 @@
 //! Nodes whose status is determined by a function
 use std::sync::Arc;
-use node::Node;
+use node::{Node, Iter, IdType};
 use status::Status;
 
 /// A node whose success depends on a function that can be run in a single tick
@@ -13,6 +13,9 @@ pub struct Condition<T: Send + Sync + 'static>
 
 	/// Return status of the last tick
 	status: Status,
+
+	/// The unique ID for this node
+	id: IdType,
 }
 impl<T: Send + Sync + 'static> Condition<T>
 {
@@ -24,6 +27,7 @@ impl<T: Send + Sync + 'static> Condition<T>
 		Condition {
 			func: func,
 			status: Status::Running,
+			id: ::node::uid(),
 		}
 	}
 }
@@ -54,6 +58,28 @@ impl<T: Send + Sync + 'static> Node<T> for Condition<T>
 	fn status(&self) -> Status
 	{
 		self.status
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		Iter::new(self, None)
+	}
+
+	fn id(&self) -> IdType
+	{
+		self.id
+	}
+
+	#[cfg(feature = "messages")]
+	fn as_message(&self) -> ::node_message::NodeMsg
+	{
+		::node_message::NodeMsg {
+			id: self.id,
+			num_children: 0,
+			children: Vec::new(),
+			status: self.status() as i32,
+			type_name: "Condition".to_string(),
+		}
 	}
 }
 

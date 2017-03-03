@@ -1,6 +1,6 @@
 //! Nodes that tick their children in parallel
 use std::sync::Arc;
-use node::Node;
+use node::{Node, Iter, IdType};
 use status::Status;
 
 /// Implements a standard Parallel node
@@ -11,13 +11,20 @@ pub struct Parallel<T: Send + Sync + 'static>
 
 	/// Number of nodes required to succeed before this one does
 	required_successes: usize,
+
+	/// The UID of this node
+	id: IdType,
 }
 impl<T: Send + Sync + 'static> Parallel<T>
 {
 	/// Creates a new Parallel node
 	pub fn new(children: Vec<Box<Node<T>>>, required_successes: usize) -> Parallel<T>
 	{
-		Parallel { children: children, required_successes: required_successes }
+		Parallel {
+			children: children,
+			required_successes: required_successes,
+			id: ::node::uid(),
+		}
 	}
 }
 impl<T: Send + Sync + 'static> Node<T> for Parallel<T>
@@ -90,6 +97,30 @@ impl<T: Send + Sync + 'static> Node<T> for Parallel<T>
 		else {
 			// Status is still undetermined
 			Status::Running
+		}
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		let kids: Vec<_> = self.children.iter().map(|x| (*x).iter()).collect();
+		Iter::new(self, Some(kids))
+	}
+
+	fn id(&self) -> IdType
+	{
+		self.id
+	}
+
+
+	#[cfg(feature = "messages")]
+	fn as_message(&self) -> ::node_message::NodeMsg
+	{
+		::node_message::NodeMsg {
+			id: self.id,
+			num_children: self.children.len() as i32,
+			children: self.children.iter().map(|x| (*x).id()).collect(),
+			status: self.status() as i32,
+			type_name: "Parallel".to_string(),
 		}
 	}
 }

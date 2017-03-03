@@ -2,7 +2,7 @@
 use std::thread;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use node::Node;
+use node::{Node, Iter, IdType};
 use status::Status;
 
 /// Implements a standard action node.
@@ -19,6 +19,9 @@ pub struct Action<T: Send + Sync + 'static>
 
 	/// Status returned by the last tick
 	status: Status,
+
+	/// ID used to represent this node in messages
+	id: IdType,
 }
 impl<T: Send + Sync + 'static> Action<T>
 {
@@ -30,6 +33,7 @@ impl<T: Send + Sync + 'static> Action<T>
 			thread_handle: None,
 			flag: Arc::new(AtomicBool::new(false)),
 			status: Status::Running,
+			id: ::node::uid(),
 		}
 	}
 
@@ -103,6 +107,28 @@ impl<T: Send + Sync + 'static> Node<T> for Action<T>
 	fn status(&self) -> Status
 	{
 		self.status
+	}
+
+	fn iter(&self) -> Iter<T>
+	{
+		Iter::new(self, None)
+	}
+
+	fn id(&self) -> IdType
+	{
+		self.id
+	}
+
+	#[cfg(feature = "messages")]
+	fn as_message(&self) -> ::node_message::NodeMsg
+	{
+		::node_message::NodeMsg {
+			id: self.id,
+			num_children: 0,
+			children: Vec::new(),
+			status: self.status() as i32,
+			type_name: "Action".to_string(),
+		}
 	}
 }
 

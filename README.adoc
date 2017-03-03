@@ -1,4 +1,4 @@
-image::https://example.gitlab.com/neachdainn/aspen/badges/master/build.svg[Build Status]
+image::https://gitlab.com/neachdainn/aspen/badges/master/build.svg[Build Status]
 
 = Aspen: Behavior Trees in Rust =
 

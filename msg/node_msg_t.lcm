@@ -10,5 +10,4 @@ struct node_msg_t
 	int32_t status;
 
 	string type_name;
-	string data;
 }

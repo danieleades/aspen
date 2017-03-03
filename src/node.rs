@@ -1,6 +1,9 @@
 use std::sync::Arc;
 use status::Status;
 
+/// Type used for node UIDs
+pub type IdType = u32;
+
 /// Represents a node in the behavior tree
 pub trait Node<T: Send + Sync + 'static>
 {
@@ -22,19 +25,29 @@ pub trait Node<T: Send + Sync + 'static>
 	/// This value will match the return value of the last call to `tick`
 	fn status(&self) -> Status;
 
+	/// Returns an `Iter` that will go over this node and all of its children
 	fn iter(&self) -> Iter<T>;
 
+	/// Returns the node's ID.
+	///
+	/// In theory, this should be unique but I do not know how to enforce that
+	/// in Rust. The function `uid()` will always return a value that it hasn't
+	/// returned before (within the limits of `u32`).
+	fn id(&self) -> IdType;
+
 	#[cfg(feature = "messages")]
-	/// Adds this node's and all of children's information to the vector
-	fn to_message(&self, msg_list: &mut Vec<node_message::NodeMsg>);
+	/// Create a new `NodeMsg` from this node
+	fn as_message(&self) -> ::node_message::NodeMsg;
 }
 
+/// An iterator over a `Node<T>` and all of its children
 pub struct Iter<'a, T: 'static> {
 	me: Option<&'a Node<T>>,
 	upcoming: Option<Vec<Iter<'a, T>>>,
 }
 impl<'a, T: 'static> Iter<'a, T>
 {
+	/// Creates a new `Iter<T>`
 	pub fn new(me: &'a Node<T>, children: Option<Vec<Iter<'a, T>>>) -> Self
 	{
 		Iter { me: Some(me), upcoming: children }
@@ -67,8 +80,7 @@ impl<'a, T: 'static> Iterator for Iter<'a, T>
 	}
 }
 
-#[cfg(feature = "messages")]
-pub fn uid() -> usize
+pub fn uid() -> IdType
 {
 	use std::sync::atomic::{AtomicUsize, Ordering};
 	static COUNTER: AtomicUsize = AtomicUsize::new(0);

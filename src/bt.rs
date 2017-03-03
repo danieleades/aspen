@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::{Instant, Duration};
 use std::thread;
-use node::Node;
+use node::{Node, Iter};
 use status::Status;
 
 /// Main behavior tree struct
@@ -35,6 +35,12 @@ impl<T: Send + Sync + 'static> BehaviorTree<T>
 	pub fn with_shared_state(state: Arc<T>, root: Box<Node<T>>) -> BehaviorTree<T>
 	{
 		BehaviorTree { world: state, root: root }
+	}
+
+	/// Returns an iterator that traverses the whole tree
+	pub fn iter(&self) -> Iter<T>
+	{
+		(*self.root).iter()
 	}
 
 	/// Tick the behavior tree a single time
@@ -84,15 +90,5 @@ impl<T: Send + Sync + 'static> BehaviorTree<T>
 		}
 
 		return status;
-	}
-
-	#[cfg(feature = "messages")]
-	/// Creates a `Vec` with a list of `NodeMsg`s that represent this tree
-	pub fn to_message(&self) -> Vec<node_message::NodeMsg>
-	{
-		let mut messages = Vec::new();
-		(*self.root).to_message(&mut messages);
-
-		messages
 	}
 }

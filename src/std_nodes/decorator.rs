@@ -1,7 +1,7 @@
 //! Nodes that have a single child and whose status is some function of the
 //! child's status.
 use std::sync::Arc;
-use node::{Node, Iter};
+use node::{Node, Iter, IdType};
 use status::Status;
 
 /// Implements a generic Decorator node
@@ -12,6 +12,9 @@ pub struct Decorator<T: Send + Sync + 'static>
 
 	/// Child node
 	child: Box<Node<T>>,
+
+	/// The UID of this node
+	id: IdType,
 }
 impl<T: Send + Sync + 'static> Decorator<T>
 {
@@ -21,6 +24,7 @@ impl<T: Send + Sync + 'static> Decorator<T>
 		Decorator {
 			func: func,
 			child: child,
+			id: ::node::uid(),
 		}
 	}
 }
@@ -52,6 +56,24 @@ impl<T: Send + Sync + 'static> Node<T> for Decorator<T>
 		let child_iter = vec![(*self.child).iter()];
 		Iter::new(self, Some(child_iter))
 	}
+
+	fn id(&self) -> IdType
+	{
+		self.id
+	}
+
+
+	#[cfg(feature = "messages")]
+	fn as_message(&self) -> ::node_message::NodeMsg
+	{
+		::node_message::NodeMsg {
+			id: self.id,
+			num_children: 1,
+			children: vec![(*self.child).id()],
+			status: self.status(),
+			type_name: "Decorator".to_string(),
+		}
+	}
 }
 
 /// Implements a node that will reset its child after the child succeeds or fails
@@ -65,6 +87,9 @@ pub struct Reset<T: Send + Sync + 'static>
 
 	/// Number of times the child has been reset
 	attempts: u32,
+
+	/// The UID of this node
+	id: IdType,
 }
 impl<T: Send + Sync + 'static> Reset<T>
 {
@@ -75,6 +100,7 @@ impl<T: Send + Sync + 'static> Reset<T>
 			child: child,
 			attempt_limit: None,
 			attempts: 0,
+			id: ::node::uid(),
 		}
 	}
 
@@ -131,6 +157,24 @@ impl<T: Send + Sync + 'static> Node<T> for Reset<T>
 		let child_iter = vec![(*self.child).iter()];
 		Iter::new(self, Some(child_iter))
 	}
+
+	fn id(&self) -> IdType
+	{
+		self.id
+	}
+
+
+	#[cfg(feature = "messages")]
+	fn as_message(&self) -> ::node_message::NodeMsg
+	{
+		::node_message::NodeMsg {
+			id: self.id,
+			num_children: 1,
+			children: vec![(*self.child).id()],
+			status: self.status(),
+			type_name: "Reset".to_string(),
+		}
+	}
 }
 
 /// Implements a node that will reset its child after the child fails
@@ -144,6 +188,9 @@ pub struct Retry<T: Send + Sync + 'static>
 
 	/// Number of times the child has been reset
 	attempts: u32,
+
+	/// The UID of this node
+	id: IdType,
 }
 impl<T: Send + Sync + 'static> Retry<T>
 {
@@ -154,6 +201,7 @@ impl<T: Send + Sync + 'static> Retry<T>
 			child: child,
 			attempt_limit: None,
 			attempts: 0,
+			id: ::node::uid(),
 		}
 	}
 
@@ -209,6 +257,24 @@ impl<T: Send + Sync + 'static> Node<T> for Retry<T>
 	{
 		let child_iter = vec![(*self.child).iter()];
 		Iter::new(self, Some(child_iter))
+	}
+
+	fn id(&self) -> IdType
+	{
+		self.id
+	}
+
+
+	#[cfg(feature = "messages")]
+	fn as_message(&self) -> ::node_message::NodeMsg
+	{
+		::node_message::NodeMsg {
+			id: self.id,
+			num_children: 1,
+			children: vec![(*self.child).id()],
+			status: self.status(),
+			type_name: "Retry".to_string(),
+		}
 	}
 }
 

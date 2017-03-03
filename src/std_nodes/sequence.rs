@@ -5,7 +5,7 @@
 //! automatically reset causes a normal Sequence node to have the same behavior
 //! as a Sequence*.
 use std::sync::Arc;
-use node::{Node, Iter};
+use node::{Node, Iter, IdType};
 use status::Status;
 
 /// Implements a Sequence node
@@ -16,6 +16,9 @@ pub struct Sequence<T: Send + Sync + 'static>
 {
 	/// Vector containing the children of this node
 	children: Vec<Box<Node<T>>>,
+
+	/// The UID for this node
+	id: IdType
 }
 impl<T: Send + Sync + 'static> Sequence<T>
 {
@@ -24,6 +27,7 @@ impl<T: Send + Sync + 'static> Sequence<T>
 	{
 		Sequence {
 			children: children,
+			id: ::node::uid(),
 		}
 	}
 }
@@ -75,6 +79,24 @@ impl<T: Send + Sync + 'static> Node<T> for Sequence<T>
 	{
 		let kids: Vec<_> = self.children.iter().map(|x| (*x).iter()).collect();
 		Iter::new(self, Some(kids))
+	}
+
+	fn id(&self) -> IdType
+	{
+		self.id
+	}
+
+
+	#[cfg(feature = "messages")]
+	fn as_message(&self) -> ::node_message::NodeMsg
+	{
+		::node_message::NodeMsg {
+			id: self.id,
+			num_children: self.children.len(),
+			children: self.children.iter().map(|x| (*x).id()).collect(),
+			status: self.status(),
+			type_name: "Sequence".to_string(),
+		}
 	}
 }
 

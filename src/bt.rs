@@ -19,11 +19,19 @@ pub struct BehaviorTree<T: Send + Sync + 'static>
 	/// Root node of the behavior tree
 	root: Box<Node<T>>
 }
+impl<T: Default + Send + Sync + 'static> BehaviorTree<T>
+{
+	/// Create a new behavior tree with a default state
+	pub fn new(root: Box<Node<T>>) -> BehaviorTree<T>
+	{
+		BehaviorTree { root: root, world: Default::default() }
+	}
+}
 impl<T: Send + Sync + 'static> BehaviorTree<T>
 {
 	/// Create a new behavior tree with the given world state object and
 	/// root node.
-	pub fn new(state: T, root: Box<Node<T>>) -> BehaviorTree<T>
+	pub fn with_state(state: T, root: Box<Node<T>>) -> BehaviorTree<T>
 	{
 		BehaviorTree { world: Arc::new(state), root: root }
 	}

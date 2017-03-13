@@ -78,8 +78,8 @@ impl<T: Send + Sync + 'static> BehaviorTree<T>
 		}
 
 		// Figure out the time-per-cycle
-		let cycle_dir_float = 1.0f32 / freq;
-		let cycle_dir = Duration::new(cycle_dir_float as u64, (cycle_dir_float * 1000000000.0f32) as u32);
+		let cycle_dur_float = 1.0f32 / freq;
+		let cycle_dur = Duration::new(cycle_dur_float as u64, (cycle_dur_float * 1000000000.0f32) as u32);
 
 		// Now, run at the given frequency
 		let mut status = Status::Running;
@@ -89,11 +89,11 @@ impl<T: Send + Sync + 'static> BehaviorTree<T>
 			let elapsed = now.elapsed();
 
 			// Sleep for the remaining amount of time
-			if freq != ::std::f32::INFINITY && elapsed < cycle_dir {
+			if freq != ::std::f32::INFINITY && elapsed < cycle_dur {
 				// Really, the Duration would take care of this case. However, specifying a
 				// frequency of infinity means running as fast a possible. In that case, I do
 				// not want to give this thread an opportunity to sleep at all
-				thread::sleep(cycle_dir - elapsed);
+				thread::sleep(cycle_dur - elapsed);
 			}
 		}
 

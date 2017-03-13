@@ -8,10 +8,10 @@ pub enum Status
 	/// nodes in the aspen-gui, I would not have this here. However, there is
 	/// so this extra `Status` is necessary
 	Initialized,
+	/// Represents a node that is currently running
+	Running,
 	/// Represents a node that succeeded
 	Succeeded,
-	/// Represents a node that is currently running or has yet to run
-	Running,
 	/// Represents a node that has failed
 	Failed
 }

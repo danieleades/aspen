@@ -12,6 +12,9 @@ pub struct Parallel<T: Send + Sync + 'static>
 	/// Number of nodes required to succeed before this one does
 	required_successes: usize,
 
+	/// Status of the last tick
+	status: Status,
+
 	/// The UID of this node
 	id: IdType,
 }
@@ -23,6 +26,7 @@ impl<T: Send + Sync + 'static> Parallel<T>
 		Parallel {
 			children: children,
 			required_successes: required_successes,
+			status: Status::Initialized,
 			id: ::node::uid(),
 		}
 	}
@@ -47,22 +51,25 @@ impl<T: Send + Sync + 'static> Node<T> for Parallel<T>
 		}
 
 		// Return a result based on the children
-		if successes >= self.required_successes {
+		self.status = if successes >= self.required_successes {
 			// Enough children succeeded
 			Status::Succeeded
-		}
-		else if failures > (self.children.len() - self.required_successes) {
+		} else if failures > (self.children.len() - self.required_successes) {
 			// Too many children failed - it is impossible to succeed
 			Status::Failed
-		}
-		else {
+		} else {
 			// Status is still undetermined
 			Status::Running
-		}
+		};
+		return self.status;
 	}
 
 	fn reset(&mut self)
 	{
+		// Reset our own status
+		self.status = Status::Initialized;
+
+		// Reset all of our children
 		for ptr in self.children.iter_mut() {
 			(*ptr).reset();
 		}
@@ -70,34 +77,7 @@ impl<T: Send + Sync + 'static> Node<T> for Parallel<T>
 
 	fn status(&self) -> Status
 	{
-		let mut successes = 0;
-		let mut failures = 0;
-
-		// Tick every single child node
-		for ptr in self.children.iter() {
-			let child_status = (*ptr).status();
-
-			if child_status == Status::Succeeded {
-				successes += 1;
-			}
-			else if child_status == Status::Failed {
-				failures += 1;
-			}
-		}
-
-		// Return a result based on the children
-		if successes >= self.required_successes {
-			// Enough children succeeded
-			Status::Succeeded
-		}
-		else if failures > (self.children.len() - self.required_successes) {
-			// Too many children failed - it is impossible to succeed
-			Status::Failed
-		}
-		else {
-			// Status is still undetermined
-			Status::Running
-		}
+		self.status
 	}
 
 	fn iter(&self) -> Iter<T>

@@ -109,7 +109,7 @@ mod test
 		let mut iter = root.iter();
 
 		// root
-		assert_eq!(Status::Running, iter.next().unwrap().status());
+		assert_eq!(Status::Initialized, iter.next().unwrap().status());
 
 		// succeed
 		assert_eq!(Status::Succeeded, iter.next().unwrap().status());

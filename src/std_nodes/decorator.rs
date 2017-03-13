@@ -13,6 +13,9 @@ pub struct Decorator<T: Send + Sync + 'static>
 	/// Child node
 	child: Box<Node<T>>,
 
+	/// Status of the last tick
+	status: Status,
+
 	/// The UID of this node
 	id: IdType,
 }
@@ -24,6 +27,7 @@ impl<T: Send + Sync + 'static> Decorator<T>
 		Decorator {
 			func: func,
 			child: child,
+			status: Status::Initialized,
 			id: ::node::uid(),
 		}
 	}
@@ -37,18 +41,20 @@ impl<T: Send + Sync + 'static> Node<T> for Decorator<T>
 		let child_status = (*self.child).tick(world);
 
 		// Now run it through the function
-		(*self.func)(child_status)
+		self.status = (*self.func)(child_status);
+		return self.status;
 	}
 
 	fn reset(&mut self)
 	{
-		// Reset our child
+		// Reset our child and ourselves
+		self.status = Status::Initialized;
 		(*self.child).reset();
 	}
 
 	fn status(&self) -> Status
 	{
-		(*self.func)(self.child.status())
+		self.status
 	}
 
 	fn iter(&self) -> Iter<T>
@@ -87,6 +93,9 @@ pub struct Reset<T: Send + Sync + 'static>
 	/// Number of times the child has been reset
 	attempts: u32,
 
+	/// Status of the last tick
+	status: Status,
+
 	/// The UID of this node
 	id: IdType,
 }
@@ -99,6 +108,7 @@ impl<T: Send + Sync + 'static> Reset<T>
 			child: child,
 			attempt_limit: None,
 			attempts: 0,
+			status: Status::Initialized,
 			id: ::node::uid(),
 		}
 	}
@@ -110,6 +120,7 @@ impl<T: Send + Sync + 'static> Reset<T>
 			child: child,
 			attempt_limit: Some(limit),
 			attempts: 0,
+			status: Status::Initialized,
 			id: ::node::uid(),
 		}
 	}
@@ -121,8 +132,8 @@ impl<T: Send + Sync + 'static> Node<T> for Reset<T>
 		// First, get the last status of the child
 		let child_last_status = (*self.child).status();
 
-		// If the child wasn't Running, we need to reset it... if the count allows
-		let reset = child_last_status != Status::Running
+		// If the child wasn't Running (or already reset), we need to reset it... if the count allows
+		let reset = child_last_status.is_done()
 		            && (self.attempt_limit == None
 		            || self.attempt_limit.unwrap() > self.attempts);
 		if reset {
@@ -134,12 +145,14 @@ impl<T: Send + Sync + 'static> Node<T> for Reset<T>
 		}
 
 		// Now tick the child
-		(*self.child).tick(world)
+		self.status = (*self.child).tick(world);
+		return self.status;
 	}
 
 	fn reset(&mut self)
 	{
 		// Reset our own status
+		self.status = Status::Initialized;
 		self.attempts = 0;
 
 		// Reset the child
@@ -149,7 +162,7 @@ impl<T: Send + Sync + 'static> Node<T> for Reset<T>
 	fn status(&self) -> Status
 	{
 		// Not sure if this should report Running if we haven't hit our reset limit
-		(*self.child).status()
+		self.status
 	}
 
 	fn iter(&self) -> Iter<T>
@@ -188,6 +201,9 @@ pub struct Retry<T: Send + Sync + 'static>
 	/// Number of times the child has been reset
 	attempts: u32,
 
+	/// Status of the last tick
+	status: Status,
+
 	/// The UID of this node
 	id: IdType,
 }
@@ -200,6 +216,7 @@ impl<T: Send + Sync + 'static> Retry<T>
 			child: child,
 			attempt_limit: None,
 			attempts: 0,
+			status: Status::Initialized,
 			id: ::node::uid(),
 		}
 	}
@@ -211,6 +228,7 @@ impl<T: Send + Sync + 'static> Retry<T>
 			child: child,
 			attempt_limit: Some(limit),
 			attempts: 0,
+			status: Status::Initialized,
 			id: ::node::uid(),
 		}
 	}
@@ -235,12 +253,14 @@ impl<T: Send + Sync + 'static> Node<T> for Retry<T>
 		}
 
 		// Now tick the child
-		(*self.child).tick(world)
+		self.status = (*self.child).tick(world);
+		return self.status;
 	}
 
 	fn reset(&mut self)
 	{
 		// Reset our own status
+		self.status = Status::Initialized;
 		self.attempts = 0;
 
 		// Reset the child
@@ -250,7 +270,7 @@ impl<T: Send + Sync + 'static> Node<T> for Retry<T>
 	fn status(&self) -> Status
 	{
 		// Should this report Running if the child is Failed?
-		(*self.child).status()
+		self.status
 	}
 
 	fn iter(&self) -> Iter<T>
@@ -289,9 +309,10 @@ mod test
 	fn rotate(s: Status) -> Status
 	{
 		match s {
-			Status::Succeeded => Status::Running,
-			Status::Running => Status::Failed,
-			Status::Failed => Status::Succeeded,
+			Status::Initialized => Status::Running,
+			Status::Running => Status::Succeeded,
+			Status::Succeeded => Status::Failed,
+			Status::Failed => Status::Initialized,
 		}
 	}
 
@@ -306,21 +327,21 @@ mod test
 		let mut suc_dec = Decorator::new(suc_child, Box::new(rotate));
 		let suc_status = suc_dec.tick(&world);
 		drop(suc_dec);
-		assert_eq!(suc_status, Status::Running);
+		assert_eq!(suc_status, rotate(Status::Succeeded));
 
 		// Test the second rotation
 		let run_child = Box::new(YesTick::new(Status::Running));
 		let mut run_dec = Decorator::new(run_child, Box::new(rotate));
 		let run_status = run_dec.tick(&world);
 		drop(run_dec);
-		assert_eq!(run_status, Status::Failed);
+		assert_eq!(run_status, rotate(Status::Running));
 
 		// Test the final rotation
 		let fail_child = Box::new(YesTick::new(Status::Failed));
 		let mut fail_dec = Decorator::new(fail_child, Box::new(rotate));
 		let fail_status = fail_dec.tick(&world);
 		drop(fail_dec);
-		assert_eq!(fail_status, Status::Succeeded);
+		assert_eq!(fail_status, rotate(Status::Failed));
 	}
 
 	#[test]

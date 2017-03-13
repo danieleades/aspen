@@ -26,7 +26,7 @@ impl<T: Send + Sync + 'static> Condition<T>
 	{
 		Condition {
 			func: func,
-			status: Status::Running,
+			status: Status::Initialized,
 			id: ::node::uid(),
 		}
 	}
@@ -36,7 +36,7 @@ impl<T: Send + Sync + 'static> Node<T> for Condition<T>
 	fn tick(&mut self, world: &Arc<T>) -> Status
 	{
 		// If we've already run, don't run again
-		if self.status != Status::Running {
+		if self.status.is_done() {
 			return self.status;
 		}
 
@@ -47,12 +47,12 @@ impl<T: Send + Sync + 'static> Node<T> for Condition<T>
 			Status::Failed
 		};
 
-		self.status
+		return self.status;
 	}
 
 	fn reset(&mut self)
 	{
-		self.status = Status::Running;
+		self.status = Status::Initialized;
 	}
 
 	fn status(&self) -> Status

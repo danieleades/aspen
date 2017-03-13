@@ -17,6 +17,9 @@ pub struct Selector<T: Send + Sync + 'static>
 	/// Vector containing the children of this node
 	children: Vec<Box<Node<T>>>,
 
+	/// Status of the last tick
+	status: Status,
+
 	/// The UID of this node
 	id: IdType,
 }
@@ -27,6 +30,7 @@ impl<T: Send + Sync + 'static> Selector<T>
 	{
 		Selector {
 			children: children,
+			status: Status::Initialized,
 			id: ::node::uid(),
 		}
 	}
@@ -39,12 +43,14 @@ impl<T: Send + Sync + 'static> Node<T> for Selector<T>
 		for ptr in self.children.iter_mut() {
 			let child_status = (*ptr).tick(world);
 			if child_status != Status::Failed {
+				self.status = child_status;
 				return child_status;
 			}
 		}
 
 		// All children failed
-		Status::Failed
+		self.status = Status::Failed;
+		return self.status;
 	}
 
 	fn reset(&mut self)

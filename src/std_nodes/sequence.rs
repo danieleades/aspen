@@ -17,8 +17,11 @@ pub struct Sequence<T: Send + Sync + 'static>
 	/// Vector containing the children of this node
 	children: Vec<Box<Node<T>>>,
 
+	/// The status of the last tick
+	status: Status,
+
 	/// The UID for this node
-	id: IdType
+	id: IdType,
 }
 impl<T: Send + Sync + 'static> Sequence<T>
 {
@@ -27,6 +30,7 @@ impl<T: Send + Sync + 'static> Sequence<T>
 	{
 		Sequence {
 			children: children,
+			status: Status::Initialized,
 			id: ::node::uid(),
 		}
 	}
@@ -42,16 +46,21 @@ impl<T: Send + Sync + 'static> Node<T> for Sequence<T>
 
 			// Then decide if we're done ticking based on our children
 			if child_status != Status::Succeeded {
+				self.status = child_status;
 				return child_status;
 			}
 		}
 
 		// All children succeeded
-		Status::Succeeded
+		self.status = Status::Succeeded;
+		return self.status;
 	}
 
 	fn reset(&mut self)
 	{
+		// Reset our own status
+		self.status = Status::Initialized;
+
 		// Reset all of our children
 		for ptr in self.children.iter_mut() {
 			(*ptr).reset();
@@ -60,19 +69,7 @@ impl<T: Send + Sync + 'static> Node<T> for Sequence<T>
 
 	fn status(&self) -> Status
 	{
-		// See what the status of all the children are
-		for ptr in self.children.iter() {
-			// First, tick the current child to get its status
-			let child_status = (*ptr).status();
-
-			// Then decide if we're done ticking based on our children
-			if child_status != Status::Succeeded {
-				return child_status;
-			}
-		}
-
-		// All children succeeded
-		Status::Succeeded
+		self.status
 	}
 
 	fn iter(&self) -> Iter<T>

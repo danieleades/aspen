@@ -32,7 +32,7 @@ impl<T: Send + Sync + 'static> Action<T>
 			func: func,
 			thread_handle: None,
 			flag: Arc::new(AtomicBool::new(false)),
-			status: Status::Running,
+			status: Status::Initialized,
 			id: ::node::uid(),
 		}
 	}
@@ -67,12 +67,13 @@ impl<T: Send + Sync + 'static> Node<T> for Action<T>
 	fn tick(&mut self, world: &Arc<T>) -> Status
 	{
 		// First, check to see if we've already ran
-		if self.status != Status::Running {
+		if self.status.is_done() {
 			return self.status;
 		}
 
 		// We haven't already run, so start up a new thread if needed
 		if self.thread_handle.is_none() {
+			assert_eq!(self.status, Status::Initialized);
 			self.start_thread(world);
 		}
 
@@ -86,8 +87,7 @@ impl<T: Send + Sync + 'static> Node<T> for Action<T>
 			handle.unwrap().join().unwrap()
 		};
 
-		// Return our status
-		self.status
+		return self.status;
 	}
 
 	fn reset(&mut self)
@@ -96,7 +96,7 @@ impl<T: Send + Sync + 'static> Node<T> for Action<T>
 		// the thread due to time constraints, but it seems to me that it would be better
 		// to avoid potential bugs that come from a node only looking like its been
 		// fully reset.
-		self.status = Status::Running;
+		self.status = Status::Initialized;
 		self.flag.store(false, Ordering::SeqCst);
 		if self.thread_handle.is_some() {
 			let handle = self.thread_handle.take();

@@ -35,7 +35,7 @@ impl<T: Send + Sync + 'static> Node<T> for NoTick<T>
 
 	fn status(&self) -> Status
 	{
-		Status::Running
+		Status::Initialized
 	}
 
 	fn iter(&self) -> Iter<T>
@@ -104,7 +104,11 @@ impl<T: Send + Sync + 'static> Node<T> for YesTick<T>
 
 	fn status(&self) -> Status
 	{
-		self.status
+		if self.ticked {
+			self.status
+		} else {
+			Status::Initialized
+		}
 	}
 
 	fn iter(&self) -> Iter<T>
@@ -154,6 +158,9 @@ pub struct CountedTick<T: Send + Sync + 'static>
 	/// Whether or not the node can be ticked more than the given count
 	exact: bool,
 
+	/// Marker to show if this has been ticked at all (used for `self.tick()`)
+	ticked: bool,
+
 	/// The UID of this node
 	id: IdType,
 }
@@ -167,6 +174,7 @@ impl<T: Send + Sync + 'static> CountedTick<T>
 			status: status,
 			count: count,
 			exact: exact,
+			ticked: false,
 			id: ::node::uid(),
 		}
 	}
@@ -179,18 +187,24 @@ impl<T: Send + Sync + 'static> Node<T> for CountedTick<T>
 			panic!("Node was ticked too many times");
 		}
 
+		self.ticked = true;
+
 		self.count = self.count.saturating_sub(1);
 		self.status
 	}
 
 	fn reset(&mut self)
 	{
-		// No-op
+		self.ticked = false;
 	}
 
 	fn status(&self) -> Status
 	{
-		self.status
+		if self.ticked {
+			self.status
+		} else {
+			Status::Initialized
+		}
 	}
 
 	fn iter(&self) -> Iter<T>

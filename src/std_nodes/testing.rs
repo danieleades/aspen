@@ -31,7 +31,7 @@ impl<T: Send + Sync + 'static> Internals<T> for NoTick<T>
 		// No-op
 	}
 
-	fn type_name() -> &'static str
+	fn type_name(&self) -> &'static str
 	{
 		"NoTick"
 	}
@@ -74,7 +74,7 @@ impl<T: Send + Sync + 'static> Internals<T> for YesTick<T>
 		self.ticked = false;
 	}
 
-	fn type_name() -> &'static str
+	fn type_name(&self) -> &'static str
 	{
 		"YesTick"
 	}
@@ -138,6 +138,11 @@ impl<T: Send + Sync + 'static> Internals<T> for CountedTick<T>
 	fn reset(&mut self)
 	{
 		self.ticked = false;
+	}
+
+	fn type_name(&self) -> &'static str
+	{
+		"CountedTick"
 	}
 }
 impl<T: Send + Sync + 'static> Drop for CountedTick<T>

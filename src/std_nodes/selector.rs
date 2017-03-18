@@ -60,7 +60,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Selector<T>
 		self.children.iter().map(|c| c.id()).collect()
 	}
 
-	fn type_name() -> &'static str
+	fn type_name(&self) -> &'static str
 	{
 		"Selector"
 	}

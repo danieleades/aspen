@@ -31,7 +31,7 @@ impl<T: Send + Sync + 'static> Internals<T> for AlwaysFail<T>
 		// No-op
 	}
 
-	fn type_name() -> &'static str
+	fn type_name(&self) -> &'static str
 	{
 		"AlwaysFail"
 	}
@@ -64,7 +64,7 @@ impl<T: Send + Sync + 'static> Internals<T> for AlwaysSucceed<T>
 		// No-op
 	}
 
-	fn type_name() -> &'static str
+	fn type_name(&self) -> &'static str
 	{
 		"AlwaysSucceed"
 	}
@@ -97,7 +97,7 @@ impl<T: Send + Sync + 'static> Internals<T> for AlwaysRunning<T>
 		// No-op
 	}
 
-	fn type_name() -> &'static str
+	fn type_name(&self) -> &'static str
 	{
 		"AlwaysRunning"
 	}

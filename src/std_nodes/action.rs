@@ -95,7 +95,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Action<T>
 		}
 	}
 
-	fn type_name() -> &'static str
+	fn type_name(&self) -> &'static str
 	{
 		"Action"
 	}

@@ -49,7 +49,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Decorator<T>
 		vec![self.child.id()]
 	}
 
-	fn type_name() -> &'static str
+	fn type_name(&self) -> &'static str
 	{
 		"Decorator"
 	}
@@ -133,7 +133,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Reset<T>
 		vec![self.child.id()]
 	}
 
-	fn type_name() -> &'static str
+	fn type_name(&self) -> &'static str
 	{
 		"Reset"
 	}
@@ -217,7 +217,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Retry<T>
 		vec![self.child.id()]
 	}
 
-	fn type_name() -> &'static str
+	fn type_name(&self) -> &'static str
 	{
 		"Retry"
 	}

@@ -4,83 +4,8 @@ use status::Status;
 /// Type used for node UIDs
 pub type IdType = i32;
 
-/// Represents a node in the behavior tree
-pub trait Node<T: Send + Sync + 'static>
-{
-	/// Ticks the node a single time.
-	///
-	/// NOTE: Nodes should not automatically reset themselves. This was chosen
-	/// in order to remove the need for special "star" nodes. Having the nodes
-	/// automatically reset can be simulated using a decorator node.
-	fn tick(&mut self, world: &Arc<T>) -> Status;
-
-	/// Resets the node.
-	///
-	/// This sets the node to a state that is identical to a newly constructed
-	/// node.
-	fn reset(&mut self);
-
-	/// Gets the current status of the node.
-	///
-	/// This value will match the return value of the last call to `tick`
-	fn status(&self) -> Status;
-
-	/// Returns an `Iter` that will go over this node and all of its children
-	fn iter(&self) -> Iter<T>;
-
-	/// Returns the node's ID.
-	///
-	/// In theory, this should be unique but I do not know how to enforce that
-	/// in Rust. The function `uid()` will always return a value that it hasn't
-	/// returned before (within the limits of `IdType`).
-	fn id(&self) -> IdType;
-
-	#[cfg(feature = "messages")]
-	/// Create a new `NodeMsg` from this node
-	fn as_message(&self) -> ::node_message::NodeMsg;
-}
-
-/// An iterator over a `Node<T>` and all of its children
-pub struct Iter<'a, T: 'static> {
-	me: Option<&'a Node<T>>,
-	upcoming: Option<Vec<Iter<'a, T>>>,
-}
-impl<'a, T: 'static> Iter<'a, T>
-{
-	/// Creates a new `Iter<T>`
-	pub fn new(me: &'a Node<T>, children: Option<Vec<Iter<'a, T>>>) -> Self
-	{
-		Iter { me: Some(me), upcoming: children }
-	}
-}
-impl<'a, T: 'static> Iterator for Iter<'a, T>
-{
-	type Item = &'a Node<T>;
-
-	fn next(&mut self) -> Option<Self::Item>
-	{
-		// First, check if we've iterated over our own node
-		if self.me.is_some() {
-			return self.me.take();
-		}
-
-		// If we haven't, try iterating over the children
-		if let Some(ref mut v) = self.upcoming {
-			// We have children, so try to get values from them in order
-			for child_iter in v.iter_mut() {
-				let next = child_iter.next();
-				if next.is_some() {
-					return next;
-				}
-			}
-		}
-
-		// Either no children or they're all exhausted
-		None
-	}
-}
-
-pub fn uid() -> IdType
+/// Returns a new UID
+fn uid() -> IdType
 {
 	use std::sync::atomic::{AtomicIsize, Ordering, ATOMIC_ISIZE_INIT};
 	static COUNTER: AtomicIsize = ATOMIC_ISIZE_INIT;
@@ -88,39 +13,103 @@ pub fn uid() -> IdType
 	COUNTER.fetch_add(1, Ordering::SeqCst) as IdType
 }
 
-#[cfg(test)]
-mod test
+
+/// Represents a generic node
+///
+/// The logic of the node is controlled by the supplied `NodeInternals` object
+pub struct Node<T: Send + Sync + 'static>
 {
-	use std::sync::atomic::AtomicBool;
-	use super::Node;
-	use status::Status;
-	use std_nodes::*;
+	/// This node's UID
+	id: IdType,
 
-	#[test]
-	fn iter_test()
+	/// The status from the last time this node was ticked
+	status: Status,
+
+	/// The internal logic for this node
+	internals: Box<NodeInternals<T>>,
+}
+impl<T: Send + Sync + 'static> Node<T>
+{
+	/// Creates a new `Node` with the given `NodeInternals`
+	pub fn new<I: NodeInternals<T>>(internals: I) -> Node<T>
 	{
-		let succeed = Box::new(AlwaysSucceed::new());
-		let running = Box::new(AlwaysRunning::new());
-		let fail = Box::new(AlwaysFail::new());
-
-		let children: Vec<Box<Node<AtomicBool>>> = vec![succeed, running, fail];
-
-		let root = Sequence::new(children);
-		let mut iter = root.iter();
-
-		// root
-		assert_eq!(Status::Initialized, iter.next().unwrap().status());
-
-		// succeed
-		assert_eq!(Status::Succeeded, iter.next().unwrap().status());
-
-		// running
-		assert_eq!(Status::Running, iter.next().unwrap().status());
-
-		// fail
-		assert_eq!(Status::Failed, iter.next().unwrap().status());
-
-		// fin
-		assert!(iter.next().is_none());
+		Node {
+			id: uid(),
+			status: Status::Initialized,
+			internals: Box::new(internals),
+		}
 	}
+
+	/// Ticks the node a single time
+	pub fn tick(&mut self, world: &Arc<T>) -> Status
+	{
+		self.status = (*self.internals).tick(world);
+		return self.status;
+	}
+
+	/// Resets the node
+	pub fn reset(&mut self)
+	{
+		self.status = Status::Initialized;
+		(*self.internals).reset();
+	}
+
+	/// Gets the current status of the node.
+	///
+	/// This value will match the return value of the last call to `tick`
+	pub fn status(&self) -> Status
+	{
+		self.status
+	}
+
+	/// Returns this node's ID>
+	///
+	/// In theory, this should be universally unique. However, a UUID is too
+	/// heavy for how this ID will be used, so it will only be unique within
+	/// a given process.
+	pub fn id(&self) -> IdType
+	{
+		self.id
+	}
+
+	#[cfg(feature = "messages")]
+	/// Creates a new `NodeMsg` from this node
+	pub fn as_message(&self) -> ::node_message::NodeMsg
+	{
+		let child_ids = (*self.internals).children_ids();
+
+		::node_message::NodeMsg {
+			id: self.id,
+			num_children: child_ids.len() as i32,
+			children: child_ids,
+			status: self.status as i32,
+			type_name: (*self.internals).type_name().to_string(),
+		}
+	}
+}
+
+/// The internal logic of a node
+pub trait NodeInternals<T: Send + Sync + 'static>
+{
+	/// Ticks the internal state of the node a single time.
+	///
+	/// NOTE: Nodes should not automatically reset themselves. This was chosen
+	/// in order to remove the need for special "star" nodes. Having the nodes
+	/// automatically reset can be simulated using a decorator node.
+	fn tick(&mut self, world: &Arc<T>) -> Status;
+
+	/// Resets the internal state of the node.
+	///
+	/// This sets the node to a state that is identical to a newly constructed
+	/// node.
+	fn reset(&mut self);
+
+	/// Returns a vector of references to this node's children
+	fn children(&self) -> Vec<&Node<T>>;
+
+	/// Returns a vector of this node's childrens' node IDs
+	fn children_ids(&self) -> Vec<IdType>;
+
+	/// Returns the name of the node type as a string literal
+	fn type_name() -> &str;
 }

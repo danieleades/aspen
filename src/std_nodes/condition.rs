@@ -44,7 +44,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Condition<T>
 		// No-op
 	}
 
-	fn type_name() -> &str
+	fn type_name() -> &'static str
 	{
 		"Condition"
 	}

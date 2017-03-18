@@ -63,7 +63,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Sequence<T>
 		self.children.iter().map(|c| c.id()).collect()
 	}
 
-	fn type_name() -> &str
+	fn type_name() -> &'static str
 	{
 		"Sequence"
 	}

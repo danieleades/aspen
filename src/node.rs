@@ -117,5 +117,5 @@ pub trait Internals<T: Send + Sync + 'static>
 	}
 
 	/// Returns the name of the node type as a string literal
-	fn type_name() -> &str;
+	fn type_name() -> &'static str;
 }

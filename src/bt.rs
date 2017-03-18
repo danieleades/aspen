@@ -68,13 +68,20 @@ impl<T: Send + Sync + 'static> BehaviorTree<T>
 	/// This makes no guarantees that it will run at the specified frequency. If a single
 	/// tick takes longer than the alloted tick time, then it will do so silently.
 	///
+	/// If the hook is supplied, it will be run after every tick.
+	///
 	/// NOTE: The only time this will return `Status::Running` is if the frequency is zero
 	/// and the behavior tree is running after the first tick.
-	pub fn run(&mut self, freq: f32) -> Status
+	pub fn run(&mut self, freq: f32, hook: Option<&Fn(&BehaviorTree<T>) -> ()>) -> Status
 	{
 		// Deal with the "special" case of a zero frequency
 		if freq == 0.0f32 {
-			return self.tick();
+			let status = self.tick();
+			if hook.is_some() {
+				hook.unwrap()(self);
+			}
+
+			return status;
 		}
 
 		// Figure out the time-per-cycle
@@ -85,7 +92,12 @@ impl<T: Send + Sync + 'static> BehaviorTree<T>
 		let mut status = Status::Running;
 		while status == Status::Running {
 			let now = Instant::now();
+
 			status = self.tick();
+			if hook.is_some() {
+				hook.unwrap()(self);
+			}
+
 			let elapsed = now.elapsed();
 
 			// Sleep for the remaining amount of time

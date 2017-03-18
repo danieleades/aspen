@@ -7,7 +7,6 @@ pub use node_message::NodeMsg;
 pub use node::uid;
 pub use status::Status;
 pub use node::Node;
-pub use node::NodeInternals;
 pub use bt::BehaviorTree;
 
 #[cfg(feature = "messages")]

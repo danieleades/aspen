@@ -16,7 +16,7 @@ fn uid() -> IdType
 
 /// Represents a generic node
 ///
-/// The logic of the node is controlled by the supplied `NodeInternals` object
+/// The logic of the node is controlled by the supplied `Internals` object
 pub struct Node<T: Send + Sync + 'static>
 {
 	/// This node's UID
@@ -26,12 +26,12 @@ pub struct Node<T: Send + Sync + 'static>
 	status: Status,
 
 	/// The internal logic for this node
-	internals: Box<NodeInternals<T>>,
+	internals: Box<Internals<T>>,
 }
 impl<T: Send + Sync + 'static> Node<T>
 {
-	/// Creates a new `Node` with the given `NodeInternals`
-	pub fn new<I: NodeInternals<T>>(internals: I) -> Node<T>
+	/// Creates a new `Node` with the given `Internals`
+	pub fn new<I: Internals<T>>(internals: I) -> Node<T>
 	{
 		Node {
 			id: uid(),
@@ -89,7 +89,7 @@ impl<T: Send + Sync + 'static> Node<T>
 }
 
 /// The internal logic of a node
-pub trait NodeInternals<T: Send + Sync + 'static>
+pub trait Internals<T: Send + Sync + 'static>
 {
 	/// Ticks the internal state of the node a single time.
 	///

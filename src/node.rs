@@ -105,10 +105,16 @@ pub trait Internals<T: Send + Sync + 'static>
 	fn reset(&mut self);
 
 	/// Returns a vector of references to this node's children
-	fn children(&self) -> Vec<&Node<T>>;
+	fn children(&self) -> Vec<&Node<T>>
+	{
+		Vec::new()
+	}
 
 	/// Returns a vector of this node's childrens' node IDs
-	fn children_ids(&self) -> Vec<IdType>;
+	fn children_ids(&self) -> Vec<IdType>
+	{
+		Vec::new()
+	}
 
 	/// Returns the name of the node type as a string literal
 	fn type_name() -> &str;

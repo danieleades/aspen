@@ -5,7 +5,7 @@
 //! automatically reset causes a normal Sequence node to have the same behavior
 //! as a Sequence*.
 use std::sync::Arc;
-use node::{Node, Iter, IdType};
+use node::{Node, Internals, IdType};
 use status::Status;
 
 /// Implements a Sequence node
@@ -15,85 +15,57 @@ use status::Status;
 pub struct Sequence<T: Send + Sync + 'static>
 {
 	/// Vector containing the children of this node
-	children: Vec<Box<Node<T>>>,
-
-	/// The status of the last tick
-	status: Status,
-
-	/// The UID for this node
-	id: IdType,
+	children: Vec<Node<T>>,
 }
 impl<T: Send + Sync + 'static> Sequence<T>
 {
 	/// Creates a new Sequence node from a vector of Nodes
-	pub fn new(children: Vec<Box<Node<T>>>) -> Sequence<T>
+	pub fn new(children: Vec<Box<Node<T>>>) -> Node<T>
 	{
-		Sequence {
-			children: children,
-			status: Status::Initialized,
-			id: ::node::uid(),
-		}
+		let internals = Sequence { children: children };
+		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Node<T> for Sequence<T>
+impl<T: Send + Sync + 'static> Internals<T> for Sequence<T>
 {
 	fn tick(&mut self, world: &Arc<T>) -> Status
 	{
 		// Tick the children in order
-		for ptr in self.children.iter_mut() {
+		for child in self.children.iter_mut() {
 			// First, tick the current child to get its status
-			let child_status = (*ptr).tick(world);
+			let child_status = child.tick(world);
 
 			// Then decide if we're done ticking based on our children
 			if child_status != Status::Succeeded {
-				self.status = child_status;
 				return child_status;
 			}
 		}
 
 		// All children succeeded
-		self.status = Status::Succeeded;
-		return self.status;
+		Status::Succeeded
 	}
 
 	fn reset(&mut self)
 	{
-		// Reset our own status
-		self.status = Status::Initialized;
-
 		// Reset all of our children
-		for ptr in self.children.iter_mut() {
-			(*ptr).reset();
+		for child in self.children.iter_mut() {
+			child.reset();
 		}
 	}
 
-	fn status(&self) -> Status
+	fn children(&self) -> Vec<&Node<T>>
 	{
-		self.status
+		self.children.iter().collect()
 	}
 
-	fn iter(&self) -> Iter<T>
+	fn children_ids(&self) -> Vec<IdType>
 	{
-		let kids: Vec<_> = self.children.iter().map(|x| (*x).iter()).collect();
-		Iter::new(self, Some(kids))
+		self.children.iter().map(|c| c.id()).collect()
 	}
 
-	fn id(&self) -> IdType
+	fn type_name() -> &str
 	{
-		self.id
-	}
-
-
-	#[cfg(feature = "messages")]
-	fn as_message(&self) -> ::node_message::NodeMsg
-	{
-		::node_message::NodeMsg {
-			id: self.id,
-			num_children: self.children.len() as i32,
-			children: self.children.iter().map(|x| (*x).id()).collect(),
-			status: self.status() as i32,
-			type_name: "Sequence".to_string(),
-		}
+		"Sequence"
 	}
 }
 
@@ -113,15 +85,9 @@ mod test
 		let world = Arc::new(AtomicBool::new(true));
 
 		// Set up the nodes
-		let succeed = Box::new(YesTick::new(Status::Succeeded));
-		let running = Box::new(YesTick::new(Status::Running));
-		let err = Box::new(NoTick::new());
-
-		// Put them all in a vector
-		let mut children: Vec<Box<Node<AtomicBool>>> = Vec::new();
-		children.push(succeed);
-		children.push(running);
-		children.push(err);
+		let children = vec![YesTick::new(Status::Succeeded),
+		                    YesTick::new(Status::Running),
+		                    NoTick::new()];
 
 		// Add them to a sequence node
 		let mut seq = Sequence::new(children);
@@ -143,13 +109,8 @@ mod test
 		let world = Arc::new(AtomicBool::new(true));
 
 		// Set up the nodes
-		let first = Box::new(YesTick::new(Status::Succeeded));
-		let second = Box::new(YesTick::new(Status::Succeeded));
-
-		// Put them all in a vector
-		let mut children: Vec<Box<Node<AtomicBool>>> = Vec::new();
-		children.push(first);
-		children.push(second);
+		let children = vec![YesTick::new(Status::Succeeded),
+		                    YesTick::new(Status::Succeeded)];
 
 		// Add them to a sequence node
 		let mut seq = Sequence::new(children);
@@ -171,15 +132,9 @@ mod test
 		let world = Arc::new(AtomicBool::new(true));
 
 		// Set up the nodes
-		let succeed = Box::new(YesTick::new(Status::Succeeded));
-		let fail = Box::new(YesTick::new(Status::Failed));
-		let err = Box::new(NoTick::new());
-
-		// Put them all in a vector
-		let mut children: Vec<Box<Node<AtomicBool>>> = Vec::new();
-		children.push(succeed);
-		children.push(fail);
-		children.push(err);
+		let children = vec![YesTick::new(Status::Succeeded),
+		                    YesTick::new(Status::Failed),
+		                    NoTick::new()];
 
 		// Add them to a sequence node
 		let mut seq = Sequence::new(children);

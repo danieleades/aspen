@@ -1,7 +1,7 @@
 //! Nodes that have a single child and whose status is some function of the
 //! child's status.
 use std::sync::Arc;
-use node::{Node, Iter, IdType};
+use node::{Node, Internals, IdType};
 use status::Status;
 
 /// Implements a generic Decorator node
@@ -11,73 +11,47 @@ pub struct Decorator<T: Send + Sync + 'static>
 	func: Box<Fn(Status) -> Status>,
 
 	/// Child node
-	child: Box<Node<T>>,
-
-	/// Status of the last tick
-	status: Status,
-
-	/// The UID of this node
-	id: IdType,
+	child: Node<T>,
 }
 impl<T: Send + Sync + 'static> Decorator<T>
 {
 	/// Creates a new Decorator node with the given child and function
-	pub fn new(child: Box<Node<T>>, func: Box<Fn(Status) -> Status>) -> Decorator<T>
+	pub fn new(child: Node<T>, func: Box<Fn(Status) -> Status>) -> Node<T>
 	{
-		Decorator {
-			func: func,
-			child: child,
-			status: Status::Initialized,
-			id: ::node::uid(),
-		}
+		let internals = Decorator { func: func, child: child };
+		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Node<T> for Decorator<T>
+impl<T: Send + Sync + 'static> Internals<T> for Decorator<T>
 {
 	fn tick(&mut self, world: &Arc<T>) -> Status
 	{
 		// If the child has already run, this shouldn't change results since it will
 		// just return its last status
-		let child_status = (*self.child).tick(world);
+		let child_status = self.child.tick(world);
 
 		// Now run it through the function
-		self.status = (*self.func)(child_status);
-		return self.status;
+		(*self.func)(child_status);
 	}
 
 	fn reset(&mut self)
 	{
-		// Reset our child and ourselves
-		self.status = Status::Initialized;
-		(*self.child).reset();
+		self.child.reset();
 	}
 
-	fn status(&self) -> Status
+	fn children(&self) -> Vec<&Node<T>>
 	{
-		self.status
+		vec![&self.child]
 	}
 
-	fn iter(&self) -> Iter<T>
+	fn children_ids(&self) -> Vec<IdType>
 	{
-		let child_iter = vec![(*self.child).iter()];
-		Iter::new(self, Some(child_iter))
+		vec![self.child.id()]
 	}
 
-	fn id(&self) -> IdType
+	fn type_name() -> &str
 	{
-		self.id
-	}
-
-	#[cfg(feature = "messages")]
-	fn as_message(&self) -> ::node_message::NodeMsg
-	{
-		::node_message::NodeMsg {
-			id: self.id,
-			num_children: 1,
-			children: vec![(*self.child).id()],
-			status: self.status() as i32,
-			type_name: "Decorator".to_string(),
-		}
+		"Decorator"
 	}
 }
 
@@ -85,52 +59,44 @@ impl<T: Send + Sync + 'static> Node<T> for Decorator<T>
 pub struct Reset<T: Send + Sync + 'static>
 {
 	/// Child node
-	child: Box<Node<T>>,
+	child: Node<T>,
 
 	/// Optional number of times to do the reset
 	attempt_limit: Option<u32>,
 
 	/// Number of times the child has been reset
 	attempts: u32,
-
-	/// Status of the last tick
-	status: Status,
-
-	/// The UID of this node
-	id: IdType,
 }
 impl<T: Send + Sync + 'static> Reset<T>
 {
 	/// Creates a new Reset node that will reset the child indefinitely
-	pub fn new(child: Box<Node<T>>) -> Reset<T>
+	pub fn new(child: Node<T>) -> Node<T>
 	{
-		Reset {
+		let internals = Reset {
 			child: child,
 			attempt_limit: None,
 			attempts: 0,
-			status: Status::Initialized,
-			id: ::node::uid(),
-		}
+		};
+		Node::new(internals)
 	}
 
 	/// Creates a new Reset node that will reset the child a limited number of times
-	pub fn with_limit(child: Box<Node<T>>, limit: u32) -> Reset<T>
+	pub fn with_limit(child: Node<T>, limit: u32) -> Node<T>
 	{
-		Reset {
+		let internals = Reset {
 			child: child,
 			attempt_limit: Some(limit),
 			attempts: 0,
-			status: Status::Initialized,
-			id: ::node::uid(),
-		}
+		};
+		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Node<T> for Reset<T>
+impl<T: Send + Sync + 'static> Internals<T> for Reset<T>
 {
 	fn tick(&mut self, world: &Arc<T>) -> Status
 	{
 		// First, get the last status of the child
-		let child_last_status = (*self.child).status();
+		let child_last_status = self.child.status();
 
 		// If the child wasn't Running (or already reset), we need to reset it... if the count allows
 		let reset = child_last_status.is_done()
@@ -140,52 +106,36 @@ impl<T: Send + Sync + 'static> Node<T> for Reset<T>
 			// Theoretically, this could overflow if there is no attempt limit. But, if
 			// does, then the user really didn't plan - the node should never tick that
 			// many times in any situation.
-			(*self.child).reset();
+			self.child.reset();
 			self.attempts += 1;
 		}
 
 		// Now tick the child
-		self.status = (*self.child).tick(world);
-		return self.status;
+		self.child.tick(world);
 	}
 
 	fn reset(&mut self)
 	{
-		// Reset our own status
-		self.status = Status::Initialized;
+		// Reset our attempt count
 		self.attempts = 0;
 
 		// Reset the child
-		(*self.child).reset();
+		self.child.reset();
 	}
 
-	fn status(&self) -> Status
+	fn children(&self) -> Vec<&Node<T>>
 	{
-		// Not sure if this should report Running if we haven't hit our reset limit
-		self.status
+		vec![&self.child]
 	}
 
-	fn iter(&self) -> Iter<T>
+	fn children_ids(&self) -> Vec<IdType>
 	{
-		let child_iter = vec![(*self.child).iter()];
-		Iter::new(self, Some(child_iter))
+		vec![self.child.id()]
 	}
 
-	fn id(&self) -> IdType
+	fn type_name() -> &str
 	{
-		self.id
-	}
-
-	#[cfg(feature = "messages")]
-	fn as_message(&self) -> ::node_message::NodeMsg
-	{
-		::node_message::NodeMsg {
-			id: self.id,
-			num_children: 1,
-			children: vec![(*self.child).id()],
-			status: self.status() as i32,
-			type_name: "Reset".to_string(),
-		}
+		"Reset"
 	}
 }
 
@@ -193,52 +143,44 @@ impl<T: Send + Sync + 'static> Node<T> for Reset<T>
 pub struct Retry<T: Send + Sync + 'static>
 {
 	/// Child node
-	child: Box<Node<T>>,
+	child: Node<T>,
 
 	/// Optional number of times to do the reset
 	attempt_limit: Option<u32>,
 
 	/// Number of times the child has been reset
 	attempts: u32,
-
-	/// Status of the last tick
-	status: Status,
-
-	/// The UID of this node
-	id: IdType,
 }
 impl<T: Send + Sync + 'static> Retry<T>
 {
 	/// Creates a new Retry node that will retry the child indefinitely
-	pub fn new(child: Box<Node<T>>) -> Retry<T>
+	pub fn new(child: Node<T>) -> Node<T>
 	{
-		Retry {
+		let internals = Retry {
 			child: child,
 			attempt_limit: None,
 			attempts: 0,
-			status: Status::Initialized,
-			id: ::node::uid(),
-		}
+		};
+		Node::new(internals)
 	}
 
 	/// Creates a new Retry node that will retry the child a limited number of times
-	pub fn with_limit(child: Box<Node<T>>, limit: u32) -> Retry<T>
+	pub fn with_limit(child: Node<T>, limit: u32) -> Node<T>
 	{
-		Retry {
+		let internals = Retry {
 			child: child,
 			attempt_limit: Some(limit),
 			attempts: 0,
-			status: Status::Initialized,
-			id: ::node::uid(),
-		}
+		};
+		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Node<T> for Retry<T>
+impl<T: Send + Sync + 'static> Internals<T> for Retry<T>
 {
 	fn tick(&mut self, world: &Arc<T>) -> Status
 	{
 		// First, get the last status of the child
-		let child_last_status = (*self.child).status();
+		let child_last_status = self.child.status();
 
 		// If the child failed, we need to retry it... if the count allows
 		let reset = child_last_status == Status::Failed
@@ -248,52 +190,36 @@ impl<T: Send + Sync + 'static> Node<T> for Retry<T>
 			// Theoretically, this could overflow if there is no attempt limit. But, if
 			// does, then the user really didn't plan - the node should never tick that
 			// many times in any situation.
-			(*self.child).reset();
+			self.child.reset();
 			self.attempts += 1;
 		}
 
 		// Now tick the child
-		self.status = (*self.child).tick(world);
-		return self.status;
+		self.child.tick(world);
 	}
 
 	fn reset(&mut self)
 	{
 		// Reset our own status
-		self.status = Status::Initialized;
 		self.attempts = 0;
 
 		// Reset the child
-		(*self.child).reset();
+		self.child.reset();
 	}
 
-	fn status(&self) -> Status
+	fn children(&self) -> Vec<&Node<T>>
 	{
-		// Should this report Running if the child is Failed?
-		self.status
+		vec![&self.child]
 	}
 
-	fn iter(&self) -> Iter<T>
+	fn children_ids(&self) -> Vec<IdType>
 	{
-		let child_iter = vec![(*self.child).iter()];
-		Iter::new(self, Some(child_iter))
+		vec![self.child.id()]
 	}
 
-	fn id(&self) -> IdType
+	fn type_name() -> &str
 	{
-		self.id
-	}
-
-	#[cfg(feature = "messages")]
-	fn as_message(&self) -> ::node_message::NodeMsg
-	{
-		::node_message::NodeMsg {
-			id: self.id,
-			num_children: 1,
-			children: vec![(*self.child).id()],
-			status: self.status() as i32,
-			type_name: "Retry".to_string(),
-		}
+		"Retry"
 	}
 }
 
@@ -323,21 +249,21 @@ mod test
 		let world = Arc::new(AtomicBool::new(true));
 
 		// Test the first rotation
-		let suc_child = Box::new(YesTick::new(Status::Succeeded));
+		let suc_child = YesTick::new(Status::Succeeded);
 		let mut suc_dec = Decorator::new(suc_child, Box::new(rotate));
 		let suc_status = suc_dec.tick(&world);
 		drop(suc_dec);
 		assert_eq!(suc_status, rotate(Status::Succeeded));
 
 		// Test the second rotation
-		let run_child = Box::new(YesTick::new(Status::Running));
+		let run_child = YesTick::new(Status::Running);
 		let mut run_dec = Decorator::new(run_child, Box::new(rotate));
 		let run_status = run_dec.tick(&world);
 		drop(run_dec);
 		assert_eq!(run_status, rotate(Status::Running));
 
 		// Test the final rotation
-		let fail_child = Box::new(YesTick::new(Status::Failed));
+		let fail_child = YesTick::new(Status::Failed);
 		let mut fail_dec = Decorator::new(fail_child, Box::new(rotate));
 		let fail_status = fail_dec.tick(&world);
 		drop(fail_dec);
@@ -352,7 +278,7 @@ mod test
 
 		// No good way to test ticking indefinitely, so we'll tick a
 		// specified number of times
-		let child = Box::new(CountedTick::new(Status::Succeeded, 5, true));
+		let child = CountedTick::new(Status::Succeeded, 5, true);
 		let mut reset = Reset::with_limit(child, 5);
 
 		// Tick it five times
@@ -375,7 +301,7 @@ mod test
 		let world = Arc::new(AtomicBool::new(true));
 
 		// We can test to make sure that the "indefinite" only ticks while failed
-		let child1 = Box::new(CountedTick::new(Status::Succeeded, 1, true));
+		let child1 = CountedTick::new(Status::Succeeded, 1, true);
 		let mut retry1 = Retry::new(child1);
 		let mut status1 = Status::Running;
 		while status1 == Status::Running { status1 = retry1.tick(&world); };
@@ -383,7 +309,7 @@ mod test
 		assert_eq!(status1, Status::Succeeded);
 
 		// No good way to test infinite retrying, so use a limited number
-		let child2 = Box::new(CountedTick::new(Status::Failed, 5, true));
+		let child2 = CountedTick::new(Status::Failed, 5, true);
 		let mut retry2 = Retry::with_limit(child2, 5);
 		let mut status2 = Status::Running;
 		for _ in 0..5 { status2 = retry2.tick(&world); }

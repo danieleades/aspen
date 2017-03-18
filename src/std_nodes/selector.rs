@@ -71,7 +71,6 @@ mod test
 {
 	use std::sync::Arc;
 	use std::sync::atomic::AtomicBool;
-	use node::Node;
 	use status::Status;
 	use std_nodes::*;
 

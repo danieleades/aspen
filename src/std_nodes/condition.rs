@@ -26,11 +26,6 @@ impl<T: Send + Sync + 'static> Internals<T> for Condition<T>
 {
 	fn tick(&mut self, world: &Arc<T>) -> Status
 	{
-		// If we've already run, don't run again
-		if self.status().is_done() {
-			return self.status();
-		}
-
 		// Otherwise, run the function
 		if (*self.func)(world) {
 			Status::Succeeded
@@ -55,7 +50,6 @@ mod test
 {
 	use std::sync::Arc;
 	use std::sync::atomic::{AtomicBool, Ordering};
-	use node::Node;
 	use status::Status;
 	use std_nodes::*;
 

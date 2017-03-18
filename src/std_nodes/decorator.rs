@@ -31,7 +31,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Decorator<T>
 		let child_status = self.child.tick(world);
 
 		// Now run it through the function
-		(*self.func)(child_status);
+		(*self.func)(child_status)
 	}
 
 	fn reset(&mut self)
@@ -111,7 +111,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Reset<T>
 		}
 
 		// Now tick the child
-		self.child.tick(world);
+		self.child.tick(world)
 	}
 
 	fn reset(&mut self)
@@ -195,7 +195,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Retry<T>
 		}
 
 		// Now tick the child
-		self.child.tick(world);
+		self.child.tick(world)
 	}
 
 	fn reset(&mut self)
@@ -228,7 +228,6 @@ mod test
 {
 	use std::sync::Arc;
 	use std::sync::atomic::AtomicBool;
-	use node::Node;
 	use status::Status;
 	use std_nodes::*;
 

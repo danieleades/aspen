@@ -20,7 +20,7 @@ pub struct Sequence<T: Send + Sync + 'static>
 impl<T: Send + Sync + 'static> Sequence<T>
 {
 	/// Creates a new Sequence node from a vector of Nodes
-	pub fn new(children: Vec<Box<Node<T>>>) -> Node<T>
+	pub fn new(children: Vec<Node<T>>) -> Node<T>
 	{
 		let internals = Sequence { children: children };
 		Node::new(internals)
@@ -74,7 +74,6 @@ mod test
 {
 	use std::sync::Arc;
 	use std::sync::atomic::AtomicBool;
-	use node::Node;
 	use status::Status;
 	use std_nodes::*;
 

@@ -85,7 +85,6 @@ mod test
 {
 	use std::sync::Arc;
 	use std::sync::atomic::AtomicBool;
-	use node::Node;
 	use status::Status;
 	use std_nodes::*;
 
@@ -93,12 +92,12 @@ mod test
 	fn success()
 	{
 		let world = Arc::new(AtomicBool::new(true));
-		let mut children = vec![YesTick::new(Status::Succeeded),
-		                        YesTick::new(Status::Succeeded),
-		                        YesTick::new(Status::Running),
-		                        YesTick::new(Status::Running),
-		                        YesTick::new(Status::Failed),
-		                        YesTick::new(Status::Failed)];
+		let children = vec![YesTick::new(Status::Succeeded),
+		                    YesTick::new(Status::Succeeded),
+		                    YesTick::new(Status::Running),
+		                    YesTick::new(Status::Running),
+		                    YesTick::new(Status::Failed),
+		                    YesTick::new(Status::Failed)];
 		let mut parallel = Parallel::new(children, 2);
 		let status = parallel.tick(&world);
 		drop(parallel);

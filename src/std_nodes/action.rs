@@ -14,6 +14,9 @@ pub struct Action<T: Send + Sync + 'static>
 	/// Handle to the thread running the function
 	thread_handle: Option<thread::JoinHandle<Status>>,
 
+	/// Value that the thread returned
+	thread_res: Option<bool>,
+
 	/// Flag that notifies this object that the work thread has completed
 	flag: Arc<AtomicBool>,
 }
@@ -25,6 +28,7 @@ impl<T: Send + Sync + 'static> Action<T>
 		let internals = Action {
 			func: func,
 			thread_handle: None,
+			thread_res: None,
 			flag: Arc::new(AtomicBool::new(false)),
 		};
 
@@ -61,13 +65,12 @@ impl<T: Send + Sync + 'static> Internals<T> for Action<T>
 	fn tick(&mut self, world: &Arc<T>) -> Status
 	{
 		// First, check to see if we've already ran
-		if self.status().is_done() {
-			return self.status();
+		if self.thread_res.is_some() {
+			return if self.thread_res.unwrap() { Status::Succeeded } else { Status::Failed };
 		}
 
 		// We haven't already run, so start up a new thread if needed
 		if self.thread_handle.is_none() {
-			assert_eq!(self.status(), Status::Initialized);
 			self.start_thread(world);
 		}
 
@@ -107,7 +110,6 @@ mod test
 	use std::sync::Arc;
 	use std::sync::atomic::{AtomicUsize, Ordering};
 	use std::{thread, time};
-	use node::Node;
 	use status::Status;
 	use std_nodes::*;
 

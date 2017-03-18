@@ -31,7 +31,7 @@ pub struct Node<T: Send + Sync + 'static>
 impl<T: Send + Sync + 'static> Node<T>
 {
 	/// Creates a new `Node` with the given `Internals`
-	pub fn new<I: Internals<T>>(internals: I) -> Node<T>
+	pub fn new<I: Internals<T> + 'static>(internals: I) -> Node<T>
 	{
 		Node {
 			id: uid(),

@@ -5,7 +5,7 @@
 //! automatically reset causes a normal Selector node to have the same behavior
 //! as a Selector*.
 use std::sync::Arc;
-use node::{Node, Iter, IdType};
+use node::{Node, Internals, IdType};
 use status::Status;
 
 /// Implements a Selector node
@@ -15,56 +15,24 @@ use status::Status;
 pub struct Selector<T: Send + Sync + 'static>
 {
 	/// Vector containing the children of this node
-	children: Vec<Box<Node<T>>>,
-
-	/// Status of the last tick
-	status: Status,
-
-	/// The UID of this node
-	id: IdType,
+	children: Vec<Node<T>>,
 }
 impl<T: Send + Sync + 'static> Selector<T>
 {
 	/// Creates a new Selector node from a vector of Nodes
-	pub fn new(children: Vec<Box<Node<T>>>) -> Selector<T>
+	pub fn new(children: Vec<Node<T>>) -> Node<T>
 	{
-		Selector {
-			children: children,
-			status: Status::Initialized,
-			id: ::node::uid(),
-		}
+		let internals = Selector { children: children };
+		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Node<T> for Selector<T>
+impl<T: Send + Sync + 'static> Internals<T> for Selector<T>
 {
 	fn tick(&mut self, world: &Arc<T>) -> Status
 	{
 		// Tick the children in order
-		for ptr in self.children.iter_mut() {
-			let child_status = (*ptr).tick(world);
-			if child_status != Status::Failed {
-				self.status = child_status;
-				return child_status;
-			}
-		}
-
-		// All children failed
-		self.status = Status::Failed;
-		return self.status;
-	}
-
-	fn reset(&mut self)
-	{
-		// Reset all of our children
-		for ptr in self.children.iter_mut() {
-			(*ptr).reset();
-		}
-	}
-
-	fn status(&self) -> Status
-	{
-		for ptr in self.children.iter() {
-			let child_status = (*ptr).status();
+		for child in self.children.iter_mut() {
+			let child_status = child.tick(world);
 			if child_status != Status::Failed {
 				return child_status;
 			}
@@ -74,28 +42,27 @@ impl<T: Send + Sync + 'static> Node<T> for Selector<T>
 		Status::Failed
 	}
 
-	fn iter(&self) -> Iter<T>
+	fn reset(&mut self)
 	{
-		let kids: Vec<_> = self.children.iter().map(|x| (*x).iter()).collect();
-		Iter::new(self, Some(kids))
-	}
-
-	fn id(&self) -> IdType
-	{
-		self.id
-	}
-
-
-	#[cfg(feature = "messages")]
-	fn as_message(&self) -> ::node_message::NodeMsg
-	{
-		::node_message::NodeMsg {
-			id: self.id,
-			num_children: self.children.len() as i32,
-			children: self.children.iter().map(|x| (*x).id()).collect(),
-			status: self.status() as i32,
-			type_name: "Selector".to_string(),
+		// Reset all of our children
+		for child in self.children.iter_mut() {
+			child.reset();
 		}
+	}
+
+	fn children(&self) -> Vec<&Node<T>>
+	{
+		self.children.iter().collect()
+	}
+
+	fn children_ids(&self) -> Vec<IdType>
+	{
+		self.children.iter().map(|c| c.id()).collect()
+	}
+
+	fn type_name(&self) -> &'static str
+	{
+		"Selector"
 	}
 }
 
@@ -104,7 +71,6 @@ mod test
 {
 	use std::sync::Arc;
 	use std::sync::atomic::AtomicBool;
-	use node::Node;
 	use status::Status;
 	use std_nodes::*;
 
@@ -115,15 +81,9 @@ mod test
 		let world = Arc::new(AtomicBool::new(true));
 
 		// Set up the nodes
-		let failed = Box::new(YesTick::new(Status::Failed));
-		let running = Box::new(YesTick::new(Status::Running));
-		let err = Box::new(NoTick::new());
-
-		// Put them all in a vector
-		let mut children: Vec<Box<Node<AtomicBool>>> = Vec::new();
-		children.push(failed);
-		children.push(running);
-		children.push(err);
+		let children = vec![YesTick::new(Status::Failed),
+		                    YesTick::new(Status::Running),
+		                    NoTick::new()];
 
 		// Add them to a seluence node
 		let mut sel = Selector::new(children);
@@ -145,15 +105,9 @@ mod test
 		let world = Arc::new(AtomicBool::new(true));
 
 		// Set up the nodes
-		let failed = Box::new(YesTick::new(Status::Failed));
-		let success = Box::new(YesTick::new(Status::Succeeded));
-		let err = Box::new(NoTick::new());
-
-		// Put them all in a vector
-		let mut children: Vec<Box<Node<AtomicBool>>> = Vec::new();
-		children.push(failed);
-		children.push(success);
-		children.push(err);
+		let children = vec![YesTick::new(Status::Failed),
+		                    YesTick::new(Status::Succeeded),
+		                    NoTick::new()];
 
 		// Add them to a seluence node
 		let mut sel = Selector::new(children);
@@ -175,15 +129,10 @@ mod test
 		let world = Arc::new(AtomicBool::new(true));
 
 		// Set up the nodes
-		let first = Box::new(YesTick::new(Status::Failed));
-		let second = Box::new(YesTick::new(Status::Failed));
+		let children = vec![YesTick::new(Status::Failed),
+		                    YesTick::new(Status::Failed)];
 
-		// Put them all in a vector
-		let mut children: Vec<Box<Node<AtomicBool>>> = Vec::new();
-		children.push(first);
-		children.push(second);
-
-		// Add them to a seluence node
+		// Add them to a selector node
 		let mut sel = Selector::new(children);
 
 		// Tick the seluence

@@ -2,26 +2,24 @@
 use std::sync::Arc;
 use std::marker::PhantomData;
 use std::ops::Drop;
-use node::{Node, Iter, IdType};
+use node::{Node, Internals};
 use status::Status;
 
 /// Implements a node that will panic upon being ticked
 pub struct NoTick<T: Send + Sync + 'static>
 {
 	pd: PhantomData<T>,
-
-	/// The UID for this node
-	id: IdType,
 }
 impl<T: Send + Sync + 'static> NoTick<T>
 {
 	/// Construct a new NoTick node
-	pub fn new() -> NoTick<T>
+	pub fn new() -> Node<T>
 	{
-		NoTick { pd: PhantomData, id: ::node::uid() }
+		let internals = NoTick { pd: PhantomData };
+		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Node<T> for NoTick<T>
+impl<T: Send + Sync + 'static> Internals<T> for NoTick<T>
 {
 	fn tick(&mut self, _: &Arc<T>) -> Status
 	{
@@ -33,32 +31,9 @@ impl<T: Send + Sync + 'static> Node<T> for NoTick<T>
 		// No-op
 	}
 
-	fn status(&self) -> Status
+	fn type_name(&self) -> &'static str
 	{
-		Status::Initialized
-	}
-
-	fn iter(&self) -> Iter<T>
-	{
-		Iter::new(self, None)
-	}
-
-	fn id(&self) -> IdType
-	{
-		self.id
-	}
-
-
-	#[cfg(feature = "messages")]
-	fn as_message(&self) -> ::node_message::NodeMsg
-	{
-		::node_message::NodeMsg {
-			id: self.id,
-			num_children: 0,
-			children: Vec::new(),
-			status: self.status() as i32,
-			type_name: "NoTick".to_string(),
-		}
+		"NoTick"
 	}
 }
 
@@ -72,24 +47,21 @@ pub struct YesTick<T: Send + Sync + 'static>
 
 	/// Whether or not this node has been ticked
 	ticked: bool,
-
-	/// The UID for this node
-	id: IdType,
 }
 impl<T: Send + Sync + 'static> YesTick<T>
 {
 	/// Create a new YesTick that always has the given status
-	pub fn new(status: Status) -> YesTick<T>
+	pub fn new(status: Status) -> Node<T>
 	{
-		YesTick {
+		let internals = YesTick {
 			pd: PhantomData,
 			status: status,
 			ticked: false,
-			id: ::node::uid(),
-		}
+		};
+		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Node<T> for YesTick<T>
+impl<T: Send + Sync + 'static> Internals<T> for YesTick<T>
 {
 	fn tick(&mut self, _: &Arc<T>) -> Status
 	{
@@ -102,36 +74,9 @@ impl<T: Send + Sync + 'static> Node<T> for YesTick<T>
 		self.ticked = false;
 	}
 
-	fn status(&self) -> Status
+	fn type_name(&self) -> &'static str
 	{
-		if self.ticked {
-			self.status
-		} else {
-			Status::Initialized
-		}
-	}
-
-	fn iter(&self) -> Iter<T>
-	{
-		Iter::new(self, None)
-	}
-
-	fn id(&self) -> IdType
-	{
-		self.id
-	}
-
-
-	#[cfg(feature = "messages")]
-	fn as_message(&self) -> ::node_message::NodeMsg
-	{
-		::node_message::NodeMsg {
-			id: self.id,
-			num_children: 0,
-			children: Vec::new(),
-			status: self.status() as i32,
-			type_name: "YesTick".to_string(),
-		}
+		"YesTick"
 	}
 }
 impl<T: Send + Sync + 'static> Drop for YesTick<T>
@@ -160,26 +105,23 @@ pub struct CountedTick<T: Send + Sync + 'static>
 
 	/// Marker to show if this has been ticked at all (used for `self.tick()`)
 	ticked: bool,
-
-	/// The UID of this node
-	id: IdType,
 }
 impl<T: Send + Sync + 'static> CountedTick<T>
 {
 	/// Creates a new CountedTick that always has the given status
-	pub fn new(status: Status, count: u32, exact: bool) -> CountedTick<T>
+	pub fn new(status: Status, count: u32, exact: bool) -> Node<T>
 	{
-		CountedTick {
+		let internals = CountedTick {
 			pd: PhantomData,
 			status: status,
 			count: count,
 			exact: exact,
 			ticked: false,
-			id: ::node::uid(),
-		}
+		};
+		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Node<T> for CountedTick<T>
+impl<T: Send + Sync + 'static> Internals<T> for CountedTick<T>
 {
 	fn tick(&mut self, _: &Arc<T>) -> Status
 	{
@@ -198,36 +140,9 @@ impl<T: Send + Sync + 'static> Node<T> for CountedTick<T>
 		self.ticked = false;
 	}
 
-	fn status(&self) -> Status
+	fn type_name(&self) -> &'static str
 	{
-		if self.ticked {
-			self.status
-		} else {
-			Status::Initialized
-		}
-	}
-
-	fn iter(&self) -> Iter<T>
-	{
-		Iter::new(self, None)
-	}
-
-	fn id(&self) -> IdType
-	{
-		self.id
-	}
-
-
-	#[cfg(feature = "messages")]
-	fn as_message(&self) -> ::node_message::NodeMsg
-	{
-		::node_message::NodeMsg {
-			id: self.id,
-			num_children: 0,
-			children: Vec::new(),
-			status: self.status() as i32,
-			type_name: "CountedTick".to_string(),
-		}
+		"CountedTick"
 	}
 }
 impl<T: Send + Sync + 'static> Drop for CountedTick<T>

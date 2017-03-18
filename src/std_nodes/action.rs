@@ -2,7 +2,7 @@
 use std::thread;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use node::{Node, Iter, IdType};
+use node::{Node, Internals};
 use status::Status;
 
 /// Implements a standard action node.
@@ -14,27 +14,25 @@ pub struct Action<T: Send + Sync + 'static>
 	/// Handle to the thread running the function
 	thread_handle: Option<thread::JoinHandle<Status>>,
 
+	/// Value that the thread returned
+	thread_res: Option<bool>,
+
 	/// Flag that notifies this object that the work thread has completed
 	flag: Arc<AtomicBool>,
-
-	/// Status returned by the last tick
-	status: Status,
-
-	/// ID used to represent this node in messages
-	id: IdType,
 }
 impl<T: Send + Sync + 'static> Action<T>
 {
 	/// Creates a new Action node
-	pub fn new(func: Arc<Fn(Arc<T>) -> bool + Send + Sync>) -> Action<T>
+	pub fn new(func: Arc<Fn(Arc<T>) -> bool + Send + Sync>) -> Node<T>
 	{
-		Action {
+		let internals = Action {
 			func: func,
 			thread_handle: None,
+			thread_res: None,
 			flag: Arc::new(AtomicBool::new(false)),
-			status: Status::Initialized,
-			id: ::node::uid(),
-		}
+		};
+
+		Node::new(internals)
 	}
 
 	/// Launches a new worker thread to run the function
@@ -62,32 +60,29 @@ impl<T: Send + Sync + 'static> Action<T>
 		self.thread_handle = Some(thread_handle);
 	}
 }
-impl<T: Send + Sync + 'static> Node<T> for Action<T>
+impl<T: Send + Sync + 'static> Internals<T> for Action<T>
 {
 	fn tick(&mut self, world: &Arc<T>) -> Status
 	{
 		// First, check to see if we've already ran
-		if self.status.is_done() {
-			return self.status;
+		if self.thread_res.is_some() {
+			return if self.thread_res.unwrap() { Status::Succeeded } else { Status::Failed };
 		}
 
 		// We haven't already run, so start up a new thread if needed
 		if self.thread_handle.is_none() {
-			assert_eq!(self.status, Status::Initialized);
 			self.start_thread(world);
 		}
 
 		// There is a thread running - get its status
-		self.status = if !self.flag.load(Ordering::SeqCst) {
+		if !self.flag.load(Ordering::SeqCst) {
 			Status::Running
 		} else {
 			// The thread is done, so load up its status. We also know that
 			// we have a thread handle at this point
 			let handle = self.thread_handle.take();
 			handle.unwrap().join().unwrap()
-		};
-
-		return self.status;
+		}
 	}
 
 	fn reset(&mut self)
@@ -96,7 +91,6 @@ impl<T: Send + Sync + 'static> Node<T> for Action<T>
 		// the thread due to time constraints, but it seems to me that it would be better
 		// to avoid potential bugs that come from a node only looking like its been
 		// fully reset.
-		self.status = Status::Initialized;
 		self.flag.store(false, Ordering::SeqCst);
 		if self.thread_handle.is_some() {
 			let handle = self.thread_handle.take();
@@ -104,31 +98,9 @@ impl<T: Send + Sync + 'static> Node<T> for Action<T>
 		}
 	}
 
-	fn status(&self) -> Status
+	fn type_name(&self) -> &'static str
 	{
-		self.status
-	}
-
-	fn iter(&self) -> Iter<T>
-	{
-		Iter::new(self, None)
-	}
-
-	fn id(&self) -> IdType
-	{
-		self.id
-	}
-
-	#[cfg(feature = "messages")]
-	fn as_message(&self) -> ::node_message::NodeMsg
-	{
-		::node_message::NodeMsg {
-			id: self.id,
-			num_children: 0,
-			children: Vec::new(),
-			status: self.status() as i32,
-			type_name: "Action".to_string(),
-		}
+		"Action"
 	}
 }
 
@@ -138,7 +110,6 @@ mod test
 	use std::sync::Arc;
 	use std::sync::atomic::{AtomicUsize, Ordering};
 	use std::{thread, time};
-	use node::Node;
 	use status::Status;
 	use std_nodes::*;
 

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::{Instant, Duration};
 use std::thread;
-use node::{Node, Iter};
+use node::Node;
 use status::Status;
 
 /// Main behavior tree struct
@@ -45,10 +45,10 @@ impl<T: Send + Sync + 'static> BehaviorTree<T>
 		BehaviorTree { world: state, root: root }
 	}
 
-	/// Returns an iterator that traverses the whole tree
-	pub fn iter(&self) -> Iter<T>
+	/// Returns a reference to the root node
+	pub fn root(&self) -> &Node<T>
 	{
-		(*self.root).iter()
+		&self.root
 	}
 
 	/// Tick the behavior tree a single time

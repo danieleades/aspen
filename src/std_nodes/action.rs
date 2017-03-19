@@ -23,10 +23,10 @@ pub struct Action
 impl Action
 {
 	/// Creates a new Action node
-	pub fn new(func: Arc<Fn() -> bool + Send + Sync>) -> Node
+	pub fn new<F: Fn() -> bool + Send + Sync + 'static>(func: F) -> Node
 	{
 		let internals = Action {
-			func: func,
+			func: Arc::new(func),
 			thread_handle: None,
 			thread_res: None,
 			flag: Arc::new(AtomicBool::new(false)),

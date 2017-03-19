@@ -1,52 +1,26 @@
-use std::sync::Arc;
 use std::time::{Instant, Duration};
 use std::thread;
 use node::Node;
 use status::Status;
 
 /// Main behavior tree struct
-///
-/// Unless one avoids Action nodes, the world state (of type T) will be used in
-/// multiple threads. Hence, all of the required markers on T.
-pub struct BehaviorTree<T: Send + Sync + 'static>
+pub struct BehaviorTree
 {
-	/// Represents the state of the world
-	///
-	/// A mutable reference to this object will be passed to all nodes when
-	/// they are ticked.
-	world: Arc<T>,
-
 	/// Root node of the behavior tree
-	root: Box<Node<T>>
+	root: Box<Node>
 }
-impl<T: Default + Send + Sync + 'static> BehaviorTree<T>
+impl BehaviorTree
 {
 	/// Create a new behavior tree with a default state
-	pub fn new(root: Box<Node<T>>) -> BehaviorTree<T>
+	pub fn new(root: Box<Node>) -> BehaviorTree
 	{
-		BehaviorTree { root: root, world: Default::default() }
+		BehaviorTree { root: root }
 	}
 }
-impl<T: Send + Sync + 'static> BehaviorTree<T>
+impl BehaviorTree
 {
-	/// Create a new behavior tree with the given world state object and
-	/// root node.
-	pub fn with_state(state: T, root: Box<Node<T>>) -> BehaviorTree<T>
-	{
-		BehaviorTree { world: Arc::new(state), root: root }
-	}
-
-	/// Create a new behavior tree with the given world state object and
-	/// root node.
-	///
-	/// This method allows the caller to retain a copy of the world state
-	pub fn with_shared_state(state: Arc<T>, root: Box<Node<T>>) -> BehaviorTree<T>
-	{
-		BehaviorTree { world: state, root: root }
-	}
-
 	/// Returns a reference to the root node
-	pub fn root(&self) -> &Node<T>
+	pub fn root(&self) -> &Node
 	{
 		&self.root
 	}
@@ -54,7 +28,7 @@ impl<T: Send + Sync + 'static> BehaviorTree<T>
 	/// Tick the behavior tree a single time
 	pub fn tick(&mut self) -> Status
 	{
-		(*self.root).tick(&self.world)
+		(*self.root).tick()
 	}
 
 	/// Reset the tree so that it can be run again
@@ -68,11 +42,12 @@ impl<T: Send + Sync + 'static> BehaviorTree<T>
 	/// This makes no guarantees that it will run at the specified frequency. If a single
 	/// tick takes longer than the alloted tick time, then it will do so silently.
 	///
-	/// If the hook is supplied, it will be run after every tick.
+	/// If the hook is supplied, it will be run after every tick. A reference to this
+	/// behavior tree will be supplied as an argument.
 	///
 	/// NOTE: The only time this will return `Status::Running` is if the frequency is zero
 	/// and the behavior tree is running after the first tick.
-	pub fn run(&mut self, freq: f32, hook: Option<&Fn(&BehaviorTree<T>) -> ()>) -> Status
+	pub fn run(&mut self, freq: f32, hook: Option<&Fn(&BehaviorTree) -> ()>) -> Status
 	{
 		// Deal with the "special" case of a zero frequency
 		if freq == 0.0f32 {

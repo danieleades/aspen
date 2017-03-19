@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use status::Status;
 
 /// Type used for node UIDs
@@ -17,7 +16,7 @@ fn uid() -> IdType
 /// Represents a generic node
 ///
 /// The logic of the node is controlled by the supplied `Internals` object
-pub struct Node<T: Send + Sync + 'static>
+pub struct Node
 {
 	/// This node's UID
 	id: IdType,
@@ -26,12 +25,12 @@ pub struct Node<T: Send + Sync + 'static>
 	status: Status,
 
 	/// The internal logic for this node
-	internals: Box<Internals<T>>,
+	internals: Box<Internals>,
 }
-impl<T: Send + Sync + 'static> Node<T>
+impl Node
 {
 	/// Creates a new `Node` with the given `Internals`
-	pub fn new<I: Internals<T> + 'static>(internals: I) -> Node<T>
+	pub fn new<I: Internals + 'static>(internals: I) -> Node
 	{
 		Node {
 			id: uid(),
@@ -41,9 +40,9 @@ impl<T: Send + Sync + 'static> Node<T>
 	}
 
 	/// Ticks the node a single time
-	pub fn tick(&mut self, world: &Arc<T>) -> Status
+	pub fn tick(&mut self) -> Status
 	{
-		self.status = (*self.internals).tick(world);
+		self.status = (*self.internals).tick();
 		return self.status;
 	}
 
@@ -89,14 +88,14 @@ impl<T: Send + Sync + 'static> Node<T>
 }
 
 /// The internal logic of a node
-pub trait Internals<T: Send + Sync + 'static>
+pub trait Internals
 {
 	/// Ticks the internal state of the node a single time.
 	///
 	/// NOTE: Nodes should not automatically reset themselves. This was chosen
 	/// in order to remove the need for special "star" nodes. Having the nodes
 	/// automatically reset can be simulated using a decorator node.
-	fn tick(&mut self, world: &Arc<T>) -> Status;
+	fn tick(&mut self) -> Status;
 
 	/// Resets the internal state of the node.
 	///
@@ -105,7 +104,7 @@ pub trait Internals<T: Send + Sync + 'static>
 	fn reset(&mut self);
 
 	/// Returns a vector of references to this node's children
-	fn children(&self) -> Vec<&Node<T>>
+	fn children(&self) -> Vec<&Node>
 	{
 		Vec::new()
 	}

@@ -6,10 +6,10 @@ use node::{Node, Internals};
 use status::Status;
 
 /// Implements a standard action node.
-pub struct Action<T: Send + Sync + 'static>
+pub struct Action
 {
 	/// Function that will be run to determine the status
-	func: Arc<Fn(Arc<T>) -> bool + Send + Sync>,
+	func: Arc<Fn() -> bool + Send + Sync>,
 
 	/// Handle to the thread running the function
 	thread_handle: Option<thread::JoinHandle<Status>>,
@@ -20,10 +20,10 @@ pub struct Action<T: Send + Sync + 'static>
 	/// Flag that notifies this object that the work thread has completed
 	flag: Arc<AtomicBool>,
 }
-impl<T: Send + Sync + 'static> Action<T>
+impl Action
 {
 	/// Creates a new Action node
-	pub fn new(func: Arc<Fn(Arc<T>) -> bool + Send + Sync>) -> Node<T>
+	pub fn new(func: Arc<Fn() -> bool + Send + Sync>) -> Node
 	{
 		let internals = Action {
 			func: func,
@@ -36,7 +36,7 @@ impl<T: Send + Sync + 'static> Action<T>
 	}
 
 	/// Launches a new worker thread to run the function
-	fn start_thread(&mut self, world: &Arc<T>)
+	fn start_thread(&mut self)
 	{
 		// Make sure our flag is set to false
 		self.flag.store(false, Ordering::SeqCst);
@@ -44,10 +44,9 @@ impl<T: Send + Sync + 'static> Action<T>
 		// Then boot up the thread
 		let flag_clone = self.flag.clone();
 		let func_clone = self.func.clone();
-		let world_clone = world.clone();
 		let thread_handle = thread::spawn(move || {
 			// Run the function
-			let res = (func_clone)(world_clone);
+			let res = (func_clone)();
 
 			// Set the flag so the main thread knows we're done
 			flag_clone.store(true, Ordering::SeqCst);
@@ -60,9 +59,9 @@ impl<T: Send + Sync + 'static> Action<T>
 		self.thread_handle = Some(thread_handle);
 	}
 }
-impl<T: Send + Sync + 'static> Internals<T> for Action<T>
+impl Internals for Action
 {
-	fn tick(&mut self, world: &Arc<T>) -> Status
+	fn tick(&mut self) -> Status
 	{
 		// First, check to see if we've already ran
 		if self.thread_res.is_some() {
@@ -71,7 +70,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Action<T>
 
 		// We haven't already run, so start up a new thread if needed
 		if self.thread_handle.is_none() {
-			self.start_thread(world);
+			self.start_thread();
 		}
 
 		// There is a thread running - get its status
@@ -108,36 +107,32 @@ impl<T: Send + Sync + 'static> Internals<T> for Action<T>
 mod test
 {
 	use std::sync::Arc;
-	use std::sync::atomic::{AtomicUsize, Ordering};
-	use std::{thread, time};
+	use std::sync::mpsc;
+	use std::sync::mpsc::{Sender, Receiver};
+	use std::time;
 	use status::Status;
 	use std_nodes::*;
-
-	fn action_func(world: Arc<AtomicUsize>) -> bool
-	{
-		while world.load(Ordering::SeqCst) == 0 {
-			thread::yield_now();
-		}
-
-		world.load(Ordering::SeqCst) == 1
-	}
 
 	#[test]
 	fn failure()
 	{
-		let world = Arc::new(AtomicUsize::new(0));
-		let mut action = Action::new(Arc::new(action_func));
+		let (tx, rx): (Sender<bool>, Receiver<bool>) = mpsc::channel();
+
+		let mut action = Action::new(Arc::new(move || {
+			// Block until the message is sent, then return its value
+			rx.recv()
+		}));
 
 		for _ in 0..5 {
-			assert_eq!(action.tick(&world), Status::Running);
+			assert_eq!(action.tick(), Status::Running);
 			thread::sleep(time::Duration::from_millis(100));
 		}
 
-		world.store(2, Ordering::SeqCst);
+		tx.send(false).unwrap();
 
 		let mut status = Status::Running;
 		while status == Status::Running {
-			status = action.tick(&world);
+			status = action.tick();
 		}
 
 		assert_eq!(status, Status::Failed);
@@ -146,19 +141,23 @@ mod test
 	#[test]
 	fn success()
 	{
-		let world = Arc::new(AtomicUsize::new(0));
-		let mut action = Action::new(Arc::new(action_func));
+		let (tx, rx): (Sender<bool>, Receiver<bool>) = mpsc::channel();
+
+		let mut action = Action::new(Arc::new(move || {
+			// Block until the message is sent, then return its value
+			rx.recv()
+		}));
 
 		for _ in 0..5 {
-			assert_eq!(action.tick(&world), Status::Running);
+			assert_eq!(action.tick(), Status::Running);
 			thread::sleep(time::Duration::from_millis(100));
 		}
 
-		world.store(1, Ordering::SeqCst);
+		tx.send(true).unwrap();
 
 		let mut status = Status::Running;
 		while status == Status::Running {
-			status = action.tick(&world);
+			status = action.tick();
 		}
 
 		assert_eq!(status, Status::Succeeded);

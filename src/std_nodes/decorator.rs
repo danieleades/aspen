@@ -1,34 +1,33 @@
 //! Nodes that have a single child and whose status is some function of the
 //! child's status.
-use std::sync::Arc;
 use node::{Node, Internals, IdType};
 use status::Status;
 
 /// Implements a generic Decorator node
-pub struct Decorator<T: Send + Sync + 'static>
+pub struct Decorator
 {
 	/// Function that is performed on the child's status
 	func: Box<Fn(Status) -> Status>,
 
 	/// Child node
-	child: Node<T>,
+	child: Node,
 }
-impl<T: Send + Sync + 'static> Decorator<T>
+impl Decorator
 {
 	/// Creates a new Decorator node with the given child and function
-	pub fn new(child: Node<T>, func: Box<Fn(Status) -> Status>) -> Node<T>
+	pub fn new(child: Node, func: Box<Fn(Status) -> Status>) -> Node
 	{
 		let internals = Decorator { func: func, child: child };
 		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Internals<T> for Decorator<T>
+impl Internals for Decorator
 {
-	fn tick(&mut self, world: &Arc<T>) -> Status
+	fn tick(&mut self) -> Status
 	{
 		// If the child has already run, this shouldn't change results since it will
 		// just return its last status
-		let child_status = self.child.tick(world);
+		let child_status = self.child.tick();
 
 		// Now run it through the function
 		(*self.func)(child_status)
@@ -39,7 +38,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Decorator<T>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Vec<&Node<T>>
+	fn children(&self) -> Vec<&Node>
 	{
 		vec![&self.child]
 	}
@@ -56,10 +55,10 @@ impl<T: Send + Sync + 'static> Internals<T> for Decorator<T>
 }
 
 /// Implements a node that will reset its child after the child succeeds or fails
-pub struct Reset<T: Send + Sync + 'static>
+pub struct Reset
 {
 	/// Child node
-	child: Node<T>,
+	child: Node,
 
 	/// Optional number of times to do the reset
 	attempt_limit: Option<u32>,
@@ -67,10 +66,10 @@ pub struct Reset<T: Send + Sync + 'static>
 	/// Number of times the child has been reset
 	attempts: u32,
 }
-impl<T: Send + Sync + 'static> Reset<T>
+impl Reset
 {
 	/// Creates a new Reset node that will reset the child indefinitely
-	pub fn new(child: Node<T>) -> Node<T>
+	pub fn new(child: Node) -> Node
 	{
 		let internals = Reset {
 			child: child,
@@ -81,7 +80,7 @@ impl<T: Send + Sync + 'static> Reset<T>
 	}
 
 	/// Creates a new Reset node that will reset the child a limited number of times
-	pub fn with_limit(child: Node<T>, limit: u32) -> Node<T>
+	pub fn with_limit(child: Node, limit: u32) -> Node
 	{
 		let internals = Reset {
 			child: child,
@@ -91,9 +90,9 @@ impl<T: Send + Sync + 'static> Reset<T>
 		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Internals<T> for Reset<T>
+impl Internals for Reset
 {
-	fn tick(&mut self, world: &Arc<T>) -> Status
+	fn tick(&mut self) -> Status
 	{
 		// First, get the last status of the child
 		let child_last_status = self.child.status();
@@ -111,7 +110,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Reset<T>
 		}
 
 		// Now tick the child
-		self.child.tick(world)
+		self.child.tick()
 	}
 
 	fn reset(&mut self)
@@ -123,7 +122,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Reset<T>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Vec<&Node<T>>
+	fn children(&self) -> Vec<&Node>
 	{
 		vec![&self.child]
 	}
@@ -140,10 +139,10 @@ impl<T: Send + Sync + 'static> Internals<T> for Reset<T>
 }
 
 /// Implements a node that will reset its child after the child fails
-pub struct Retry<T: Send + Sync + 'static>
+pub struct Retry
 {
 	/// Child node
-	child: Node<T>,
+	child: Node,
 
 	/// Optional number of times to do the reset
 	attempt_limit: Option<u32>,
@@ -151,10 +150,10 @@ pub struct Retry<T: Send + Sync + 'static>
 	/// Number of times the child has been reset
 	attempts: u32,
 }
-impl<T: Send + Sync + 'static> Retry<T>
+impl Retry
 {
 	/// Creates a new Retry node that will retry the child indefinitely
-	pub fn new(child: Node<T>) -> Node<T>
+	pub fn new(child: Node) -> Node
 	{
 		let internals = Retry {
 			child: child,
@@ -165,7 +164,7 @@ impl<T: Send + Sync + 'static> Retry<T>
 	}
 
 	/// Creates a new Retry node that will retry the child a limited number of times
-	pub fn with_limit(child: Node<T>, limit: u32) -> Node<T>
+	pub fn with_limit(child: Node, limit: u32) -> Node
 	{
 		let internals = Retry {
 			child: child,
@@ -175,9 +174,9 @@ impl<T: Send + Sync + 'static> Retry<T>
 		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Internals<T> for Retry<T>
+impl Internals for Retry
 {
-	fn tick(&mut self, world: &Arc<T>) -> Status
+	fn tick(&mut self) -> Status
 	{
 		// First, get the last status of the child
 		let child_last_status = self.child.status();
@@ -195,7 +194,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Retry<T>
 		}
 
 		// Now tick the child
-		self.child.tick(world)
+		self.child.tick()
 	}
 
 	fn reset(&mut self)
@@ -207,7 +206,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Retry<T>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Vec<&Node<T>>
+	fn children(&self) -> Vec<&Node>
 	{
 		vec![&self.child]
 	}
@@ -226,8 +225,6 @@ impl<T: Send + Sync + 'static> Internals<T> for Retry<T>
 #[cfg(test)]
 mod test
 {
-	use std::sync::Arc;
-	use std::sync::atomic::AtomicBool;
 	use status::Status;
 	use std_nodes::*;
 
@@ -244,27 +241,24 @@ mod test
 	#[test]
 	fn check_decorator()
 	{
-		// Use an atomic as the world (doesn't actually get used)
-		let world = Arc::new(AtomicBool::new(true));
-
 		// Test the first rotation
 		let suc_child = YesTick::new(Status::Succeeded);
 		let mut suc_dec = Decorator::new(suc_child, Box::new(rotate));
-		let suc_status = suc_dec.tick(&world);
+		let suc_status = suc_dec.tick();
 		drop(suc_dec);
 		assert_eq!(suc_status, rotate(Status::Succeeded));
 
 		// Test the second rotation
 		let run_child = YesTick::new(Status::Running);
 		let mut run_dec = Decorator::new(run_child, Box::new(rotate));
-		let run_status = run_dec.tick(&world);
+		let run_status = run_dec.tick();
 		drop(run_dec);
 		assert_eq!(run_status, rotate(Status::Running));
 
 		// Test the final rotation
 		let fail_child = YesTick::new(Status::Failed);
 		let mut fail_dec = Decorator::new(fail_child, Box::new(rotate));
-		let fail_status = fail_dec.tick(&world);
+		let fail_status = fail_dec.tick();
 		drop(fail_dec);
 		assert_eq!(fail_status, rotate(Status::Failed));
 	}
@@ -272,9 +266,6 @@ mod test
 	#[test]
 	fn check_reset()
 	{
-		// Use an atomic as the world (not actually used)
-		let world = Arc::new(AtomicBool::new(true));
-
 		// No good way to test ticking indefinitely, so we'll tick a
 		// specified number of times
 		let child = CountedTick::new(Status::Succeeded, 5, true);
@@ -283,7 +274,7 @@ mod test
 		// Tick it five times
 		let mut status = Status::Running;
 		for _ in 0..5 {
-			status = reset.tick(&world);
+			status = reset.tick();
 		}
 
 		// Drop the node so the testing nodes can panic
@@ -296,14 +287,11 @@ mod test
 	#[test]
 	fn check_retry()
 	{
-		// Use an atomic for the world (because necessary)
-		let world = Arc::new(AtomicBool::new(true));
-
 		// We can test to make sure that the "indefinite" only ticks while failed
 		let child1 = CountedTick::new(Status::Succeeded, 1, true);
 		let mut retry1 = Retry::new(child1);
 		let mut status1 = Status::Running;
-		while status1 == Status::Running { status1 = retry1.tick(&world); };
+		while status1 == Status::Running { status1 = retry1.tick(); };
 		drop(retry1);
 		assert_eq!(status1, Status::Succeeded);
 
@@ -311,7 +299,7 @@ mod test
 		let child2 = CountedTick::new(Status::Failed, 5, true);
 		let mut retry2 = Retry::with_limit(child2, 5);
 		let mut status2 = Status::Running;
-		for _ in 0..5 { status2 = retry2.tick(&world); }
+		for _ in 0..5 { status2 = retry2.tick(); }
 		drop(retry2);
 		assert_eq!(status2, Status::Failed);
 	}

@@ -15,9 +15,9 @@ impl Condition
 	/// Constructs a new Condition node
 	///
 	/// If the functio returns `true`, then then node succeeds. Otherwise the node fails.
-	pub fn new(func: Box<Fn() -> bool>) -> Node
+	pub fn new<F: Fn() -> bool + 'static>(func: F) -> Node
 	{
-		let internals = Condition { func: func };
+		let internals = Condition { func: Box::new(func) };
 		Node::new(internals)
 	}
 }
@@ -53,14 +53,14 @@ mod test
 	#[test]
 	fn failure()
 	{
-		let mut cond = Condition::new(Box::new(|| false));
+		let mut cond = Condition::new(|| false);
 		assert_eq!(cond.tick(), Status::Failed);
 	}
 
 	#[test]
 	fn success()
 	{
-		let mut cond = Condition::new(Box::new(|| true));
+		let mut cond = Condition::new(|| true);
 		assert_eq!(cond.tick(), Status::Succeeded);
 	}
 }

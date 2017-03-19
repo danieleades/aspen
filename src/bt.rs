@@ -1,5 +1,7 @@
 use std::time::{Instant, Duration};
 use std::thread;
+use std::fmt;
+
 use node::Node;
 use status::Status;
 
@@ -7,12 +9,12 @@ use status::Status;
 pub struct BehaviorTree
 {
 	/// Root node of the behavior tree
-	root: Box<Node>
+	root: Node
 }
 impl BehaviorTree
 {
 	/// Create a new behavior tree with a default state
-	pub fn new(root: Box<Node>) -> BehaviorTree
+	pub fn new(root: Node) -> BehaviorTree
 	{
 		BehaviorTree { root: root }
 	}
@@ -28,13 +30,13 @@ impl BehaviorTree
 	/// Tick the behavior tree a single time
 	pub fn tick(&mut self) -> Status
 	{
-		(*self.root).tick()
+		self.root.tick()
 	}
 
 	/// Reset the tree so that it can be run again
 	pub fn reset(&mut self)
 	{
-		(*self.root).reset()
+		self.root.reset()
 	}
 
 	/// Run the behavior tree until it either succeeds or fails
@@ -47,13 +49,13 @@ impl BehaviorTree
 	///
 	/// NOTE: The only time this will return `Status::Running` is if the frequency is zero
 	/// and the behavior tree is running after the first tick.
-	pub fn run(&mut self, freq: f32, hook: Option<&Fn(&BehaviorTree) -> ()>) -> Status
+	pub fn run<F: Fn(&BehaviorTree) -> ()>(&mut self, freq: f32, hook: Option<F>) -> Status
 	{
 		// Deal with the "special" case of a zero frequency
 		if freq == 0.0f32 {
 			let status = self.tick();
-			if hook.is_some() {
-				hook.unwrap()(self);
+			if let Some(ref f) = hook {
+				f(self);
 			}
 
 			return status;
@@ -69,8 +71,8 @@ impl BehaviorTree
 			let now = Instant::now();
 
 			status = self.tick();
-			if hook.is_some() {
-				hook.unwrap()(self);
+			if let Some(ref f) = hook {
+				f(self);
 			}
 
 			let elapsed = now.elapsed();
@@ -85,5 +87,12 @@ impl BehaviorTree
 		}
 
 		return status;
+	}
+}
+impl fmt::Display for BehaviorTree
+{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+	{
+		write!(f, "BehaviorTree:( status = {:?}, root = {} )", self.root.status(), self.root)
 	}
 }

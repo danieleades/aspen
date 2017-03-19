@@ -15,7 +15,7 @@ pub struct Action
 	thread_handle: Option<thread::JoinHandle<Status>>,
 
 	/// Value that the thread returned
-	thread_res: Option<bool>,
+	thread_res: Option<Status>,
 
 	/// Flag that notifies this object that the work thread has completed
 	flag: Arc<AtomicBool>,
@@ -23,10 +23,10 @@ pub struct Action
 impl Action
 {
 	/// Creates a new Action node
-	pub fn new(func: Arc<Fn() -> bool + Send + Sync>) -> Node
+	pub fn new<F: Fn() -> bool + Send + Sync + 'static>(func: F) -> Node
 	{
 		let internals = Action {
-			func: func,
+			func: Arc::new(func),
 			thread_handle: None,
 			thread_res: None,
 			flag: Arc::new(AtomicBool::new(false)),
@@ -64,8 +64,8 @@ impl Internals for Action
 	fn tick(&mut self) -> Status
 	{
 		// First, check to see if we've already ran
-		if self.thread_res.is_some() {
-			return if self.thread_res.unwrap() { Status::Succeeded } else { Status::Failed };
+		if let Some(res) = self.thread_res {
+			return res;
 		}
 
 		// We haven't already run, so start up a new thread if needed
@@ -80,7 +80,10 @@ impl Internals for Action
 			// The thread is done, so load up its status. We also know that
 			// we have a thread handle at this point
 			let handle = self.thread_handle.take();
-			handle.unwrap().join().unwrap()
+			let status = handle.unwrap().join().unwrap();
+
+			self.thread_res = Some(status);
+			status
 		}
 	}
 
@@ -91,6 +94,7 @@ impl Internals for Action
 		// to avoid potential bugs that come from a node only looking like its been
 		// fully reset.
 		self.flag.store(false, Ordering::SeqCst);
+		self.thread_res = None;
 		if self.thread_handle.is_some() {
 			let handle = self.thread_handle.take();
 			handle.unwrap().join().unwrap();
@@ -106,7 +110,7 @@ impl Internals for Action
 #[cfg(test)]
 mod test
 {
-	use std::sync::{Arc, Mutex};
+	use std::sync::Mutex;
 	use std::sync::mpsc;
 	use std::sync::mpsc::{Sender, Receiver};
 	use std::time;
@@ -120,10 +124,10 @@ mod test
 		let (tx, rx): (Sender<bool>, Receiver<bool>) = mpsc::channel();
 
 		let mrx = Mutex::new(rx);
-		let mut action = Action::new(Arc::new(move || {
+		let mut action = Action::new(move || {
 			// Block until the message is sent, then return its value
 			mrx.lock().unwrap().recv().unwrap()
-		}));
+		});
 
 		for _ in 0..5 {
 			assert_eq!(action.tick(), Status::Running);
@@ -146,10 +150,10 @@ mod test
 		let (tx, rx): (Sender<bool>, Receiver<bool>) = mpsc::channel();
 
 		let mrx = Mutex::new(rx);
-		let mut action = Action::new(Arc::new(move || {
+		let mut action = Action::new(move || {
 			// Block until the message is sent, then return its value
 			mrx.lock().unwrap().recv().unwrap()
-		}));
+		});
 
 		for _ in 0..5 {
 			assert_eq!(action.tick(), Status::Running);

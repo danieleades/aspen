@@ -1,5 +1,7 @@
 use std::time::{Instant, Duration};
 use std::thread;
+use std::fmt;
+
 use node::Node;
 use status::Status;
 
@@ -85,5 +87,12 @@ impl BehaviorTree
 		}
 
 		return status;
+	}
+}
+impl fmt::Display for BehaviorTree
+{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+	{
+		write!(f, "BehaviorTree:( status = {:?}, root = {} )", self.root.status(), self.root)
 	}
 }

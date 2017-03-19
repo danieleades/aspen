@@ -16,7 +16,7 @@ static SUB_USED: AtomicBool  = ATOMIC_BOOL_INIT;
 // Display the tree after each tick
 fn hook(tree: &BehaviorTree)
 {
-	// TODO
+	println!("{}", tree);
 }
 
 // Entry point of the program

@@ -1,3 +1,4 @@
+use std::fmt;
 use status::Status;
 
 /// Type used for node UIDs
@@ -71,6 +72,18 @@ impl Node
 		self.id
 	}
 
+	/// Returns a vector containing references to all of this node's children
+	pub fn children(&self) -> Vec<&Node>
+	{
+		(*self.internals).children()
+	}
+
+	/// Returns a vector containing the IDs of all this node's children
+	pub fn children_ids(&self) -> Vec<IdType>
+	{
+		(*self.internals).children_ids()
+	}
+
 	#[cfg(feature = "messages")]
 	/// Creates a new `NodeMsg` from this node
 	pub fn as_message(&self) -> ::node_message::NodeMsg
@@ -84,6 +97,17 @@ impl Node
 			status: self.status as i32,
 			type_name: (*self.internals).type_name().to_string(),
 		}
+	}
+}
+impl fmt::Display for Node
+{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+	{
+		write!(f, "{}:( id = {}, status = {:?}", (*self.internals).type_name(), self.id, self.status)?;
+		for child in self.children() {
+			write!(f, ", {}", child)?;
+		}
+		write!(f, " )")
 	}
 }
 

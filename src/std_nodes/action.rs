@@ -106,10 +106,11 @@ impl Internals for Action
 #[cfg(test)]
 mod test
 {
-	use std::sync::Arc;
+	use std::sync::{Arc, Mutex};
 	use std::sync::mpsc;
 	use std::sync::mpsc::{Sender, Receiver};
 	use std::time;
+	use std::thread;
 	use status::Status;
 	use std_nodes::*;
 
@@ -118,9 +119,10 @@ mod test
 	{
 		let (tx, rx): (Sender<bool>, Receiver<bool>) = mpsc::channel();
 
+		let mrx = Mutex::new(rx);
 		let mut action = Action::new(Arc::new(move || {
 			// Block until the message is sent, then return its value
-			rx.recv()
+			mrx.lock().unwrap().recv().unwrap()
 		}));
 
 		for _ in 0..5 {
@@ -143,9 +145,10 @@ mod test
 	{
 		let (tx, rx): (Sender<bool>, Receiver<bool>) = mpsc::channel();
 
+		let mrx = Mutex::new(rx);
 		let mut action = Action::new(Arc::new(move || {
 			// Block until the message is sent, then return its value
-			rx.recv()
+			mrx.lock().unwrap().recv().unwrap()
 		}));
 
 		for _ in 0..5 {

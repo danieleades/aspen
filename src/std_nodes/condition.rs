@@ -54,13 +54,13 @@ mod test
 	fn failure()
 	{
 		let mut cond = Condition::new(Box::new(|| false));
-		assert_eq!(cond.tick(&world), Status::Failed);
+		assert_eq!(cond.tick(), Status::Failed);
 	}
 
 	#[test]
 	fn success()
 	{
 		let mut cond = Condition::new(Box::new(|| true));
-		assert_eq!(cond.tick(&world), Status::Succeeded);
+		assert_eq!(cond.tick(), Status::Succeeded);
 	}
 }

@@ -53,14 +53,14 @@ mod test
 	#[test]
 	fn failure()
 	{
-		let mut cond = Condition::new(Box::new(|| false));
+		let mut cond = Condition::new(|| false);
 		assert_eq!(cond.tick(), Status::Failed);
 	}
 
 	#[test]
 	fn success()
 	{
-		let mut cond = Condition::new(Box::new(|| true));
+		let mut cond = Condition::new(|| true);
 		assert_eq!(cond.tick(), Status::Succeeded);
 	}
 }

@@ -1,27 +1,21 @@
 //! Standard nodes used for debugging purposes
-use std::sync::Arc;
-use std::marker::PhantomData;
 use std::ops::Drop;
 use node::{Node, Internals};
 use status::Status;
 
 /// Implements a node that will panic upon being ticked
-pub struct NoTick<T: Send + Sync + 'static>
-{
-	pd: PhantomData<T>,
-}
-impl<T: Send + Sync + 'static> NoTick<T>
+pub struct NoTick;
+impl NoTick
 {
 	/// Construct a new NoTick node
-	pub fn new() -> Node<T>
+	pub fn new() -> Node
 	{
-		let internals = NoTick { pd: PhantomData };
-		Node::new(internals)
+		Node::new(NoTick { })
 	}
 }
-impl<T: Send + Sync + 'static> Internals<T> for NoTick<T>
+impl Internals for NoTick
 {
-	fn tick(&mut self, _: &Arc<T>) -> Status
+	fn tick(&mut self) -> Status
 	{
 		panic!("This node should not have been ticked");
 	}
@@ -38,32 +32,26 @@ impl<T: Send + Sync + 'static> Internals<T> for NoTick<T>
 }
 
 /// Implements a node that will panic if it is dropped without being ticked
-pub struct YesTick<T: Send + Sync + 'static>
+pub struct YesTick
 {
-	pd: PhantomData<T>,
-
 	/// The status that this node should return
 	status: Status,
 
 	/// Whether or not this node has been ticked
 	ticked: bool,
 }
-impl<T: Send + Sync + 'static> YesTick<T>
+impl YesTick
 {
 	/// Create a new YesTick that always has the given status
-	pub fn new(status: Status) -> Node<T>
+	pub fn new(status: Status) -> Node
 	{
-		let internals = YesTick {
-			pd: PhantomData,
-			status: status,
-			ticked: false,
-		};
+		let internals = YesTick { status: status, ticked: false };
 		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Internals<T> for YesTick<T>
+impl Internals for YesTick
 {
-	fn tick(&mut self, _: &Arc<T>) -> Status
+	fn tick(&mut self) -> Status
 	{
 		self.ticked = true;
 		self.status
@@ -79,7 +67,7 @@ impl<T: Send + Sync + 'static> Internals<T> for YesTick<T>
 		"YesTick"
 	}
 }
-impl<T: Send + Sync + 'static> Drop for YesTick<T>
+impl Drop for YesTick
 {
 	fn drop(&mut self)
 	{
@@ -90,10 +78,8 @@ impl<T: Send + Sync + 'static> Drop for YesTick<T>
 }
 
 /// Implements a node that must be ticked a specific number of times (including resets)
-pub struct CountedTick<T: Send + Sync + 'static>
+pub struct CountedTick
 {
-	pd: PhantomData<T>,
-
 	/// The status this node is to return
 	status: Status,
 
@@ -106,13 +92,12 @@ pub struct CountedTick<T: Send + Sync + 'static>
 	/// Marker to show if this has been ticked at all (used for `self.tick()`)
 	ticked: bool,
 }
-impl<T: Send + Sync + 'static> CountedTick<T>
+impl CountedTick
 {
 	/// Creates a new CountedTick that always has the given status
-	pub fn new(status: Status, count: u32, exact: bool) -> Node<T>
+	pub fn new(status: Status, count: u32, exact: bool) -> Node
 	{
 		let internals = CountedTick {
-			pd: PhantomData,
 			status: status,
 			count: count,
 			exact: exact,
@@ -121,9 +106,9 @@ impl<T: Send + Sync + 'static> CountedTick<T>
 		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Internals<T> for CountedTick<T>
+impl Internals for CountedTick
 {
-	fn tick(&mut self, _: &Arc<T>) -> Status
+	fn tick(&mut self) -> Status
 	{
 		if self.exact && self.count == 0 {
 			panic!("Node was ticked too many times");
@@ -145,7 +130,7 @@ impl<T: Send + Sync + 'static> Internals<T> for CountedTick<T>
 		"CountedTick"
 	}
 }
-impl<T: Send + Sync + 'static> Drop for CountedTick<T>
+impl Drop for CountedTick
 {
 	fn drop(&mut self)
 	{

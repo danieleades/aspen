@@ -1,27 +1,21 @@
 //! Nodes that have a constant, well-defined behavior
-use std::sync::Arc;
-use std::marker::PhantomData;
 use node::{Node, Internals};
 use status::Status;
 
 /// Implements a node that always returns that it has failed
 #[derive(PartialEq, Eq, Debug, Copy, Clone, Default)]
-pub struct AlwaysFail<T: Send + Sync + 'static>
-{
-	pd: PhantomData<T>,
-}
-impl<T: Send + Sync + 'static> AlwaysFail<T>
+pub struct AlwaysFail;
+impl AlwaysFail
 {
 	/// Construct a new AlwaysFail node
-	pub fn new() -> Node<T>
+	pub fn new() -> Node
 	{
-		let internals = AlwaysFail { pd: PhantomData };
-		Node::new(internals)
+		Node::new(AlwaysFail { })
 	}
 }
-impl<T: Send + Sync + 'static> Internals<T> for AlwaysFail<T>
+impl Internals for AlwaysFail
 {
-	fn tick(&mut self, _: &Arc<T>) -> Status
+	fn tick(&mut self) -> Status
 	{
 		Status::Failed
 	}
@@ -39,22 +33,18 @@ impl<T: Send + Sync + 'static> Internals<T> for AlwaysFail<T>
 
 /// Implements a node that always returns that it has succeeded
 #[derive(PartialEq, Eq, Debug, Copy, Clone, Default)]
-pub struct AlwaysSucceed<T: Send + Sync + 'static>
-{
-	pd: PhantomData<T>,
-}
-impl<T: Send + Sync + 'static> AlwaysSucceed<T>
+pub struct AlwaysSucceed;
+impl AlwaysSucceed
 {
 	/// Construct a new AlwaysSucceed node
-	pub fn new() -> Node<T>
+	pub fn new() -> Node
 	{
-		let internals = AlwaysSucceed { pd: PhantomData };
-		Node::new(internals)
+		Node::new(AlwaysSucceed { })
 	}
 }
-impl<T: Send + Sync + 'static> Internals<T> for AlwaysSucceed<T>
+impl Internals for AlwaysSucceed
 {
-	fn tick(&mut self, _: &Arc<T>) -> Status
+	fn tick(&mut self) -> Status
 	{
 		Status::Succeeded
 	}
@@ -72,22 +62,18 @@ impl<T: Send + Sync + 'static> Internals<T> for AlwaysSucceed<T>
 
 /// Implements a node that always returns that it is currently running
 #[derive(PartialEq, Eq, Debug, Copy, Clone, Default)]
-pub struct AlwaysRunning<T: Send + Sync + 'static>
-{
-	pd: PhantomData<T>,
-}
-impl<T: Send + Sync + 'static> AlwaysRunning<T>
+pub struct AlwaysRunning;
+impl AlwaysRunning
 {
 	/// Construct a new AlwaysRunning node
-	pub fn new() -> Node<T>
+	pub fn new() -> Node
 	{
-		let internals = AlwaysRunning { pd: PhantomData };
-		Node::new(internals)
+		Node::new(AlwaysRunning { })
 	}
 }
-impl<T: Send + Sync + 'static> Internals<T> for AlwaysRunning<T>
+impl Internals for AlwaysRunning
 {
-	fn tick(&mut self, _: &Arc<T>) -> Status
+	fn tick(&mut self) -> Status
 	{
 		Status::Running
 	}

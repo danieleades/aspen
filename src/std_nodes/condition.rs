@@ -1,33 +1,32 @@
 //! Nodes whose status is determined by a function
-use std::sync::Arc;
 use node::{Node, Internals};
 use status::Status;
 
 /// A node whose success depends on a function that can be run in a single tick
-pub struct Condition<T: Send + Sync + 'static>
+pub struct Condition
 {
 	/// Function that is performed to determine the node's status
 	///
 	/// A return value of `true` means success and a return value of `false` means failure
-	func: Box<Fn(&Arc<T>) -> bool>,
+	func: Box<Fn() -> bool>,
 }
-impl<T: Send + Sync + 'static> Condition<T>
+impl Condition
 {
 	/// Constructs a new Condition node
 	///
 	/// If the functio returns `true`, then then node succeeds. Otherwise the node fails.
-	pub fn new(func: Box<Fn(&Arc<T>) -> bool>) -> Node<T>
+	pub fn new(func: Box<Fn() -> bool>) -> Node
 	{
 		let internals = Condition { func: func };
 		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Internals<T> for Condition<T>
+impl Internals for Condition
 {
-	fn tick(&mut self, world: &Arc<T>) -> Status
+	fn tick(&mut self) -> Status
 	{
 		// Otherwise, run the function
-		if (*self.func)(world) {
+		if (*self.func)() {
 			Status::Succeeded
 		} else {
 			Status::Failed
@@ -48,29 +47,20 @@ impl<T: Send + Sync + 'static> Internals<T> for Condition<T>
 #[cfg(test)]
 mod test
 {
-	use std::sync::Arc;
-	use std::sync::atomic::{AtomicBool, Ordering};
 	use status::Status;
 	use std_nodes::*;
-
-	fn condition(world: &Arc<AtomicBool>) -> bool
-	{
-		world.load(Ordering::SeqCst)
-	}
 
 	#[test]
 	fn failure()
 	{
-		let world = Arc::new(AtomicBool::new(false));
-		let mut cond = Condition::new(Box::new(condition));
-		assert_eq!(cond.tick(&world), Status::Failed);
+		let mut cond = Condition::new(Box::new(|| false));
+		assert_eq!(cond.tick(), Status::Failed);
 	}
 
 	#[test]
 	fn success()
 	{
-		let world = Arc::new(AtomicBool::new(true));
-		let mut cond = Condition::new(Box::new(condition));
-		assert_eq!(cond.tick(&world), Status::Succeeded);
+		let mut cond = Condition::new(Box::new(|| true));
+		assert_eq!(cond.tick(), Status::Succeeded);
 	}
 }

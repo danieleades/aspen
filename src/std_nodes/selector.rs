@@ -4,7 +4,6 @@
 //! NOTE: There is no Selector* node, since the choice of not having the nodes
 //! automatically reset causes a normal Selector node to have the same behavior
 //! as a Selector*.
-use std::sync::Arc;
 use node::{Node, Internals, IdType};
 use status::Status;
 
@@ -12,27 +11,27 @@ use status::Status;
 ///
 /// This node will tick all of its children in order until one of them returns
 /// either `Status::Running` or `Status::Success`. If none do, this node fails.
-pub struct Selector<T: Send + Sync + 'static>
+pub struct Selector
 {
 	/// Vector containing the children of this node
-	children: Vec<Node<T>>,
+	children: Vec<Node>,
 }
-impl<T: Send + Sync + 'static> Selector<T>
+impl Selector
 {
 	/// Creates a new Selector node from a vector of Nodes
-	pub fn new(children: Vec<Node<T>>) -> Node<T>
+	pub fn new(children: Vec<Node>) -> Node
 	{
 		let internals = Selector { children: children };
 		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Internals<T> for Selector<T>
+impl Internals for Selector
 {
-	fn tick(&mut self, world: &Arc<T>) -> Status
+	fn tick(&mut self) -> Status
 	{
 		// Tick the children in order
 		for child in self.children.iter_mut() {
-			let child_status = child.tick(world);
+			let child_status = child.tick();
 			if child_status != Status::Failed {
 				return child_status;
 			}
@@ -50,7 +49,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Selector<T>
 		}
 	}
 
-	fn children(&self) -> Vec<&Node<T>>
+	fn children(&self) -> Vec<&Node>
 	{
 		self.children.iter().collect()
 	}
@@ -69,17 +68,12 @@ impl<T: Send + Sync + 'static> Internals<T> for Selector<T>
 #[cfg(test)]
 mod test
 {
-	use std::sync::Arc;
-	use std::sync::atomic::AtomicBool;
 	use status::Status;
 	use std_nodes::*;
 
 	#[test]
 	fn check_running()
 	{
-		// Use an atomic as the world (doesn't actually get used)
-		let world = Arc::new(AtomicBool::new(true));
-
 		// Set up the nodes
 		let children = vec![YesTick::new(Status::Failed),
 		                    YesTick::new(Status::Running),
@@ -89,7 +83,7 @@ mod test
 		let mut sel = Selector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick(&world);
+		let status = sel.tick();
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);
@@ -101,9 +95,6 @@ mod test
 	#[test]
 	fn check_success()
 	{
-		// Use an atomic as the world (doesn't actually get used)
-		let world = Arc::new(AtomicBool::new(true));
-
 		// Set up the nodes
 		let children = vec![YesTick::new(Status::Failed),
 		                    YesTick::new(Status::Succeeded),
@@ -113,7 +104,7 @@ mod test
 		let mut sel = Selector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick(&world);
+		let status = sel.tick();
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);
@@ -125,9 +116,6 @@ mod test
 	#[test]
 	fn check_fail()
 	{
-		// Use an atomic as the world (doesn't actually get used)
-		let world = Arc::new(AtomicBool::new(true));
-
 		// Set up the nodes
 		let children = vec![YesTick::new(Status::Failed),
 		                    YesTick::new(Status::Failed)];
@@ -136,7 +124,7 @@ mod test
 		let mut sel = Selector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick(&world);
+		let status = sel.tick();
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);

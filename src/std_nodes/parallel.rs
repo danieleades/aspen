@@ -1,21 +1,20 @@
 //! Nodes that tick their children in parallel
-use std::sync::Arc;
 use node::{Node, Internals, IdType};
 use status::Status;
 
 /// Implements a standard Parallel node
-pub struct Parallel<T: Send + Sync + 'static>
+pub struct Parallel
 {
 	/// Children to be ticked
-	children: Vec<Node<T>>,
+	children: Vec<Node>,
 
 	/// Number of nodes required to succeed before this one does
 	required_successes: usize,
 }
-impl<T: Send + Sync + 'static> Parallel<T>
+impl Parallel
 {
 	/// Creates a new Parallel node
-	pub fn new(children: Vec<Node<T>>, required_successes: usize) -> Node<T>
+	pub fn new(children: Vec<Node>, required_successes: usize) -> Node
 	{
 		let internals = Parallel {
 			children: children,
@@ -24,16 +23,16 @@ impl<T: Send + Sync + 'static> Parallel<T>
 		Node::new(internals)
 	}
 }
-impl<T: Send + Sync + 'static> Internals<T> for Parallel<T>
+impl Internals for Parallel
 {
-	fn tick(&mut self, world: &Arc<T>) -> Status
+	fn tick(&mut self) -> Status
 	{
 		let mut successes = 0;
 		let mut failures = 0;
 
 		// Tick every single child node
 		for child in self.children.iter_mut() {
-			let child_status = child.tick(world);
+			let child_status = child.tick();
 
 			if child_status == Status::Succeeded {
 				successes += 1;
@@ -64,7 +63,7 @@ impl<T: Send + Sync + 'static> Internals<T> for Parallel<T>
 		}
 	}
 
-	fn children(&self) -> Vec<&Node<T>>
+	fn children(&self) -> Vec<&Node>
 	{
 		self.children.iter().collect()
 	}
@@ -83,15 +82,12 @@ impl<T: Send + Sync + 'static> Internals<T> for Parallel<T>
 #[cfg(test)]
 mod test
 {
-	use std::sync::Arc;
-	use std::sync::atomic::AtomicBool;
 	use status::Status;
 	use std_nodes::*;
 
 	#[test]
 	fn success()
 	{
-		let world = Arc::new(AtomicBool::new(true));
 		let children = vec![YesTick::new(Status::Succeeded),
 		                    YesTick::new(Status::Succeeded),
 		                    YesTick::new(Status::Running),
@@ -99,7 +95,7 @@ mod test
 		                    YesTick::new(Status::Failed),
 		                    YesTick::new(Status::Failed)];
 		let mut parallel = Parallel::new(children, 2);
-		let status = parallel.tick(&world);
+		let status = parallel.tick();
 		drop(parallel);
 		assert_eq!(status, Status::Succeeded);
 	}
@@ -107,7 +103,6 @@ mod test
 	#[test]
 	fn failure()
 	{
-		let world = Arc::new(AtomicBool::new(true));
 		let children = vec![YesTick::new(Status::Succeeded),
 		                    YesTick::new(Status::Succeeded),
 		                    YesTick::new(Status::Running),
@@ -115,7 +110,7 @@ mod test
 		                    YesTick::new(Status::Failed),
 		                    YesTick::new(Status::Failed)];
 		let mut parallel = Parallel::new(children, 5);
-		let status = parallel.tick(&world);
+		let status = parallel.tick();
 		drop(parallel);
 		assert_eq!(status, Status::Failed);
 	}
@@ -123,7 +118,6 @@ mod test
 	#[test]
 	fn running()
 	{
-		let world = Arc::new(AtomicBool::new(true));
 		let children = vec![YesTick::new(Status::Succeeded),
 		                    YesTick::new(Status::Succeeded),
 		                    YesTick::new(Status::Running),
@@ -131,7 +125,7 @@ mod test
 		                    YesTick::new(Status::Failed),
 		                    YesTick::new(Status::Failed)];
 		let mut parallel = Parallel::new(children, 3);
-		let status = parallel.tick(&world);
+		let status = parallel.tick();
 		drop(parallel);
 		assert_eq!(status, Status::Running);
 	}

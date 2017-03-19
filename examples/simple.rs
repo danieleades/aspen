@@ -2,6 +2,7 @@ extern crate aspen;
 
 use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
 use std::sync::atomic::{ATOMIC_USIZE_INIT, ATOMIC_BOOL_INIT};
+use std::{thread, time};
 use aspen::BehaviorTree;
 use aspen::std_nodes::{Sequence, Condition, Action};
 
@@ -22,8 +23,9 @@ fn hook(tree: &BehaviorTree)
 // Entry point of the program
 fn main()
 {
-	// Create all of our leaf nodes
+	// Create all of our leaf nodes - sleep to simulate work
 	let add_node = Action::new(|| {
+		thread::sleep(time::Duration::from_secs(1));
 		ADD_RES.store(X + Y, Ordering::SeqCst);
 		true
 	});
@@ -33,6 +35,7 @@ fn main()
 	});
 
 	let sub_node = Action::new(|| {
+		thread::sleep(time::Duration::from_secs(1));
 		SUB_RES.store(X - Y, Ordering::SeqCst);
 		SUB_USED.store(true, Ordering::SeqCst);
 		true
@@ -42,8 +45,9 @@ fn main()
 	let children = vec![add_node, sub_check, sub_node];
 	let root = Sequence::new(children);
 
-	// Put it all in a tree and run it
+	// Put it all in a tree, print it, and run it
 	let mut tree = BehaviorTree::new(root);
+	println!("{}", tree);
 	let res = tree.run(4.0, Some(hook));
 
 	println!("\nTree finished: {:?}", res);

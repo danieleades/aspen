@@ -104,13 +104,6 @@ impl Node
 	}
 
 	#[cfg(feature = "lcm")]
-	/// Sets this node to a root node
-	fn set_root(&mut self, root: bool)
-	{
-		self.is_root = root;
-	}
-
-	#[cfg(feature = "lcm")]
 	/// Creates a new `NodeMsg` from this node
 	pub fn as_message(&self) -> ::node_message::NodeMsg
 	{
@@ -135,6 +128,14 @@ impl fmt::Display for Node
 			write!(f, ", {}", child)?;
 		}
 		write!(f, " )")
+	}
+}
+#[cfg(feature = "lcm")]
+impl ::Rootable for Node
+{
+	fn set_root(&mut self, root: bool)
+	{
+		self.is_root = root;
 	}
 }
 

@@ -5,6 +5,9 @@ use std::fmt;
 use node::Node;
 use status::Status;
 
+#[cfg(feature = "lcm")]
+use Rootable;
+
 /// Main behavior tree struct
 pub struct BehaviorTree
 {
@@ -22,7 +25,7 @@ impl BehaviorTree
 
 	#[cfg(feature = "lcm")]
 	/// Create a new behavior tree
-	pub fn new(root: Node) -> BehaviorTree
+	pub fn new(mut root: Node) -> BehaviorTree
 	{
 		root.set_root(true);
 		BehaviorTree { root: root }

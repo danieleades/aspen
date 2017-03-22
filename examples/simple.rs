@@ -23,27 +23,26 @@ fn hook(tree: &BehaviorTree)
 // Entry point of the program
 fn main()
 {
-	// Create all of our leaf nodes - sleep to simulate work
-	let add_node = Action::new(|| {
-		thread::sleep(time::Duration::from_secs(1));
-		ADD_RES.store(X + Y, Ordering::SeqCst);
-		true
-	});
+	// Create the tree - sleep to simulate work
+	let root = Sequence::new(vec![
+		// Addition node
+		Action::new(|| {
+			thread::sleep(time::Duration::from_secs(1));
+			ADD_RES.store(X + Y, Ordering::SeqCst);
+			true
+		}),
 
-	let sub_check = Condition::new(|| {
-		X > Y
-	});
+		// Condition node to check if we can safely do the subtraction
+		Condition::new(|| X > Y ),
 
-	let sub_node = Action::new(|| {
-		thread::sleep(time::Duration::from_secs(1));
-		SUB_RES.store(X - Y, Ordering::SeqCst);
-		SUB_USED.store(true, Ordering::SeqCst);
-		true
-	});
-
-	// Then chain them together in a sequence node
-	let children = vec![add_node, sub_check, sub_node];
-	let root = Sequence::new(children);
+		// Subtraction node. Only runs if the condition is successful
+		Action::new(|| {
+			thread::sleep(time::Duration::from_secs(1));
+			SUB_RES.store(X - Y, Ordering::SeqCst);
+			SUB_USED.store(true, Ordering::SeqCst);
+			true
+		})
+	]);
 
 	// Put it all in a tree, print it, and run it
 	let mut tree = BehaviorTree::new(root);

@@ -5,13 +5,12 @@ authors = ["Nathan Kent <nate@nkent.net>"]
 license = "MIT"
 
 description = "A behavior tree implementation in Rust"
+keywords = ["behavior", "tree", "fsm", "state", "ai"]
 
 documentation = "http://neachdainn.gitlab.io/aspen"
 repository = "https://gitlab.com/neachdainn/aspen.git"
 
 readme = "README.adoc"
-
-publish = false
 
 build = "build.rs"
 

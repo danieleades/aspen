@@ -13,9 +13,18 @@ pub struct BehaviorTree
 }
 impl BehaviorTree
 {
-	/// Create a new behavior tree with a default state
+	#[cfg(not(feature = "lcm"))]
+	/// Create a new behavior tree
 	pub fn new(root: Node) -> BehaviorTree
 	{
+		BehaviorTree { root: root }
+	}
+
+	#[cfg(feature = "lcm")]
+	/// Create a new behavior tree
+	pub fn new(root: Node) -> BehaviorTree
+	{
+		root.set_root(true);
 		BehaviorTree { root: root }
 	}
 }

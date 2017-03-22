@@ -1,8 +1,8 @@
-#[cfg(feature = "messages")]
+#[cfg(feature = "lcm")]
 extern crate lcm;
-#[cfg(feature = "messages")]
+#[cfg(feature = "lcm")]
 pub use node_message::NodeMsg;
-#[cfg(feature = "messages")]
+#[cfg(feature = "lcm")]
 mod node_message;
 
 pub use status::Status;

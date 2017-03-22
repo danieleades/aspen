@@ -25,17 +25,36 @@ pub struct Node
 	/// The status from the last time this node was ticked
 	status: Status,
 
+	#[cfg(feature = "lcm")]
+	/// Whether or not this node is a root node
+	///
+	/// This only affects outgoing LCM messages
+	is_root: bool,
+
 	/// The internal logic for this node
 	internals: Box<Internals>,
 }
 impl Node
 {
+	#[cfg(not(feature = "lcm"))]
 	/// Creates a new `Node` with the given `Internals`
 	pub fn new<I: Internals + 'static>(internals: I) -> Node
 	{
 		Node {
 			id: uid(),
 			status: Status::Initialized,
+			internals: Box::new(internals),
+		}
+	}
+
+	#[cfg(feature = "lcm")]
+	/// Creates a new `Node` with the given `Internals`
+	pub fn new<I: Internals + 'static>(internals: I) -> Node
+	{
+		Node {
+			id: uid(),
+			status: Status::Initialized,
+			is_root: false,
 			internals: Box::new(internals),
 		}
 	}
@@ -84,7 +103,14 @@ impl Node
 		(*self.internals).children_ids()
 	}
 
-	#[cfg(feature = "messages")]
+	#[cfg(feature = "lcm")]
+	/// Sets this node to a root node
+	fn set_root(&mut self, root: bool)
+	{
+		self.is_root = root;
+	}
+
+	#[cfg(feature = "lcm")]
 	/// Creates a new `NodeMsg` from this node
 	pub fn as_message(&self) -> ::node_message::NodeMsg
 	{
@@ -96,6 +122,7 @@ impl Node
 			children: child_ids,
 			status: self.status as i32,
 			type_name: (*self.internals).type_name().to_string(),
+			is_root: self.is_root,
 		}
 	}
 }

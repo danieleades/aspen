@@ -1,7 +1,7 @@
-#[cfg(feature = "messages")]
+#[cfg(feature = "lcm")]
 extern crate lcm_gen;
 
-#[cfg(feature = "messages")]
+#[cfg(feature = "lcm")]
 fn lcm_gen()
 {
 	use std::path::PathBuf;
@@ -22,7 +22,7 @@ fn lcm_gen()
 	println!("cargo:include={}", std::env::var("OUT_DIR").unwrap());
 }
 
-#[cfg(not(feature = "messages"))]
+#[cfg(not(feature = "lcm"))]
 fn lcm_gen()
 {
 	// No-op

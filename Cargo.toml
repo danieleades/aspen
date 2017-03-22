@@ -18,7 +18,7 @@ build = "build.rs"
 default = []
 
 [dependencies]
-lcm = { git = "https://github.com/adeschamps/lcm.git", rev = "cd03122", optional = true }
+#lcm = { git = "https://github.com/adeschamps/lcm.git", rev = "cd03122", optional = true }
 
 [build-dependencies]
-lcm_gen = { git = "https://github.com/adeschamps/lcm.git", rev = "cd03122" }
+#lcm_gen = { git = "https://github.com/adeschamps/lcm.git", rev = "cd03122" }

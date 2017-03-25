@@ -11,13 +11,13 @@ use Rootable;
 /// Main behavior tree struct
 pub struct BehaviorTree
 {
-	/// Root node of the behavior tree
+	/// Root node of the behavior tree.
 	root: Node
 }
 impl BehaviorTree
 {
 	#[cfg(not(feature = "lcm"))]
-	/// Create a new behavior tree
+	/// Create a new behavior tree with the supplied `Node` as the root.
 	pub fn new(root: Node) -> BehaviorTree
 	{
 		BehaviorTree { root: root }
@@ -61,7 +61,8 @@ impl BehaviorTree
 	///
 	/// NOTE: The only time this will return `Status::Running` is if the frequency is zero
 	/// and the behavior tree is running after the first tick.
-	pub fn run<F: Fn(&BehaviorTree) -> ()>(&mut self, freq: f32, hook: Option<F>) -> Status
+	pub fn run<F>(&mut self, freq: f32, hook: Option<F>) -> Status
+		where F: Fn(&BehaviorTree)
 	{
 		// Deal with the "special" case of a zero frequency
 		if freq == 0.0f32 {
@@ -90,7 +91,7 @@ impl BehaviorTree
 			let elapsed = now.elapsed();
 
 			// Sleep for the remaining amount of time
-			if freq != ::std::f32::INFINITY && elapsed < cycle_dur {
+			if !status.is_done() && freq != ::std::f32::INFINITY && elapsed < cycle_dur {
 				// Really, the Duration would take care of this case. However, specifying a
 				// frequency of infinity means running as fast a possible. In that case, I do
 				// not want to give this thread an opportunity to sleep at all

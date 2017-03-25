@@ -7,10 +7,11 @@
 use node::{Node, Internals, IdType};
 use status::Status;
 
-/// Implements a Selector node
+/// Implements a node that ticks its children in order as long as they fail
 ///
 /// This node will tick all of its children in order until one of them returns
 /// either `Status::Running` or `Status::Success`. If none do, this node fails.
+/// This is roughly equivalent to an "or" statement.
 pub struct Selector
 {
 	/// Vector containing the children of this node
@@ -27,6 +28,10 @@ impl Selector
 }
 impl Internals for Selector
 {
+	/// Ticks all of the children nodes in order. If a child returns something
+	/// other than than `Status::Failed`, this node will stop ticking its
+	/// children and return the child's status. If all children fail, so does
+	/// this node.
 	fn tick(&mut self) -> Status
 	{
 		// Tick the children in order
@@ -41,6 +46,7 @@ impl Internals for Selector
 		Status::Failed
 	}
 
+	/// Resets this node and all of its children
 	fn reset(&mut self)
 	{
 		// Reset all of our children
@@ -49,6 +55,7 @@ impl Internals for Selector
 		}
 	}
 
+	/// Returns a vector containing references to all of this node's children
 	fn children(&self) -> Vec<&Node>
 	{
 		self.children.iter().collect()
@@ -59,6 +66,7 @@ impl Internals for Selector
 		self.children.iter().map(|c| c.id()).collect()
 	}
 
+	/// Returns the string "Selector"
 	fn type_name(&self) -> &'static str
 	{
 		"Selector"

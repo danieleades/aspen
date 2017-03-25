@@ -48,14 +48,14 @@ impl Internals for Decorator
 	}
 
 	/// Returns a vector containing a reference to this node's child
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Option<Vec<&Node>>
 	{
-		vec![&self.child]
+		Some(vec![&self.child])
 	}
 
-	fn children_ids(&self) -> Vec<IdType>
+	fn children_ids(&self) -> Option<Vec<IdType>>
 	{
-		vec![self.child.id()]
+		Some(vec![self.child.id()])
 	}
 
 	/// Returns the string "Decorator"
@@ -144,14 +144,14 @@ impl Internals for Reset
 	}
 
 	/// Returns a vector containing a reference to this node's child
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Option<Vec<&Node>>
 	{
-		vec![&self.child]
+		Some(vec![&self.child])
 	}
 
-	fn children_ids(&self) -> Vec<IdType>
+	fn children_ids(&self) -> Option<Vec<IdType>>
 	{
-		vec![self.child.id()]
+		Some(vec![self.child.id()])
 	}
 
 	/// Returns the string "Reset"
@@ -234,14 +234,14 @@ impl Internals for Retry
 	}
 
 	/// Returns a vector containing a reference to this node's child
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Option<Vec<&Node>>
 	{
-		vec![&self.child]
+		Some(vec![&self.child])
 	}
 
-	fn children_ids(&self) -> Vec<IdType>
+	fn children_ids(&self) -> Option<Vec<IdType>>
 	{
-		vec![self.child.id()]
+		Some(vec![self.child.id()])
 	}
 
 	/// Returns the string "Retry"

@@ -59,14 +59,14 @@ impl Internals for Sequence
 	}
 
 	/// Returns a vector containing references to all of this node's children
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Option<Vec<&Node>>
 	{
-		self.children.iter().collect()
+		Some(self.children.iter().collect())
 	}
 
-	fn children_ids(&self) -> Vec<IdType>
+	fn children_ids(&self) -> Option<Vec<IdType>>
 	{
-		self.children.iter().map(|c| c.id()).collect()
+		Some(self.children.iter().map(|c| c.id()).collect())
 	}
 
 	/// Returns the string "Sequence"

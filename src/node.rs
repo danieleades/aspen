@@ -3,61 +3,25 @@
 use std::fmt;
 use status::Status;
 
-/// Type used for node UIDs
-pub type IdType = i32;
-
-/// Returns a new UID
-fn uid() -> IdType
-{
-	use std::sync::atomic::{AtomicIsize, Ordering, ATOMIC_ISIZE_INIT};
-	static COUNTER: AtomicIsize = ATOMIC_ISIZE_INIT;
-
-	COUNTER.fetch_add(1, Ordering::SeqCst) as IdType
-}
-
-
 /// Represents a generic node
 ///
 /// The logic of the node is controlled by the supplied `Internals` object
 pub struct Node
 {
-	/// This node's UID
-	id: IdType,
-
 	/// The status from the last time this node was ticked
 	status: Status,
-
-	#[cfg(feature = "lcm")]
-	/// Whether or not this node is a root node
-	///
-	/// This only affects outgoing LCM messages
-	is_root: bool,
 
 	/// The internal logic for this node
 	internals: Box<Internals>,
 }
 impl Node
 {
-	#[cfg(not(feature = "lcm"))]
 	/// Creates a new `Node` with the given `Internals`
 	pub fn new<I>(internals: I) -> Node
 		where I: Internals + 'static
 	{
 		Node {
-			id: uid(),
 			status: Status::Initialized,
-			internals: Box::new(internals),
-		}
-	}
-
-	#[cfg(feature = "lcm")]
-	/// Creates a new `Node` with the given `Internals`
-	pub fn new<I: Internals + 'static>(internals: I) -> Node
-	{
-		Node {
-			id: uid(),
-			status: Status::Initialized,
-			is_root: false,
 			internals: Box::new(internals),
 		}
 	}
@@ -84,16 +48,6 @@ impl Node
 		self.status
 	}
 
-	/// Returns this node's ID
-	///
-	/// In theory, this should be universally unique. However, a UUID is too
-	/// heavy for how this ID will be used, so it will only be unique within
-	/// a given process.
-	pub fn id(&self) -> IdType
-	{
-		self.id
-	}
-
 	/// Returns a vector containing references to all of this node's children.
 	/// If this node is a leaf, this returns `None`
 	pub fn children(&self) -> Option<&Vec<Node>>
@@ -101,28 +55,19 @@ impl Node
 		(*self.internals).children()
 	}
 
-	/// Returns a vector containing the IDs of all this node's children.
-	/// If this node is a leaf, this returns `None`
-	pub fn children_ids(&self) -> Option<Vec<IdType>>
-	{
-		(*self.internals).children_ids()
-	}
-
 	#[cfg(feature = "lcm")]
 	/// Creates a new `NodeMsg` from this node
 	pub fn as_message(&self) -> ::node_message::NodeMsg
 	{
-		let child_ids = if let Some(ids) = (*self.internals).children_ids() {
-			ids
+		let kids = if let Some(kids) = self.children() {
+			kids.iter().map(|c| c.as_message() ).collect()
 		} else { Vec::new() };
 
 		::node_message::NodeMsg {
-			id: self.id,
-			num_children: child_ids.len() as i32,
-			children: child_ids,
+			num_children: kids.len() as i32,
+			children: kids,
 			status: self.status as i32,
 			type_name: (*self.internals).type_name().to_string(),
-			is_root: self.is_root,
 		}
 	}
 }
@@ -137,14 +82,6 @@ impl fmt::Display for Node
 			}
 		}
 		write!(f, " )")
-	}
-}
-#[cfg(feature = "lcm")]
-impl ::Rootable for Node
-{
-	fn set_root(&mut self, root: bool)
-	{
-		self.is_root = root;
 	}
 }
 
@@ -170,13 +107,6 @@ pub trait Internals
 	/// Returns a vector of references to this node's children. Default
 	/// behavior is to return `None`
 	fn children(&self) -> Option<&Vec<Node>>
-	{
-		None
-	}
-
-	/// Returns a vector of this node's childrens' node IDs. Default behavior
-	/// is to return an `None`
-	fn children_ids(&self) -> Option<Vec<IdType>>
 	{
 		None
 	}

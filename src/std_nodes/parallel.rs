@@ -1,5 +1,5 @@
 //! Nodes that tick their children in parallel
-use node::{Node, Internals, IdType};
+use node::{Node, Internals};
 use status::Status;
 
 /// Implements a node that will tick all of its children every time it is
@@ -84,11 +84,6 @@ impl Internals for Parallel
 	fn children(&self) -> Option<&Vec<Node>>
 	{
 		Some(&self.children)
-	}
-
-	fn children_ids(&self) -> Option<Vec<IdType>>
-	{
-		Some(self.children.iter().map(|c| c.id()).collect())
 	}
 
 	/// Returns the string "Parallel"

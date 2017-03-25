@@ -4,7 +4,7 @@
 //! NOTE: There is no Sequence* node, since the choice of not having the nodes
 //! automatically reset causes a normal Sequence node to have the same behavior
 //! as a Sequence*.
-use node::{Node, Internals, IdType};
+use node::{Node, Internals};
 use status::Status;
 
 /// Implements a node that will tick its children in order as long as they succeed
@@ -62,11 +62,6 @@ impl Internals for Sequence
 	fn children(&self) -> Option<&Vec<Node>>
 	{
 		Some(&self.children)
-	}
-
-	fn children_ids(&self) -> Option<Vec<IdType>>
-	{
-		Some(self.children.iter().map(|c| c.id()).collect())
 	}
 
 	/// Returns the string "Sequence"

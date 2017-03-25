@@ -75,7 +75,7 @@ impl fmt::Display for Node
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
-		write!(f, "{}:( id = {}, status = {:?}", (*self.internals).type_name(), self.id, self.status)?;
+		write!(f, "{}:( status = {:?}", (*self.internals).type_name(), self.status)?;
 		if let Some(children) = self.children() {
 			for child in children {
 				write!(f, ", {}", child)?;

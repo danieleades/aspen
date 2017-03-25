@@ -2,13 +2,10 @@ package node_message;
 
 struct node_msg_t
 {
-	int32_t id;
-
 	int32_t num_children;
-	int32_t children[num_children];
+	node_msg_t children[num_children];
 
 	int32_t status;
 
 	string type_name;
-	boolean is_root;
 }

@@ -1,7 +1,7 @@
 //! Nodes that have a single child and manipulate the status of that child in
 //! some way
 
-use node::{Node, Internals, IdType};
+use node::{Node, Internals};
 use status::Status;
 
 /// Implements a node whose status is determined by running a function on its
@@ -50,11 +50,6 @@ impl Internals for Decorator
 	fn children(&self) -> Option<&Vec<Node>>
 	{
 		Some(&self.child_vec)
-	}
-
-	fn children_ids(&self) -> Option<Vec<IdType>>
-	{
-		Some(vec![self.child_vec.first().unwrap().id()])
 	}
 
 	/// Returns the string "Decorator"
@@ -148,11 +143,6 @@ impl Internals for Reset
 		Some(&self.child_vec)
 	}
 
-	fn children_ids(&self) -> Option<Vec<IdType>>
-	{
-		Some(vec![self.child_vec.first().unwrap().id()])
-	}
-
 	/// Returns the string "Reset"
 	fn type_name(&self) -> &'static str
 	{
@@ -235,11 +225,6 @@ impl Internals for Retry
 	fn children(&self) -> Option<&Vec<Node>>
 	{
 		Some(&self.child_vec)
-	}
-
-	fn children_ids(&self) -> Option<Vec<IdType>>
-	{
-		Some(vec![self.child_vec.first().unwrap().id()])
 	}
 
 	/// Returns the string "Retry"

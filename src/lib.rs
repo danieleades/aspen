@@ -18,13 +18,6 @@ pub use node_message::NodeMsg;
 #[cfg(feature = "lcm")]
 mod node_message;
 
-#[cfg(feature = "lcm")]
-/// Slightly gross hack to simulate C++'s "friend methods"
-trait Rootable
-{
-	fn set_root(&mut self, root: bool);
-}
-
 pub use status::Status;
 pub use bt::BehaviorTree;
 

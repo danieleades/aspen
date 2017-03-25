@@ -94,14 +94,16 @@ impl Node
 		self.id
 	}
 
-	/// Returns a vector containing references to all of this node's children
-	pub fn children(&self) -> Vec<&Node>
+	/// Returns a vector containing references to all of this node's children.
+	/// If this node is a leaf, this returns `None`
+	pub fn children(&self) -> Option<&Vec<Node>>
 	{
 		(*self.internals).children()
 	}
 
-	/// Returns a vector containing the IDs of all this node's children
-	pub fn children_ids(&self) -> Vec<IdType>
+	/// Returns a vector containing the IDs of all this node's children.
+	/// If this node is a leaf, this returns `None`
+	pub fn children_ids(&self) -> Option<Vec<IdType>>
 	{
 		(*self.internals).children_ids()
 	}
@@ -110,7 +112,9 @@ impl Node
 	/// Creates a new `NodeMsg` from this node
 	pub fn as_message(&self) -> ::node_message::NodeMsg
 	{
-		let child_ids = (*self.internals).children_ids();
+		let child_ids = if let Some(ids) = (*self.internals).children_ids() {
+			ids
+		} else { Vec::new() };
 
 		::node_message::NodeMsg {
 			id: self.id,
@@ -127,8 +131,10 @@ impl fmt::Display for Node
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
 		write!(f, "{}:( id = {}, status = {:?}", (*self.internals).type_name(), self.id, self.status)?;
-		for child in self.children() {
-			write!(f, ", {}", child)?;
+		if let Some(children) = self.children() {
+			for child in children {
+				write!(f, ", {}", child)?;
+			}
 		}
 		write!(f, " )")
 	}
@@ -162,17 +168,17 @@ pub trait Internals
 	fn reset(&mut self);
 
 	/// Returns a vector of references to this node's children. Default
-	/// behavior is to return an empty vector
-	fn children(&self) -> Vec<&Node>
+	/// behavior is to return `None`
+	fn children(&self) -> Option<&Vec<Node>>
 	{
-		Vec::new()
+		None
 	}
 
 	/// Returns a vector of this node's childrens' node IDs. Default behavior
-	/// is to return an empty vector
-	fn children_ids(&self) -> Vec<IdType>
+	/// is to return an `None`
+	fn children_ids(&self) -> Option<Vec<IdType>>
 	{
-		Vec::new()
+		None
 	}
 
 	/// Returns the name of the node type as a string literal

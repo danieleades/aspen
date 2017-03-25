@@ -56,9 +56,9 @@ impl Internals for Selector
 	}
 
 	/// Returns a vector containing references to all of this node's children
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Option<&Vec<Node>>
 	{
-		Some(self.children.iter().collect())
+		Some(&self.children)
 	}
 
 	fn children_ids(&self) -> Option<Vec<IdType>>

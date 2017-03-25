@@ -96,7 +96,7 @@ impl Node
 
 	/// Returns a vector containing references to all of this node's children.
 	/// If this node is a leaf, this returns `None`
-	pub fn children(&self) -> Option<Vec<&Node>>
+	pub fn children(&self) -> Option<&Vec<Node>>
 	{
 		(*self.internals).children()
 	}
@@ -131,7 +131,7 @@ impl fmt::Display for Node
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
 		write!(f, "{}:( id = {}, status = {:?}", (*self.internals).type_name(), self.id, self.status)?;
-		if let Some(ref children) = self.children() {
+		if let Some(children) = self.children() {
 			for child in children {
 				write!(f, ", {}", child)?;
 			}
@@ -169,7 +169,7 @@ pub trait Internals
 
 	/// Returns a vector of references to this node's children. Default
 	/// behavior is to return `None`
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Option<&Vec<Node>>
 	{
 		None
 	}

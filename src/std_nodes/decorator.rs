@@ -1,5 +1,5 @@
-//! Nodes that have a single child and whose status is some function of the
-//! child's status.
+//! Nodes that have a single child and manipulate the status of that child in
+//! some way
 
 use node::{Node, Internals, IdType};
 use status::Status;
@@ -14,8 +14,8 @@ pub struct Decorator
 	/// Function that is performed on the child's status
 	func: Box<Fn(Status) -> Status>,
 
-	/// Child node
-	child: Node,
+	/// Child node. Having this in a vec is the easiest way to satisfy the trait
+	child_vec: Vec<Node>,
 }
 impl Decorator
 {
@@ -23,7 +23,7 @@ impl Decorator
 	/// to be run on the child's status.
 	pub fn new(child: Node, func: Box<Fn(Status) -> Status>) -> Node
 	{
-		let internals = Decorator { func: func, child: child };
+		let internals = Decorator { func: func, child_vec: vec![child] };
 		Node::new(internals)
 	}
 }
@@ -35,27 +35,26 @@ impl Internals for Decorator
 	{
 		// If the child has already run, this shouldn't change results since it will
 		// just return its last status
-		let child_status = self.child.tick();
-
-		// Now run it through the function
+		let child_status = self.child_vec.first_mut().unwrap().tick();
 		(*self.func)(child_status)
 	}
 
 	/// Resets both this node and the child node.
 	fn reset(&mut self)
 	{
-		self.child.reset();
+
+		self.child_vec.first_mut().unwrap().reset();
 	}
 
 	/// Returns a vector containing a reference to this node's child
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Option<&Vec<Node>>
 	{
-		Some(vec![&self.child])
+		Some(&self.child_vec)
 	}
 
 	fn children_ids(&self) -> Option<Vec<IdType>>
 	{
-		Some(vec![self.child.id()])
+		Some(vec![self.child_vec.first().unwrap().id()])
 	}
 
 	/// Returns the string "Decorator"
@@ -73,8 +72,8 @@ impl Internals for Decorator
 /// action at every tick.
 pub struct Reset
 {
-	/// Child node
-	child: Node,
+	/// Child node. Having this in a vec is the easiest way to satisfy the trait
+	child_vec: Vec<Node>,
 
 	/// Optional number of times to do the reset
 	attempt_limit: Option<u32>,
@@ -88,7 +87,7 @@ impl Reset
 	pub fn new(child: Node) -> Node
 	{
 		let internals = Reset {
-			child: child,
+			child_vec: vec![child],
 			attempt_limit: None,
 			attempts: 0,
 		};
@@ -99,7 +98,7 @@ impl Reset
 	pub fn with_limit(child: Node, limit: u32) -> Node
 	{
 		let internals = Reset {
-			child: child,
+			child_vec: vec![child],
 			attempt_limit: Some(limit),
 			attempts: 0,
 		};
@@ -113,23 +112,23 @@ impl Internals for Reset
 	/// `Status::Succeeded` or `Status::Failed`.
 	fn tick(&mut self) -> Status
 	{
-		// First, get the last status of the child
-		let child_last_status = self.child.status();
+		// First, get the child status
+		let child_status = self.child_vec.first().unwrap().status();
 
 		// If the child wasn't Running (or already reset), we need to reset it... if the count allows
-		let reset = child_last_status.is_done()
+		let reset = child_status.is_done()
 		            && (self.attempt_limit == None
 		            || self.attempt_limit.unwrap() > self.attempts);
 		if reset {
 			// Theoretically, this could overflow if there is no attempt limit. But, if
 			// does, then the user really didn't plan - the node should never tick that
 			// many times in any situation.
-			self.child.reset();
+			self.child_vec.first_mut().unwrap().reset();
 			self.attempts += 1;
 		}
 
 		// Now tick the child
-		self.child.tick()
+		self.child_vec.first_mut().unwrap().tick()
 	}
 
 	/// Resets this node and its child. This also resets the internal counter
@@ -140,18 +139,18 @@ impl Internals for Reset
 		self.attempts = 0;
 
 		// Reset the child
-		self.child.reset();
+		self.child_vec.first_mut().unwrap().reset();
 	}
 
 	/// Returns a vector containing a reference to this node's child
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Option<&Vec<Node>>
 	{
-		Some(vec![&self.child])
+		Some(&self.child_vec)
 	}
 
 	fn children_ids(&self) -> Option<Vec<IdType>>
 	{
-		Some(vec![self.child.id()])
+		Some(vec![self.child_vec.first().unwrap().id()])
 	}
 
 	/// Returns the string "Reset"
@@ -164,8 +163,8 @@ impl Internals for Reset
 /// Implements a node that will reset its child after the child fails
 pub struct Retry
 {
-	/// Child node
-	child: Node,
+	/// Child node. Having this in a vec is the easiest way to satisfy the trait
+	child_vec: Vec<Node>,
 
 	/// Optional number of times to do the reset
 	attempt_limit: Option<u32>,
@@ -179,7 +178,7 @@ impl Retry
 	pub fn new(child: Node) -> Node
 	{
 		let internals = Retry {
-			child: child,
+			child_vec: vec![child],
 			attempt_limit: None,
 			attempts: 0,
 		};
@@ -190,7 +189,7 @@ impl Retry
 	pub fn with_limit(child: Node, limit: u32) -> Node
 	{
 		let internals = Retry {
-			child: child,
+			child_vec: vec![child],
 			attempt_limit: Some(limit),
 			attempts: 0,
 		};
@@ -203,23 +202,22 @@ impl Internals for Retry
 	/// failed and it is within its reset limit, this node will reset its child.
 	fn tick(&mut self) -> Status
 	{
-		// First, get the last status of the child
-		let child_last_status = self.child.status();
+		let child_status = self.child_vec.first_mut().unwrap().status();
 
 		// If the child failed, we need to retry it... if the count allows
-		let reset = child_last_status == Status::Failed
+		let reset = child_status == Status::Failed
 		            && (self.attempt_limit == None
 		            || self.attempt_limit.unwrap() > self.attempts);
 		if reset {
 			// Theoretically, this could overflow if there is no attempt limit. But, if
 			// does, then the user really didn't plan - the node should never tick that
 			// many times in any situation.
-			self.child.reset();
+			self.child_vec.first_mut().unwrap().reset();
 			self.attempts += 1;
 		}
 
 		// Now tick the child
-		self.child.tick()
+		self.child_vec.first_mut().unwrap().tick()
 	}
 
 	/// Resets this node and its child node. This also clears the internal
@@ -230,18 +228,18 @@ impl Internals for Retry
 		self.attempts = 0;
 
 		// Reset the child
-		self.child.reset();
+		self.child_vec.first_mut().unwrap().reset();
 	}
 
 	/// Returns a vector containing a reference to this node's child
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Option<&Vec<Node>>
 	{
-		Some(vec![&self.child])
+		Some(&self.child_vec)
 	}
 
 	fn children_ids(&self) -> Option<Vec<IdType>>
 	{
-		Some(vec![self.child.id()])
+		Some(vec![self.child_vec.first().unwrap().id()])
 	}
 
 	/// Returns the string "Retry"

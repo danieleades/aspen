@@ -1,3 +1,5 @@
+//! Represents a node within a behavior tree
+
 use std::fmt;
 use status::Status;
 
@@ -38,7 +40,8 @@ impl Node
 {
 	#[cfg(not(feature = "lcm"))]
 	/// Creates a new `Node` with the given `Internals`
-	pub fn new<I: Internals + 'static>(internals: I) -> Node
+	pub fn new<I>(internals: I) -> Node
+		where I: Internals + 'static
 	{
 		Node {
 			id: uid(),
@@ -81,7 +84,7 @@ impl Node
 		self.status
 	}
 
-	/// Returns this node's ID>
+	/// Returns this node's ID
 	///
 	/// In theory, this should be universally unique. However, a UUID is too
 	/// heavy for how this ID will be used, so it will only be unique within
@@ -139,12 +142,15 @@ impl ::Rootable for Node
 	}
 }
 
-/// The internal logic of a node
+/// The internal logic of a node.
+///
+/// This is the object that controls the tick behavior of the `Node`, with
+/// `Node` just being a wrapper to enforce some runtime behavior.
 pub trait Internals
 {
 	/// Ticks the internal state of the node a single time.
 	///
-	/// NOTE: Nodes should not automatically reset themselves. This was chosen
+	/// Nodes should not automatically reset themselves. This was chosen
 	/// in order to remove the need for special "star" nodes. Having the nodes
 	/// automatically reset can be simulated using a decorator node.
 	fn tick(&mut self) -> Status;
@@ -155,13 +161,15 @@ pub trait Internals
 	/// node.
 	fn reset(&mut self);
 
-	/// Returns a vector of references to this node's children
+	/// Returns a vector of references to this node's children. Default
+	/// behavior is to return an empty vector
 	fn children(&self) -> Vec<&Node>
 	{
 		Vec::new()
 	}
 
-	/// Returns a vector of this node's childrens' node IDs
+	/// Returns a vector of this node's childrens' node IDs. Default behavior
+	/// is to return an empty vector
 	fn children_ids(&self) -> Vec<IdType>
 	{
 		Vec::new()

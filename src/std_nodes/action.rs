@@ -1,17 +1,23 @@
-//! Nodes that run their a function in another thread
+//! Nodes that run a task in a separate thread.
 use std::thread;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use node::{Node, Internals};
 use status::Status;
 
-/// Implements a standard action node.
+/// Implements a node that manages the execution of tasks.
+///
+/// This node has no children but instead accepts a function that will be used
+/// to evaluate the status of the node. This function will be ran in a separate
+/// thread with the return value of the function specifying whether it succeeded
+/// or failed. This node will be considered `Running` as long as the function is
+/// running.
 pub struct Action
 {
-	/// Function that will be run to determine the status
+	/// The task which is to be run
 	func: Arc<Fn() -> bool + Send + Sync>,
 
-	/// Handle to the thread running the function
+	/// Handle to the thread running the task
 	thread_handle: Option<thread::JoinHandle<Status>>,
 
 	/// Value that the thread returned
@@ -22,11 +28,12 @@ pub struct Action
 }
 impl Action
 {
-	/// Creates a new Action node
-	pub fn new<F: Fn() -> bool + Send + Sync + 'static>(func: F) -> Node
+	/// Creates a new Action node that will execute the given task.
+	pub fn new<F>(task: F) -> Node
+		where F: Fn() -> bool + Send + Sync + 'static
 	{
 		let internals = Action {
-			func: Arc::new(func),
+			func: Arc::new(task),
 			thread_handle: None,
 			thread_res: None,
 			flag: Arc::new(AtomicBool::new(false)),
@@ -35,7 +42,7 @@ impl Action
 		Node::new(internals)
 	}
 
-	/// Launches a new worker thread to run the function
+	/// Launches a new worker thread to run the task
 	fn start_thread(&mut self)
 	{
 		// Make sure our flag is set to false
@@ -61,6 +68,9 @@ impl Action
 }
 impl Internals for Action
 {
+	/// Returns `Status::Running` if the task has been started but not
+	/// completed. Otherwise, it will return `Status::Succeeded` or
+	/// `Status::Failed` based on the return value of the task.
 	fn tick(&mut self) -> Status
 	{
 		// First, check to see if we've already ran
@@ -87,6 +97,10 @@ impl Internals for Action
 		}
 	}
 
+	/// Resets the node to a state identical to when it was first constructed.
+	///
+	/// If there is a running task, this function will block until the task is
+	/// completed.
 	fn reset(&mut self)
 	{
 		// I debated what to do here for a while. I could see someone wanting to detach
@@ -101,6 +115,7 @@ impl Internals for Action
 		}
 	}
 
+	/// Returns the string "Action"
 	fn type_name(&self) -> &'static str
 	{
 		"Action"

@@ -1,4 +1,4 @@
-//! Nodes that have a constant, well-defined behavior
+//! Nodes that have a constant behavior.
 use node::{Node, Internals};
 use status::Status;
 
@@ -15,6 +15,7 @@ impl AlwaysFail
 }
 impl Internals for AlwaysFail
 {
+	/// Returns `Status::Failed`
 	fn tick(&mut self) -> Status
 	{
 		Status::Failed
@@ -25,6 +26,7 @@ impl Internals for AlwaysFail
 		// No-op
 	}
 
+	/// Returns the string "AlwaysFail"
 	fn type_name(&self) -> &'static str
 	{
 		"AlwaysFail"
@@ -44,6 +46,7 @@ impl AlwaysSucceed
 }
 impl Internals for AlwaysSucceed
 {
+	/// Returns `Status::Succeeded`
 	fn tick(&mut self) -> Status
 	{
 		Status::Succeeded
@@ -54,6 +57,7 @@ impl Internals for AlwaysSucceed
 		// No-op
 	}
 
+	/// Returns the string "AlwaysSucceed"
 	fn type_name(&self) -> &'static str
 	{
 		"AlwaysSucceed"
@@ -73,6 +77,7 @@ impl AlwaysRunning
 }
 impl Internals for AlwaysRunning
 {
+	/// Returns `Status::Running`
 	fn tick(&mut self) -> Status
 	{
 		Status::Running
@@ -83,6 +88,7 @@ impl Internals for AlwaysRunning
 		// No-op
 	}
 
+	/// Returns the string "AlwaysRunning"
 	fn type_name(&self) -> &'static str
 	{
 		"AlwaysRunning"

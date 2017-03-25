@@ -1,8 +1,8 @@
-//! Nodes whose status is determined by a function
+//! Nodes whose status is determined by a function that runs within the tick.
 use node::{Node, Internals};
 use status::Status;
 
-/// A node whose success depends on a function that can be run in a single tick
+/// A node whose status is determined by a function.
 pub struct Condition
 {
 	/// Function that is performed to determine the node's status
@@ -14,7 +14,10 @@ impl Condition
 {
 	/// Constructs a new Condition node
 	///
-	/// If the functio returns `true`, then then node succeeds. Otherwise the node fails.
+	/// If the function returns `true` then then node succeeds, otherwise the
+	/// node fails. The function will run within the same thread that calls
+	/// `tick`, so its execution should be completed within a single tick's
+	/// amount of time.
 	pub fn new<F: Fn() -> bool + 'static>(func: F) -> Node
 	{
 		let internals = Condition { func: Box::new(func) };
@@ -23,6 +26,9 @@ impl Condition
 }
 impl Internals for Condition
 {
+	/// Calls the supplied status function, returning `Status::Succeeded` if it
+	/// returned `true`, with `Status::Failed` otherwise. This will never return
+	/// `Status::Running`.
 	fn tick(&mut self) -> Status
 	{
 		// Otherwise, run the function
@@ -38,6 +44,7 @@ impl Internals for Condition
 		// No-op
 	}
 
+	/// Returns the string "Condition"
 	fn type_name(&self) -> &'static str
 	{
 		"Condition"

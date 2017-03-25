@@ -1,9 +1,14 @@
 //! Nodes that have a single child and whose status is some function of the
 //! child's status.
+
 use node::{Node, Internals, IdType};
 use status::Status;
 
-/// Implements a generic Decorator node
+/// Implements a node whose status is determined by running a function on its
+/// child's status.
+///
+/// An example of this node's use would be to invert the success or failure of
+/// a child node.
 pub struct Decorator
 {
 	/// Function that is performed on the child's status
@@ -14,7 +19,8 @@ pub struct Decorator
 }
 impl Decorator
 {
-	/// Creates a new Decorator node with the given child and function
+	/// Creates a new Decorator node with the supplied child node and function
+	/// to be run on the child's status.
 	pub fn new(child: Node, func: Box<Fn(Status) -> Status>) -> Node
 	{
 		let internals = Decorator { func: func, child: child };
@@ -23,6 +29,8 @@ impl Decorator
 }
 impl Internals for Decorator
 {
+	/// Ticks the child node and then calls the supplied function on the return
+	/// status.
 	fn tick(&mut self) -> Status
 	{
 		// If the child has already run, this shouldn't change results since it will
@@ -33,11 +41,13 @@ impl Internals for Decorator
 		(*self.func)(child_status)
 	}
 
+	/// Resets both this node and the child node.
 	fn reset(&mut self)
 	{
 		self.child.reset();
 	}
 
+	/// Returns a vector containing a reference to this node's child
 	fn children(&self) -> Vec<&Node>
 	{
 		vec![&self.child]
@@ -48,13 +58,19 @@ impl Internals for Decorator
 		vec![self.child.id()]
 	}
 
+	/// Returns the string "Decorator"
 	fn type_name(&self) -> &'static str
 	{
 		"Decorator"
 	}
 }
 
-/// Implements a node that will reset its child after the child succeeds or fails
+/// Implements a node that will reset its child after the child succeeds or fails.
+///
+/// This can be used to create a node that is always ticked regardless of
+/// whether or not it has succeeded or failed in the past. For example, one may
+/// want to check that it is safe to perform an action or continue to perform an
+/// action at every tick.
 pub struct Reset
 {
 	/// Child node
@@ -92,6 +108,9 @@ impl Reset
 }
 impl Internals for Reset
 {
+	/// Ticks the child and returns the resulting status. If this node is under
+	/// its reset limit, it will also reset the child if the child return
+	/// `Status::Succeeded` or `Status::Failed`.
 	fn tick(&mut self) -> Status
 	{
 		// First, get the last status of the child
@@ -113,6 +132,8 @@ impl Internals for Reset
 		self.child.tick()
 	}
 
+	/// Resets this node and its child. This also resets the internal counter
+	/// for how many times the child node has been reset.
 	fn reset(&mut self)
 	{
 		// Reset our attempt count
@@ -122,6 +143,7 @@ impl Internals for Reset
 		self.child.reset();
 	}
 
+	/// Returns a vector containing a reference to this node's child
 	fn children(&self) -> Vec<&Node>
 	{
 		vec![&self.child]
@@ -132,6 +154,7 @@ impl Internals for Reset
 		vec![self.child.id()]
 	}
 
+	/// Returns the string "Reset"
 	fn type_name(&self) -> &'static str
 	{
 		"Reset"
@@ -176,6 +199,8 @@ impl Retry
 }
 impl Internals for Retry
 {
+	/// Ticks the child node and returns the resulting status. If the child
+	/// failed and it is within its reset limit, this node will reset its child.
 	fn tick(&mut self) -> Status
 	{
 		// First, get the last status of the child
@@ -197,6 +222,8 @@ impl Internals for Retry
 		self.child.tick()
 	}
 
+	/// Resets this node and its child node. This also clears the internal
+	/// counter for the number of times the child node has been reset.
 	fn reset(&mut self)
 	{
 		// Reset our own status
@@ -206,6 +233,7 @@ impl Internals for Retry
 		self.child.reset();
 	}
 
+	/// Returns a vector containing a reference to this node's child
 	fn children(&self) -> Vec<&Node>
 	{
 		vec![&self.child]
@@ -216,6 +244,7 @@ impl Internals for Retry
 		vec![self.child.id()]
 	}
 
+	/// Returns the string "Retry"
 	fn type_name(&self) -> &'static str
 	{
 		"Retry"

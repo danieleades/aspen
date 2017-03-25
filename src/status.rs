@@ -2,11 +2,7 @@
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Status
 {
-	/// Represents a node that has yet to be run
-	///
-	/// If there wasn't a need to distinguish between running and yet-to-run
-	/// nodes in the aspen-gui, I would not have this here. However, there is
-	/// so this extra `Status` is necessary
+	/// Represents a node that has yet to be run or has been reset
 	Initialized,
 	/// Represents a node that is currently running
 	Running,

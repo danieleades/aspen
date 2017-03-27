@@ -2,10 +2,12 @@ package node_message;
 
 struct node_msg_t
 {
+	const int8_t INITIALIZED=0, RUNNING=1, SUCCEEDED=2, FAILED=3;
+
 	int32_t num_children;
 	node_msg_t children[num_children];
 
-	int32_t status;
+	int8_t status;
 
-	string type_name;
+	string name;
 }

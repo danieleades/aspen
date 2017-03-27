@@ -66,7 +66,7 @@ impl Node
 		::node_message::NodeMsg {
 			num_children: kids.len() as i32,
 			children: kids,
-			status: self.status as i32,
+			status: self.status as i8,
 			type_name: (*self.internals).type_name().to_string(),
 		}
 	}

@@ -49,13 +49,13 @@ impl BehaviorTree
 	///
 	/// NOTE: The only time this will return `Status::Running` is if the frequency is zero
 	/// and the behavior tree is running after the first tick.
-	pub fn run<F>(&mut self, freq: f32, hook: Option<F>) -> Status
-		where F: Fn(&BehaviorTree)
+	pub fn run<F>(&mut self, freq: f32, mut hook: Option<F>) -> Status
+		where F: FnMut(&BehaviorTree)
 	{
 		// Deal with the "special" case of a zero frequency
 		if freq == 0.0f32 {
 			let status = self.tick();
-			if let Some(ref f) = hook {
+			if let Some(ref mut f) = hook {
 				f(self);
 			}
 
@@ -72,7 +72,7 @@ impl BehaviorTree
 			let now = Instant::now();
 
 			status = self.tick();
-			if let Some(ref f) = hook {
+			if let Some(ref mut f) = hook {
 				f(self);
 			}
 

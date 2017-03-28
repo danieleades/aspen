@@ -1,9 +1,22 @@
 //! Nodes that run a task in a separate thread.
 use std::thread;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc;
 use node::{Node, Internals};
 use status::Status;
+
+/// Represents the status of a taks
+enum TaskState
+{
+	/// A task that has not been started yet
+	Waiting,
+
+	/// A task that is currently running
+	Running(mpsc::Receiver<bool>),
+
+	/// A task that has been completed
+	Done(Status),
+}
 
 /// Implements a node that manages the execution of tasks.
 ///
@@ -17,14 +30,8 @@ pub struct Action
 	/// The task which is to be run
 	func: Arc<Fn() -> bool + Send + Sync>,
 
-	/// Handle to the thread running the task
-	thread_handle: Option<thread::JoinHandle<Status>>,
-
-	/// Value that the thread returned
-	thread_res: Option<Status>,
-
-	/// Flag that notifies this object that the work thread has completed
-	flag: Arc<AtomicBool>,
+	/// State of the task
+	state: TaskState,
 }
 impl Action
 {
@@ -34,36 +41,57 @@ impl Action
 	{
 		let internals = Action {
 			func: Arc::new(task),
-			thread_handle: None,
-			thread_res: None,
-			flag: Arc::new(AtomicBool::new(false)),
+			state: TaskState::Waiting,
 		};
 
 		Node::new(internals)
 	}
 
 	/// Launches a new worker thread to run the task
-	fn start_thread(&mut self)
+	fn start_thread(&mut self) -> Status
 	{
-		// Make sure our flag is set to false
-		self.flag.store(false, Ordering::SeqCst);
+		// Create our new channels
+		let (tx, rx) = mpsc::channel();
 
-		// Then boot up the thread
-		let flag_clone = self.flag.clone();
+		// Then clone the function so we can move it
 		let func_clone = self.func.clone();
-		let thread_handle = thread::spawn(move || {
-			// Run the function
-			let res = (func_clone)();
 
-			// Set the flag so the main thread knows we're done
-			flag_clone.store(true, Ordering::SeqCst);
+		// Finally, boot up the thread
+		thread::spawn(move || tx.send((func_clone)()).unwrap() );
 
-			// Return the status
-			if res { Status::Succeeded } else { Status::Failed }
-		});
+		// Store the rx for later use
+		self.state = TaskState::Running(rx);
+		Status::Running
+	}
 
-		// Store the handle for later
-		self.thread_handle = Some(thread_handle);
+	/// Checks if the worker thread is done or not
+	fn check_thread(&mut self) -> Status
+	{
+		use std::sync::mpsc::TryRecvError;
+
+		// This is the only good way I know to get a reference to rx
+		let status = if let TaskState::Running(ref mut rx) = self.state {
+			// See if there's anything waiting
+			match rx.try_recv() {
+				// Task was done, figure out the result
+				Ok(res) => {
+					if res { Status::Succeeded } else { Status::Failed }
+				},
+
+				// Still waiting on the task
+				Err(TryRecvError::Empty) => Status::Running,
+
+				// Something bad happend. Task died before finishing
+				_ => panic!("Task died before finishing"),
+			}
+
+		} else { panic!("Wrong task state for check_thread") };
+
+		// If we're done, we need move the task to the next stage
+		if status.is_done() {
+			self.state = TaskState::Done(status);
+		}
+		status
 	}
 }
 impl Internals for Action
@@ -73,27 +101,10 @@ impl Internals for Action
 	/// `Status::Failed` based on the return value of the task.
 	fn tick(&mut self) -> Status
 	{
-		// First, check to see if we've already ran
-		if let Some(res) = self.thread_res {
-			return res;
-		}
-
-		// We haven't already run, so start up a new thread if needed
-		if self.thread_handle.is_none() {
-			self.start_thread();
-		}
-
-		// There is a thread running - get its status
-		if !self.flag.load(Ordering::SeqCst) {
-			Status::Running
-		} else {
-			// The thread is done, so load up its status. We also know that
-			// we have a thread handle at this point
-			let handle = self.thread_handle.take();
-			let status = handle.unwrap().join().unwrap();
-
-			self.thread_res = Some(status);
-			status
+		match self.state {
+			TaskState::Waiting      => self.start_thread(),
+			TaskState::Running(_)   => self.check_thread(),
+			TaskState::Done(status) => status
 		}
 	}
 
@@ -107,12 +118,10 @@ impl Internals for Action
 		// the thread due to time constraints, but it seems to me that it would be better
 		// to avoid potential bugs that come from a node only looking like its been
 		// fully reset.
-		self.flag.store(false, Ordering::SeqCst);
-		self.thread_res = None;
-		if self.thread_handle.is_some() {
-			let handle = self.thread_handle.take();
-			handle.unwrap().join().unwrap();
+		if let TaskState::Running(ref mut rx) = self.state {
+			rx.recv().unwrap();
 		}
+		self.state = TaskState::Waiting;
 	}
 
 	/// Returns the string "Action"

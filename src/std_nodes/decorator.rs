@@ -1,5 +1,4 @@
-//! Nodes that have a single child and manipulate the status of that child in
-//! some way
+//! Nodes that have a single child and modify the behavior of that child in some way
 
 use node::{Node, Internals};
 use status::Status;

@@ -6,7 +6,7 @@ use node::{Node, Internals};
 use status::Status;
 
 /// Represents the status of a taks
-enum TaskStatus
+enum TaskState
 {
 	/// A task that has not been started yet
 	Waiting,
@@ -30,8 +30,8 @@ pub struct Action
 	/// The task which is to be run
 	func: Arc<Fn() -> bool + Send + Sync>,
 
-	/// Status of the task
-	status: TaskStatus,
+	/// State of the task
+	state: TaskState,
 }
 impl Action
 {
@@ -41,7 +41,7 @@ impl Action
 	{
 		let internals = Action {
 			func: Arc::new(task),
-			status: TaskStatus::Waiting,
+			state: TaskState::Waiting,
 		};
 
 		Node::new(internals)
@@ -60,7 +60,7 @@ impl Action
 		thread::spawn(move || tx.send((func_clone)()).unwrap() );
 
 		// Store the rx for later use
-		self.status = TaskStatus::Running(rx);
+		self.state = TaskState::Running(rx);
 		Status::Running
 	}
 
@@ -69,8 +69,8 @@ impl Action
 	{
 		use std::sync::mpsc::TryRecvError;
 
-		// Check on the status of the task
-		let status = if let TaskStatus::Running(ref mut rx) = self.status {
+		// This is the only good way I know to get a reference to rx
+		let status = if let TaskState::Running(ref mut rx) = self.state {
 			// See if there's anything waiting
 			match rx.try_recv() {
 				// Task was done, figure out the result
@@ -84,11 +84,12 @@ impl Action
 				// Something bad happend. Task died before finishing
 				_ => panic!("Task died before finishing"),
 			}
-		} else { unreachable!() };
+
+		} else { panic!("Wrong task state for check_thread") };
 
 		// If we're done, we need move the task to the next stage
 		if status.is_done() {
-			self.status = TaskStatus::Done(status);
+			self.state = TaskState::Done(status);
 		}
 		status
 	}
@@ -100,10 +101,10 @@ impl Internals for Action
 	/// `Status::Failed` based on the return value of the task.
 	fn tick(&mut self) -> Status
 	{
-		match self.status {
-			TaskStatus::Waiting      => self.start_thread(),
-			TaskStatus::Running(_)   => self.check_thread(),
-			TaskStatus::Done(status) => status
+		match self.state {
+			TaskState::Waiting      => self.start_thread(),
+			TaskState::Running(_)   => self.check_thread(),
+			TaskState::Done(status) => status
 		}
 	}
 
@@ -117,10 +118,10 @@ impl Internals for Action
 		// the thread due to time constraints, but it seems to me that it would be better
 		// to avoid potential bugs that come from a node only looking like its been
 		// fully reset.
-		if let TaskStatus::Running(ref mut rx) = self.status {
+		if let TaskState::Running(ref mut rx) = self.state {
 			rx.recv().unwrap();
 		}
-		self.status = TaskStatus::Waiting;
+		self.state = TaskState::Waiting;
 	}
 
 	/// Returns the string "Action"

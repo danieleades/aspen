@@ -87,7 +87,9 @@ impl Action
 		} else { unreachable!() };
 
 		// If we're done, we need move the task to the next stage
-		self.status = TaskStatus::Done(status);
+		if status.is_done() {
+			self.status = TaskStatus::Done(status);
+		}
 		status
 	}
 }

@@ -1,36 +1,80 @@
 image: "scorpil/rust:stable"
 
-# Not sure why this is needed, but it is
-variables:
-  CARGO_HOME: $CI_PROJECT_DIR/cargo
+# Specify the stages in the pipeline
+stages:
+  - build
+  - test
+  - docs
+  - deploy
 
-# Use cargo to test the project
-test:cargo:
+# Build the project first
+build:
+  stage: build
   script:
-  - mkdir -p target
-  - mkdir -p cargo
-  - du -hs target
-  - du -hs cargo
-  - rustc --version && cargo --version      # Print version info for debugging
-  - cargo test --verbose --jobs 1 --release # Don't paralize to make errors more readable
-  cache:
-    paths:
-    - target/
-    - cargo/
-    
-pages:
-  only:
-  - master
-  stage: deploy
-  script:
-  - cargo doc
-  - rm -rf public
-  - mkdir public
-  - cp -R target/doc/aspen/* public
+    - mkdir -p target
+    - mkdir -p cargo
+    - du -hs target
+    - du -h cargo
+    - rustc --version && cargo --version
+    - cargo build --verbose --jobs 1 --release
   artifacts:
     paths:
-    - public
-  cache:
+      - target/
+      - cargo/
+
+# Use cargo to test the project
+test:
+  stage: test
+  script:
+    - mkdir -p target
+    - mkdir -p cargo
+    - du -hs target
+    - du -hs cargo
+    - rustc --version && cargo --version      # Print version info for debugging
+    - cargo test --verbose --jobs 1 --release # Don't paralize to make errors more readable
+  dependencies:
+    - build
+  artifacts:
     paths:
-    - target/
-    - cargo/
+      - target/
+      - cargo/
+
+# Make sure the docs build too
+docs:
+  stage: docs
+  script:
+    - mkdir -p target
+    - mkdir -p cargo
+    - du -hs target
+    - du -hs cargo
+    - cargo doc --jobs 1
+  dependencies:
+    - build
+  artifacts:
+    paths:
+      - target/
+      - cargo/
+
+# Update the pages - disabled for now
+#pages:
+#  only:
+#    - tags
+#  stage: deploy
+#  script:
+#    - rm -rf public/*
+#    - mkdir -p "public/latest"
+#    - cp -R target/doc/* "public/latest"
+#  dependencies:
+#    - docs
+#  artifacts:
+#    paths:
+#      - public
+
+# Deploy to Crates.io - disabled for now
+#deploy:
+#  only:
+#    - tags
+#  stage: deploy
+#  script:
+#    - cargo package --verbose
+#    - cargo publish --token "$CRATES_IO_TOKEN"

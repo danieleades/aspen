@@ -67,7 +67,7 @@ impl Node
 			num_children: kids.len() as i32,
 			children: kids,
 			status: self.status as i8,
-			type_name: (*self.internals).type_name().to_string(),
+			name: (*self.internals).type_name().to_string(),
 		}
 	}
 }

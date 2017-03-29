@@ -27,8 +27,16 @@ impl Node
 	}
 
 	/// Ticks the node a single time
+	///
+	/// If the node has already run to completion, this willl reset the node.
 	pub fn tick(&mut self) -> Status
 	{
+		// Reset the node if it has already been completed
+		if self.status.is_done() {
+			self.reset();
+		}
+
+		// Tick the internals
 		self.status = (*self.internals).tick();
 		return self.status;
 	}
@@ -93,9 +101,9 @@ pub trait Internals
 {
 	/// Ticks the internal state of the node a single time.
 	///
-	/// Nodes should not automatically reset themselves. This was chosen
-	/// in order to remove the need for special "star" nodes. Having the nodes
-	/// automatically reset can be simulated using a decorator node.
+	/// Node internals should not automatically reset themselves. If a node has
+	/// been run to completion, the `Node` that holds this object will call
+	/// `reset` before ticking the node.
 	fn tick(&mut self) -> Status;
 
 	/// Resets the internal state of the node.

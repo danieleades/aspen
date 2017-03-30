@@ -1,6 +1,6 @@
 //! Nodes that have children and tick them in a sequential order as long as they fail.
 use node::{Node, Internals};
-use status::Status;
+use ::Status;
 
 /// A node that ticks its children sequentially as long as they fail.
 ///
@@ -43,8 +43,8 @@ use status::Status;
 /// A node that returns success:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = ActiveSelector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysSucceed::new(),
@@ -56,12 +56,12 @@ use status::Status;
 /// A node that returns that it is running:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = ActiveSelector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysRunning::new(),
-///     AlwaysSucceeds::new()
+///     AlwaysSucceed::new()
 /// ]);
 /// assert_eq!(node.tick(), Status::Running);
 /// ```
@@ -69,8 +69,8 @@ use status::Status;
 /// A node that returns that it fails:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = ActiveSelector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysFail::new(),
@@ -170,11 +170,11 @@ impl Internals for ActiveSelector
 /// A node that returns success:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = Selector::new(vec![
 ///     AlwaysFail::new(),
-///     AlwaysSucceeds::new(),
+///     AlwaysSucceed::new(),
 ///     AlwaysRunning::new()
 /// ]);
 /// assert_eq!(node.tick(), Status::Succeeded);
@@ -183,12 +183,12 @@ impl Internals for ActiveSelector
 /// A node that returns that it is running:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = Selector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysRunning::new(),
-///     AlwaysSucceeds::new()
+///     AlwaysSucceed::new()
 /// ]);
 /// assert_eq!(node.tick(), Status::Running);
 /// ```
@@ -196,8 +196,8 @@ impl Internals for ActiveSelector
 /// A node that returns that it fails:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = Selector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysFail::new(),
@@ -268,7 +268,7 @@ impl Internals for Selector
 #[cfg(test)]
 mod test
 {
-	use status::Status;
+	use ::Status;
 	use std_nodes::*;
 
 	#[test]

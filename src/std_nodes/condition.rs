@@ -30,12 +30,12 @@ use status::Status;
 /// unsigned integers:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
-/// let a: u32 = 10;
-/// let b: u32 = 100;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
+/// const FIRST: u32 = 10;
+/// const SECOND: u32 = 100;
 ///
-/// let mut node = Condition::new(|| a > b );
+/// let mut node = Condition::new(|| FIRST > SECOND );
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
 pub struct Condition

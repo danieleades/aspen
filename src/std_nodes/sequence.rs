@@ -1,6 +1,6 @@
 //! Nodes that have children and tick them in a sequential order as long as they succeed.
 use node::{Node, Internals};
-use status::Status;
+use ::Status;
 
 /// A node that will tick its children in order as long as they succeed.
 ///
@@ -43,8 +43,8 @@ use status::Status;
 /// A node that returns success:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = ActiveSequence::new(vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),
@@ -56,11 +56,11 @@ use status::Status;
 /// A node that returns it is running:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = ActiveSequence::new(vec![
 ///     AlwaysSucceed::new(),
-///     AlwaysRunning:new(),
+///     AlwaysRunning::new(),
 ///     AlwaysFail::new()
 /// ]);
 /// assert_eq!(node.tick(), Status::Running);
@@ -69,8 +69,8 @@ use status::Status;
 /// A node that returns it failed:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = ActiveSequence::new(vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),
@@ -168,8 +168,8 @@ impl Internals for ActiveSequence
 /// A node that returns success:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = Sequence::new(vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),
@@ -181,11 +181,11 @@ impl Internals for ActiveSequence
 /// A node that returns it is running:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = Sequence::new(vec![
 ///     AlwaysSucceed::new(),
-///     AlwaysRunning:new(),
+///     AlwaysRunning::new(),
 ///     AlwaysFail::new()
 /// ]);
 /// assert_eq!(node.tick(), Status::Running);
@@ -194,8 +194,8 @@ impl Internals for ActiveSequence
 /// A node that returns it failed:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = Sequence::new(vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),
@@ -261,7 +261,7 @@ impl Internals for Sequence
 #[cfg(test)]
 mod test
 {
-	use status::Status;
+	use ::Status;
 	use std_nodes::*;
 
 	#[test]

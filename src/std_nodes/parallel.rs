@@ -44,8 +44,8 @@ use status::Status;
 /// A node that has enough successful children:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let threshold = 3;
 /// let mut node = Parallel::new(vec![
 ///     AlwaysSucceed::new(),
@@ -61,8 +61,8 @@ use status::Status;
 /// A node that could either succeed or fail, so it is still running:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let threshold = 3;
 /// let mut node = Parallel::new(vec![
 ///     AlwaysSucceed::new(),
@@ -78,8 +78,8 @@ use status::Status;
 /// A node that could not possibly succeed, so it fails:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let threshold = 4;
 /// let mut node = Parallel::new(vec![
 ///     AlwaysSucceed::new(),
@@ -89,7 +89,7 @@ use status::Status;
 ///     AlwaysFail::new()
 /// ], threshold);
 ///
-/// assert_eq!(node.tick(), Status::Running);
+/// assert_eq!(node.tick(), Status::Failed);
 /// ```
 pub struct Parallel
 {

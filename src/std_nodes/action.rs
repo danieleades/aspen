@@ -35,12 +35,12 @@ use status::Status;
 /// An action node that attempts to subtract two unsigned integers:
 ///
 /// ```
-/// # use std::sync::{AtomicUsize, Ordering};
-/// # use std_nodes::*;
-/// # use status::Status;
-/// const FIRST: usize = 10;
-/// const SECOND: usize = 100;
-/// let result = AtomicUsize::new(0);
+/// # use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
+/// const  FIRST:  usize = 10;
+/// const  SECOND: usize = 100;
+/// static result: AtomicUsize = ATOMIC_USIZE_INIT;
 ///
 /// let mut action = Action::new(||{
 ///     if FIRST < SECOND {

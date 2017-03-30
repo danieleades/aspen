@@ -28,8 +28,8 @@ use status::Status;
 /// A decorator that inverts the return status of its child:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// fn invert(s: Status) -> Status
 /// {
 ///     if s == Status::Succeeded { Status::Failed }
@@ -38,7 +38,7 @@ use status::Status;
 /// }
 ///
 /// let child = AlwaysSucceed::new();
-/// let node = Decorator::new(child, invert);
+/// let mut node = Decorator::new(child, Box::new(invert));
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
 pub struct Decorator
@@ -115,16 +115,17 @@ impl Internals for Decorator
 /// Force the child to be reset a specific number of times:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
-/// let reset_limit = 5;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
+/// let run_limit = 5;
 /// let child = AlwaysFail::new();
-/// let node = Repeat::with_limit(child, reset_limit);
+/// let mut node = Repeat::with_limit(child, run_limit);
 ///
-/// for _ in 0..reset_limit {
+/// // Subtract one since there is a run in the assert
+/// for _ in 0..(run_limit - 1) {
 ///     assert_eq!(node.tick(), Status::Running);
 /// }
-/// assert_eq!(node.tick(), Status::Successful);
+/// assert_eq!(node.tick(), Status::Succeeded);
 /// ```
 pub struct Repeat
 {
@@ -239,18 +240,22 @@ impl Internals for Repeat
 ///
 /// # Examples
 ///
-/// A child that will be repeated infinitely until it fails:
+/// A child that will be repeated infinitely until it fails (lifetime
+/// boilerplate stuff will hopefully be solved soon):
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
-/// let mut a = 0;
-/// let child = Condition::new(|| a < 10 );
+/// # use std::rc::Rc;
+/// # use std::cell::Cell;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
+/// let a = Rc::new(Cell::new(0));
+/// let b = a.clone();
+/// let child = Condition::new(move || b.get() < 10 );
 /// let mut node = UntilFail::new(child);
 ///
 /// for _ in 0..10 {
 ///     assert_eq!(node.tick(), Status::Running);
-///     a += 1;
+///     a.set(a.get() + 1);
 /// }
 ///
 /// assert_eq!(node.tick(), Status::Succeeded);
@@ -259,14 +264,15 @@ impl Internals for Repeat
 /// An `UntilFail` node will fail if the child doesn't within the limit:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
+/// let tries = 10;
 /// let child = AlwaysSucceed::new();
-/// let mut node = UntilFail::with_limit(child, 10);
+/// let mut node = UntilFail::with_limit(child, tries);
 ///
-/// for _ in 0..10 {
+/// // Subtract one since our final assert counts as a try
+/// for _ in 0..(tries - 1) {
 ///     assert_eq!(node.tick(), Status::Running);
-///     a += 1;
 /// }
 ///
 /// assert_eq!(node.tick(), Status::Failed);
@@ -391,18 +397,22 @@ impl Internals for UntilFail
 ///
 /// # Examples
 ///
-/// A child that will be repeated infinitely until it succeeds:
+/// A child that will be repeated infinitely until it succeeds (lifetime
+/// boilerplate will hopefully be fixed soon):
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
-/// let mut a = 0;
-/// let child = Condition::new(|| a == 10 );
+/// # use std::rc::Rc;
+/// # use std::cell::Cell;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
+/// let a = Rc::new(Cell::new(0));
+/// let b = a.clone();
+/// let child = Condition::new(move || b.get() == 10 );
 /// let mut node = UntilSuccess::new(child);
 ///
 /// for _ in 0..10 {
 ///     assert_eq!(node.tick(), Status::Running);
-///     a += 1;
+///     a.set(a.get() + 1);
 /// }
 ///
 /// assert_eq!(node.tick(), Status::Succeeded);
@@ -411,14 +421,15 @@ impl Internals for UntilFail
 /// An `UntilSuccess` node will fail if the child doesn't succeed within the limit:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
+/// let runs = 10;
 /// let child = AlwaysFail::new();
-/// let mut node = UntilSuccess::with_limit(child, 10);
+/// let mut node = UntilSuccess::with_limit(child, runs);
 ///
-/// for _ in 0..10 {
+/// // Minus one since our final assert is a run
+/// for _ in 0..(runs - 1) {
 ///     assert_eq!(node.tick(), Status::Running);
-///     a += 1;
 /// }
 ///
 /// assert_eq!(node.tick(), Status::Failed);

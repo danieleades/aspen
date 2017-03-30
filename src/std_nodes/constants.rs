@@ -27,8 +27,8 @@ use status::Status;
 /// An `AlwaysFail` node always fails when it has no child:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = AlwaysFail::new();
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
@@ -36,8 +36,8 @@ use status::Status;
 /// If the child is considered running, so is this node:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = AlwaysFail::with_child(AlwaysRunning::new());
 /// assert_eq!(node.tick(), Status::Running);
 /// ```
@@ -45,8 +45,8 @@ use status::Status;
 /// If the child is done running, its status is disregarded:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = AlwaysFail::with_child(AlwaysSucceed::new());
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
@@ -131,8 +131,8 @@ impl Internals for AlwaysFail
 /// An `AlwaysSucceed` node always succeeds when it has no child:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = AlwaysSucceed::new();
 /// assert_eq!(node.tick(), Status::Succeeded);
 /// ```
@@ -140,8 +140,8 @@ impl Internals for AlwaysFail
 /// If the child is considered running, so is this node:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = AlwaysSucceed::with_child(AlwaysRunning::new());
 /// assert_eq!(node.tick(), Status::Running);
 /// ```
@@ -149,8 +149,8 @@ impl Internals for AlwaysFail
 /// If the child is done running, its status is disregarded:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = AlwaysSucceed::with_child(AlwaysFail::new());
 /// assert_eq!(node.tick(), Status::Succeeded);
 /// ```
@@ -230,8 +230,8 @@ impl Internals for AlwaysSucceed
 /// An `AlwaysRunning` node is always running:
 ///
 /// ```
-/// # use std_nodes::*;
-/// # use status::Status;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
 /// let mut node = AlwaysRunning::new();
 /// assert_eq!(node.tick(), Status::Running);
 /// ```

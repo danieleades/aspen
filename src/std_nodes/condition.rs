@@ -30,6 +30,8 @@ use status::Status;
 /// unsigned integers:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let a: u32 = 10;
 /// let b: u32 = 100;
 ///

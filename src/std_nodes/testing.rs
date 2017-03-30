@@ -80,20 +80,22 @@ impl Drop for YesTick
 }
 
 /// Implements a node that must be ticked a specific number of times.
-///
-/// The number of ticks persists over a reset, so this means that the node must
-/// be ticked a specific number of times before being dropped instead of before
-/// being reset.
 pub struct CountedTick
 {
 	/// The status this node is to return.
 	status: Status,
 
-	/// The number of times remaining for this node to be ticked.
+	/// The number of times this node has been ticked.
 	count: u32,
+
+	/// The number of times this node is allowed to be ticked.
+	limit: u32,
 
 	/// Whether or not the node can be ticked more than the given count.
 	exact: bool,
+
+	/// Whether or not the count resets on node reset
+	resetable: bool,
 }
 impl CountedTick
 {
@@ -102,8 +104,23 @@ impl CountedTick
 	{
 		let internals = CountedTick {
 			status: status,
-			count: count,
+			count: 0,
+			limit: count,
 			exact: exact,
+			resetable: false,
+		};
+		Node::new(internals)
+	}
+
+	/// Creates a new `CountedTick` that will reset the count upon node reset
+	pub fn resetable(status: Status, count: u32, exact: bool) -> Node
+	{
+		let internals = CountedTick {
+			status: status,
+			count: 0,
+			limit: count,
+			exact: exact,
+			resetable: true,
 		};
 		Node::new(internals)
 	}
@@ -112,17 +129,19 @@ impl Internals for CountedTick
 {
 	fn tick(&mut self) -> Status
 	{
-		if self.exact && self.count == 0 {
-			panic!("Node was ticked too many times");
+		if self.exact && self.count == self.limit {
+			panic!("Node was ticked too many times: {} actual, {} expected", self.count + 1, self.limit);
 		}
 
-		self.count = self.count.saturating_sub(1);
+		self.count = self.count.saturating_add(1);
 		self.status
 	}
 
 	fn reset(&mut self)
 	{
-		// No-op
+		if self.resetable {
+			self.count = 0;
+		}
 	}
 
 	/// Returns the string "CountedTick".
@@ -135,8 +154,8 @@ impl Drop for CountedTick
 {
 	fn drop(&mut self)
 	{
-		if self.count != 0 {
-			panic!("Node was not ticked enough times: {} remaining", self.count);
+		if self.count < self.limit {
+			panic!("Node was not ticked enough times: {} actual, {} expected", self.count, self.limit);
 		}
 	}
 }

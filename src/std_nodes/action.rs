@@ -36,6 +36,8 @@ use status::Status;
 ///
 /// ```
 /// # use std::sync::{AtomicUsize, Ordering};
+/// # use std_nodes::*;
+/// # use status::Status;
 /// const FIRST: usize = 10;
 /// const SECOND: usize = 100;
 /// let result = AtomicUsize::new(0);

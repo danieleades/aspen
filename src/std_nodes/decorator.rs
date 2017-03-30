@@ -28,6 +28,8 @@ use status::Status;
 /// A decorator that inverts the return status of its child:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// fn invert(s: Status) -> Status
 /// {
 ///     if s == Status::Succeeded { Status::Failed }
@@ -113,6 +115,8 @@ impl Internals for Decorator
 /// Force the child to be reset a specific number of times:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let reset_limit = 5;
 /// let child = AlwaysFail::new();
 /// let node = Repeat::with_limit(child, reset_limit);
@@ -147,6 +151,9 @@ impl Repeat
 	}
 
 	/// Creates a new Repeat node that will only repeat a limited number of times.
+	///
+	/// The limit specifies the number of times this node can be run. A limit
+	/// of zero means that the node will instantly succeed.
 	pub fn with_limit(child: Node, limit: u32) -> Node
 	{
 		let internals = Repeat {
@@ -161,28 +168,28 @@ impl Internals for Repeat
 {
 	fn tick(&mut self) -> Status
 	{
-		// Check to see if we have a reset limit
-		if let Some(limit) = self.attempt_limit {
-			// Make sure we're below the limit
-			if self.attempts < limit {
-				// If this counts as a reset, add to our counter
-				if self.child.status().is_done() {
-					self.attempts += 1;
-				}
-
-				// Tick the child and return that we're still running
-				self.child.tick();
-				return Status::Running;
-			} else {
-				// We've used up all our resets
-				return Status::Succeeded;
-			}
-		}
-		else {
-			// We're never going to do anything but be running
+		// Take care of the infinite version so we don't have to worry
+		if self.attempt_limit.is_none() {
 			self.child.tick();
 			return Status::Running;
 		}
+
+		// We're using the finite version
+		let limit = self.attempt_limit.unwrap();
+		let child_status = self.child.tick();
+
+		if child_status.is_done() {
+			self.attempts += 1;
+			if self.attempts < limit {
+				return Status::Running;
+			}
+			else {
+				return Status::Succeeded;
+			}
+		}
+
+		// We're still running
+		Status::Running
 	}
 
 	fn reset(&mut self)
@@ -235,6 +242,8 @@ impl Internals for Repeat
 /// A child that will be repeated infinitely until it fails:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut a = 0;
 /// let child = Condition::new(|| a < 10 );
 /// let mut node = UntilFail::new(child);
@@ -250,6 +259,8 @@ impl Internals for Repeat
 /// An `UntilFail` node will fail if the child doesn't within the limit:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let child = AlwaysSucceed::new();
 /// let mut node = UntilFail::with_limit(child, 10);
 ///
@@ -273,7 +284,7 @@ pub struct UntilFail
 }
 impl UntilFail
 {
-	/// Creates a new UntilFail node that will keep trying indefinitely.
+	/// Creates a new `UntilFail` node that will keep trying indefinitely.
 	pub fn new(child: Node) -> Node
 	{
 		let internals = UntilFail {
@@ -284,7 +295,10 @@ impl UntilFail
 		Node::new(internals)
 	}
 
-	/// Creates a new UntilFail node that will only retry a specific number of times.
+	/// Creates a new `UntilFail` node that will only retry a specific number of times.
+	///
+	/// The limit is the number of times the node will run, not the number of
+	/// times it will be reset. A limit of zero means instant failure.
 	pub fn with_limit(child: Node, limit: u32) -> Node
 	{
 		let internals = UntilFail {
@@ -299,26 +313,35 @@ impl Internals for UntilFail
 {
 	fn tick(&mut self) -> Status
 	{
-		// Check to see if we have a limited number of attempts
-		if let Some(limit) = self.attempt_limit {
-			// Make sure we're below that limit
-			if self.attempts < limit {
-				if self.child.status().is_done() {
-					self.attempts += 1;
-				}
+		// Take care of the infinite version so we don't have to worry
+		if self.attempt_limit.is_none() {
+			return if self.child.tick() == Status::Failed {
+				Status::Succeeded
+			} else { Status::Running };
+		}
 
-				return if self.child.tick() == Status::Failed {
-					Status::Succeeded
-				} else { Status::Running };
+		// We're using the finite version
+		let limit = self.attempt_limit.unwrap();
+		let child_status = self.child.tick();
+
+		// It's either check this here or do it at both of the following
+		// returns. I'll take here.
+		if child_status == Status::Failed {
+			return Status::Succeeded;
+		}
+
+		if child_status.is_done() {
+			self.attempts += 1;
+			if self.attempts < limit {
+				return Status::Running;
 			}
 			else {
 				return Status::Failed;
 			}
 		}
-		else {
-			self.child.tick();
-			return Status::Running;
-		}
+
+		// We're still running
+		Status::Running
 	}
 
 	fn reset(&mut self)
@@ -371,6 +394,8 @@ impl Internals for UntilFail
 /// A child that will be repeated infinitely until it succeeds:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut a = 0;
 /// let child = Condition::new(|| a == 10 );
 /// let mut node = UntilSuccess::new(child);
@@ -386,6 +411,8 @@ impl Internals for UntilFail
 /// An `UntilSuccess` node will fail if the child doesn't succeed within the limit:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let child = AlwaysFail::new();
 /// let mut node = UntilSuccess::with_limit(child, 10);
 ///
@@ -421,6 +448,9 @@ impl UntilSuccess
 	}
 
 	/// Creates a new `UntilSuccess` node that will only retry a specific number of times.
+	///
+	/// `limit` is the number of times the node can be *reset*, not the number
+	/// of times it can be run. A limit of one means the node can be run twice.
 	pub fn with_limit(child: Node, limit: u32) -> Node
 	{
 		let internals = UntilSuccess {
@@ -435,26 +465,35 @@ impl Internals for UntilSuccess
 {
 	fn tick(&mut self) -> Status
 	{
-		// Check to see if we have a limited number of attempts
-		if let Some(limit) = self.attempt_limit {
-			// Make sure we're below that limit
-			if self.attempts < limit {
-				if self.child.status().is_done() {
-					self.attempts += 1;
-				}
+		// Take care of the infinite version so we don't have to worry
+		if self.attempt_limit.is_none() {
+			return if self.child.tick() == Status::Succeeded {
+				Status::Succeeded
+			} else { Status::Running };
+		}
 
-				return if self.child.tick() == Status::Succeeded {
-					Status::Succeeded
-				} else { Status::Running };
+		// We're using the finite version
+		let limit = self.attempt_limit.unwrap();
+		let child_status = self.child.tick();
+
+		// It's either check this here or do it at both of the following
+		// returns. I'll take here.
+		if child_status == Status::Succeeded {
+			return Status::Succeeded;
+		}
+
+		if child_status.is_done() {
+			self.attempts += 1;
+			if self.attempts < limit {
+				return Status::Running;
 			}
 			else {
 				return Status::Failed;
 			}
 		}
-		else {
-			self.child.tick();
-			return Status::Running;
-		}
+
+		// We're still running
+		Status::Running
 	}
 
 	fn reset(&mut self)
@@ -520,43 +559,61 @@ mod test
 	}
 
 	#[test]
-	fn check_reset()
+	fn check_repeat()
 	{
-		// No good way to test ticking indefinitely, so we'll tick a
-		// specified number of times
-		let child = CountedTick::new(Status::Succeeded, 5, true);
-		let mut reset = Reset::with_limit(child, 5);
-
-		// Tick it five times
-		let mut status = Status::Running;
-		for _ in 0..5 {
-			status = reset.tick();
+		// No good way to test the infinite one
+		let limit = 5;
+		let child = CountedTick::new(Status::Failed, limit, true);
+		let mut node = Repeat::with_limit(child, limit);
+		for _ in 0..(limit - 1) {
+			assert_eq!(node.tick(), Status::Running);
 		}
-
-		// Drop the node so the testing nodes can panic
-		drop(reset);
-
-		// Now make sure we got the right output
+		let status = node.tick();
+		drop(node);
 		assert_eq!(status, Status::Succeeded);
 	}
 
 	#[test]
-	fn check_retry()
+	fn check_until_fail()
 	{
-		// We can test to make sure that the "indefinite" only ticks while failed
-		let child1 = CountedTick::new(Status::Succeeded, 1, true);
-		let mut retry1 = Retry::new(child1);
-		let mut status1 = Status::Running;
-		while status1 == Status::Running { status1 = retry1.tick(); };
-		drop(retry1);
-		assert_eq!(status1, Status::Succeeded);
+		// First, "check" the infinite version
+		let inf_child = CountedTick::new(Status::Failed, 1, true);
+		let mut inf_node = UntilFail::new(inf_child);
+		let inf_status = inf_node.tick();
+		drop(inf_node);
+		assert_eq!(inf_status, Status::Succeeded);
 
-		// No good way to test infinite retrying, so use a limited number
-		let child2 = CountedTick::new(Status::Failed, 5, true);
-		let mut retry2 = Retry::with_limit(child2, 5);
-		let mut status2 = Status::Running;
-		for _ in 0..5 { status2 = retry2.tick(); }
-		drop(retry2);
-		assert_eq!(status2, Status::Failed);
+		// Then check limited version
+		let limit = 5;
+		let child = CountedTick::new(Status::Succeeded, limit, true);
+		let mut node = UntilFail::with_limit(child, limit);
+		for _ in 0..(limit - 1) {
+			assert_eq!(node.tick(), Status::Running);
+		}
+		let status = node.tick();
+		drop(node);
+		assert_eq!(status, Status::Failed);
+	}
+
+	#[test]
+	fn check_until_success()
+	{
+		// First, "check" the infinite version
+		let inf_child = CountedTick::new(Status::Succeeded, 1, true);
+		let mut inf_node = UntilSuccess::new(inf_child);
+		let inf_status = inf_node.tick();
+		drop(inf_node);
+		assert_eq!(inf_status, Status::Succeeded);
+
+		// Then check limited version
+		let limit = 5;
+		let child = CountedTick::new(Status::Failed, limit, true);
+		let mut node = UntilSuccess::with_limit(child, limit);
+		for _ in 0..(limit - 1) {
+			assert_eq!(node.tick(), Status::Running);
+		}
+		let status = node.tick();
+		drop(node);
+		assert_eq!(status, Status::Failed);
 	}
 }

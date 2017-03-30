@@ -43,6 +43,8 @@ use status::Status;
 /// A node that returns success:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut node = ActiveSelector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysSucceed::new(),
@@ -54,6 +56,8 @@ use status::Status;
 /// A node that returns that it is running:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut node = ActiveSelector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysRunning::new(),
@@ -65,6 +69,8 @@ use status::Status;
 /// A node that returns that it fails:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut node = ActiveSelector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysFail::new(),
@@ -164,6 +170,8 @@ impl Internals for ActiveSelector
 /// A node that returns success:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut node = Selector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysSucceeds::new(),
@@ -175,6 +183,8 @@ impl Internals for ActiveSelector
 /// A node that returns that it is running:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut node = Selector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysRunning::new(),
@@ -186,6 +196,8 @@ impl Internals for ActiveSelector
 /// A node that returns that it fails:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut node = Selector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysFail::new(),
@@ -310,6 +322,68 @@ mod test
 
 		// Add them to a selector node
 		let mut sel = Selector::new(children);
+
+		// Tick the seluence
+		let status = sel.tick();
+
+		// Drop the selector so the nodes can do their own checks
+		drop(sel);
+
+		// Make sure we got the expected value
+		assert_eq!(status, Status::Failed);
+	}
+
+	#[test]
+	fn check_active_running()
+	{
+		// Set up the nodes
+		let children = vec![YesTick::new(Status::Failed),
+		                    YesTick::new(Status::Running),
+		                    NoTick::new()];
+
+		// Add them to a seluence node
+		let mut sel = ActiveSelector::new(children);
+
+		// Tick the seluence
+		let status = sel.tick();
+
+		// Drop the selector so the nodes can do their own checks
+		drop(sel);
+
+		// Make sure we got the expected value
+		assert_eq!(status, Status::Running);
+	}
+
+	#[test]
+	fn check_active_success()
+	{
+		// Set up the nodes
+		let children = vec![YesTick::new(Status::Failed),
+		                    YesTick::new(Status::Succeeded),
+		                    NoTick::new()];
+
+		// Add them to a seluence node
+		let mut sel = ActiveSelector::new(children);
+
+		// Tick the seluence
+		let status = sel.tick();
+
+		// Drop the selector so the nodes can do their own checks
+		drop(sel);
+
+		// Make sure we got the expected value
+		assert_eq!(status, Status::Succeeded);
+	}
+
+	#[test]
+	fn check_active_fail()
+	{
+		// Set up the nodes
+		let children = vec![YesTick::new(Status::Failed),
+		                    YesTick::new(Status::Failed)];
+
+		// Add them to a selector node
+		let mut sel = ActiveSelector::new(children);
 
 		// Tick the seluence
 		let status = sel.tick();

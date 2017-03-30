@@ -27,6 +27,8 @@ use status::Status;
 /// An `AlwaysFail` node always fails when it has no child:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut node = AlwaysFail::new();
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
@@ -34,6 +36,8 @@ use status::Status;
 /// If the child is considered running, so is this node:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut node = AlwaysFail::with_child(AlwaysRunning::new());
 /// assert_eq!(node.tick(), Status::Running);
 /// ```
@@ -41,6 +45,8 @@ use status::Status;
 /// If the child is done running, its status is disregarded:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut node = AlwaysFail::with_child(AlwaysSucceed::new());
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
@@ -125,6 +131,8 @@ impl Internals for AlwaysFail
 /// An `AlwaysSucceed` node always succeeds when it has no child:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut node = AlwaysSucceed::new();
 /// assert_eq!(node.tick(), Status::Succeeded);
 /// ```
@@ -132,6 +140,8 @@ impl Internals for AlwaysFail
 /// If the child is considered running, so is this node:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut node = AlwaysSucceed::with_child(AlwaysRunning::new());
 /// assert_eq!(node.tick(), Status::Running);
 /// ```
@@ -139,6 +149,8 @@ impl Internals for AlwaysFail
 /// If the child is done running, its status is disregarded:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut node = AlwaysSucceed::with_child(AlwaysFail::new());
 /// assert_eq!(node.tick(), Status::Succeeded);
 /// ```
@@ -218,6 +230,8 @@ impl Internals for AlwaysSucceed
 /// An `AlwaysRunning` node is always running:
 ///
 /// ```
+/// # use std_nodes::*;
+/// # use status::Status;
 /// let mut node = AlwaysRunning::new();
 /// assert_eq!(node.tick(), Status::Running);
 /// ```
@@ -264,17 +278,17 @@ mod test
 	#[test]
 	fn always_fail_child()
 	{
-		let mut succeed = AlwaysFail::with_child(YesTick(Status::Succeeded));
+		let mut succeed = AlwaysFail::with_child(YesTick::new(Status::Succeeded));
 		let succeed_res = succeed.tick();
 		drop(succeed);
 		assert_eq!(succeed_res, Status::Failed);
 
-		let mut run = AlwaysFail::with_child(YesTick(Status::Running));
+		let mut run = AlwaysFail::with_child(YesTick::new(Status::Running));
 		let run_res = run.tick();
 		drop(run);
 		assert_eq!(run_res, Status::Running);
 
-		let mut fail = AlwaysFail::with_child(YesTick(Status::Failed));
+		let mut fail = AlwaysFail::with_child(YesTick::new(Status::Failed));
 		let fail_res = fail.tick();
 		drop(fail);
 		assert_eq!(fail_res, Status::Failed);
@@ -289,17 +303,17 @@ mod test
 	#[test]
 	fn always_succeed_child()
 	{
-		let mut succeed = AlwaysSucceed::with_child(YesTick(Status::Succeeded));
+		let mut succeed = AlwaysSucceed::with_child(YesTick::new(Status::Succeeded));
 		let succeed_res = succeed.tick();
 		drop(succeed);
 		assert_eq!(succeed_res, Status::Succeeded);
 
-		let mut run = AlwaysSucceed::with_child(YesTick(Status::Running));
+		let mut run = AlwaysSucceed::with_child(YesTick::new(Status::Running));
 		let run_res = run.tick();
 		drop(run);
 		assert_eq!(run_res, Status::Running);
 
-		let mut fail = AlwaysSucceed::with_child(YesTick(Status::Failed));
+		let mut fail = AlwaysSucceed::with_child(YesTick::new(Status::Failed));
 		let fail_res = fail.tick();
 		drop(fail);
 		assert_eq!(fail_res, Status::Succeeded);

@@ -1,4 +1,4 @@
-//! Nodes that run a task in a separate thread.
+//! Nodes that cause the execution of tasks.
 use std::thread;
 use std::sync::Arc;
 use std::sync::mpsc;
@@ -6,19 +6,58 @@ use std::sync::mpsc::TryRecvError;
 use node::{Node, Internals};
 use status::Status;
 
-/// Implements a node that manages the execution of tasks.
+/// A node that manages the execution of tasks in a separate thread.
 ///
-/// This node has no children but instead accepts a function that will be used
-/// to evaluate the status of the node. This function will be ran in a separate
-/// thread with the return value of the function specifying whether it succeeded
-/// or failed. This node will be considered `Running` as long as the function is
-/// running.
+/// This node will launch the supplied function in a separate thread and ticks
+/// will monitor the state of that thread. If the supplied function returns
+/// `true` then the node is considered successful, otherwise it is considered to
+/// have failed.
+///
+/// This node should be the main way of modifying the world state. Note that
+/// most, in most cases, there will only be one thread modifying the world.
+///
+/// # State
+///
+/// **Initialized:** Before being ticked after either being created or reset.
+///
+/// **Running:** While the function is being executed in the other thread.
+///
+/// **Succeeded:** When the function returns `true`.
+///
+/// **Failed:** When the function returns `false`.
+///
+/// # Children
+///
+/// None.
+///
+/// # Examples
+///
+/// An action node that attempts to subtract two unsigned integers:
+///
+/// ```
+/// # use std::sync::{AtomicUsize, Ordering};
+/// const FIRST: usize = 10;
+/// const SECOND: usize = 100;
+/// let result = AtomicUsize::new(0);
+///
+/// let mut action = Action::new(||{
+///     if FIRST < SECOND {
+///         result.store(SECOND - FIRST, Ordering::SeqCst);
+///         true
+///     } else { false }
+/// });
+///
+/// // Run the node until it completes
+/// while !action.tick().is_done() { };
+/// assert_eq!(action.status(), Status::Succeeded);
+/// assert_eq!(result.load(Ordering::SeqCst), 90);
+/// ```
 pub struct Action
 {
-	/// The task which is to be run
+	/// The task which is to be run.
 	func: Arc<Fn() -> bool + Send + Sync>,
 
-	/// Channel on which the task will communicate
+	/// Channel on which the task will communicate.
 	rx: Option<mpsc::Receiver<bool>>,
 }
 impl Action
@@ -35,7 +74,7 @@ impl Action
 		Node::new(internals)
 	}
 
-	/// Launches a new worker thread to run the task
+	/// Launches a new worker thread to run the task.
 	fn start_thread(&mut self)
 	{
 		// Create our new channels
@@ -53,9 +92,6 @@ impl Action
 }
 impl Internals for Action
 {
-	/// Returns `Status::Running` if the task has been started but not
-	/// completed. Otherwise, it will return `Status::Succeeded` or
-	/// `Status::Failed` based on the return value of the task.
 	fn tick(&mut self) -> Status
 	{
 		if let Some(ref mut rx) = self.rx {
@@ -71,9 +107,9 @@ impl Internals for Action
 		}
 	}
 
-	/// Resets the node to a state identical to when it was first constructed.
+	/// Resets the internal state of this node.
 	///
-	/// If there is a running task, this function will block until the task is
+	/// If there is a task currently running, this will block until the task is
 	/// completed.
 	fn reset(&mut self)
 	{
@@ -87,7 +123,7 @@ impl Internals for Action
 		self.rx = None;
 	}
 
-	/// Returns the string "Action"
+	/// Returns the constant string "Action"
 	fn type_name(&self) -> &'static str
 	{
 		"Action"

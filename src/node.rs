@@ -1,11 +1,17 @@
-//! Represents a node within a behavior tree
+//! Behavior tree nodes and internal node logic.
 
 use std::fmt;
 use status::Status;
 
 /// Represents a generic node
 ///
-/// The logic of the node is controlled by the supplied `Internals` object
+/// The logic of the node is controlled by the supplied `Internals` object.
+/// Nodes are considered to have been run to completion when they return either
+/// `Status::Succeeded` or `Status::Failed` when ticked. If they are ticked after
+/// completion, they will be reset before the tick logic is executed.
+///
+/// This class is largely just a wrapper around an `Internals` object. This is
+/// to enforce some runtime behavior.
 pub struct Node
 {
 	/// The status from the last time this node was ticked
@@ -16,7 +22,9 @@ pub struct Node
 }
 impl Node
 {
-	/// Creates a new `Node` with the given `Internals`
+	/// Creates a new `Node` with the given `Internals`.
+	///
+	/// The internals are used to govern the tick logic of the node.
 	pub fn new<I>(internals: I) -> Node
 		where I: Internals + 'static
 	{
@@ -26,9 +34,11 @@ impl Node
 		}
 	}
 
-	/// Ticks the node a single time
+	/// Ticks the node a single time.
 	///
-	/// If the node has already run to completion, this willl reset the node.
+	/// If the node is currently considered to have run to completion, this
+	/// will call `Node::reset` on the node before calling the internal tick
+	/// logic.
 	pub fn tick(&mut self) -> Status
 	{
 		// Reset the node if it has already been completed
@@ -41,7 +51,10 @@ impl Node
 		return self.status;
 	}
 
-	/// Resets the node
+	/// Resets the node.
+	///
+	/// This returns the node to a state that is identical to when it was first
+	/// created.
 	pub fn reset(&mut self)
 	{
 		self.status = Status::Initialized;
@@ -50,17 +63,25 @@ impl Node
 
 	/// Gets the current status of the node.
 	///
-	/// This value will match the return value of the last call to `tick`
+	/// This value will match the return value of the last call to `Node::tick`.
 	pub fn status(&self) -> Status
 	{
 		self.status
 	}
 
 	/// Returns a vector containing references to all of this node's children.
-	/// If this node is a leaf, this returns `None`
-	pub fn children(&self) -> Option<&Vec<Node>>
+	pub fn children(&self) -> Option<Vec<&Node>>
 	{
 		(*self.internals).children()
+	}
+
+	/// Returns the name of this node.
+	///
+	/// This will usually be the type of the node, e.g. "Sequence". There are
+	/// plans to allow nodes to have unique names.
+	pub fn name(&self) -> &'static str
+	{
+		(*self.internals).type_name()
 	}
 
 	#[cfg(feature = "lcm")]
@@ -75,7 +96,7 @@ impl Node
 			num_children: kids.len() as i32,
 			children: kids,
 			status: self.status as i8,
-			name: (*self.internals).type_name().to_string(),
+			name: self.name().to_string(),
 		}
 	}
 }
@@ -83,7 +104,7 @@ impl fmt::Display for Node
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
-		write!(f, "{}:( status = {:?}", (*self.internals).type_name(), self.status)?;
+		write!(f, "{}:( status = {:?}", self.name(), self.status())?;
 		if let Some(children) = self.children() {
 			for child in children {
 				write!(f, ", {}", child)?;
@@ -104,21 +125,30 @@ pub trait Internals
 	/// Node internals should not automatically reset themselves. If a node has
 	/// been run to completion, the `Node` that holds this object will call
 	/// `reset` before ticking the node.
+	///
+	/// In other words, the `Internals` will only ever be ticked when the node
+	/// state is either `Status::Running` or `Status::Initialized`.
 	fn tick(&mut self) -> Status;
 
 	/// Resets the internal state of the node.
 	///
 	/// This sets the node to a state that is identical to a newly constructed
-	/// node.
+	/// node. Note that this could be called when the node is in any state.
 	fn reset(&mut self);
 
-	/// Returns a vector of references to this node's children. Default
-	/// behavior is to return `None`
-	fn children(&self) -> Option<&Vec<Node>>
+	/// Returns a vector of references to this node's children.
+	///
+	/// Default behavior is to return `None`, which should be suitable for any
+	/// leaf node.
+	fn children(&self) -> Option<Vec<&Node>>
 	{
 		None
 	}
 
-	/// Returns the name of the node type as a string literal
+	/// Returns the type of the node as a string literal.
+	///
+	/// In general, this should be the name of the node type. However, there
+	/// are plans to add a "name" property to the `Node` struct, at which point
+	/// this function will be depricated.
 	fn type_name(&self) -> &'static str;
 }

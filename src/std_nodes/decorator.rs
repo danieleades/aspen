@@ -1,20 +1,51 @@
-//! Nodes that have a single child and modify the behavior of that child in some way
-
+//! Nodes that have a single child and modify the behavior of that child in some way.
 use node::{Node, Internals};
 use status::Status;
 
-/// Implements a node whose status is determined by running a function on its
-/// child's status.
+/// A node whose status is determined by running a function on its child's status.
 ///
-/// An example of this node's use would be to invert the success or failure of
-/// a child node.
+/// This node will tick its child and then run the supplied function on the
+/// child's return status.
+///
+/// # State
+///
+/// **Initialized:** Depends on function.
+///
+/// **Running:** Depends on function.
+///
+/// **Succeeded:** Depends on function.
+///
+/// **Failed:** Depends on function.
+///
+/// # Children
+///
+/// Takes a single child which is ticked or reset every time the `Decorator` is
+/// ticked or reset. The child may be ticked to completion multiple times
+/// before the decorator is done.
+///
+/// # Examples
+///
+/// A decorator that inverts the return status of its child:
+///
+/// ```
+/// fn invert(s: Status) -> Status
+/// {
+///     if s == Status::Succeeded { Status::Failed }
+///     else if s == Status::Failed { Status::Succeeded }
+///     else { s }
+/// }
+///
+/// let child = AlwaysSucceed::new();
+/// let node = Decorator::new(child, invert);
+/// assert_eq!(node.tick(), Status::Failed);
+/// ```
 pub struct Decorator
 {
-	/// Function that is performed on the child's status
+	/// Function that is performed on the child's status.
 	func: Box<Fn(Status) -> Status>,
 
-	/// Child node. Having this in a vec is the easiest way to satisfy the trait
-	child_vec: Vec<Node>,
+	/// Child node.
+	child: Node,
 }
 impl Decorator
 {
@@ -22,214 +53,428 @@ impl Decorator
 	/// to be run on the child's status.
 	pub fn new(child: Node, func: Box<Fn(Status) -> Status>) -> Node
 	{
-		let internals = Decorator { func: func, child_vec: vec![child] };
+		let internals = Decorator { func: func, child: child };
 		Node::new(internals)
 	}
 }
 impl Internals for Decorator
 {
-	/// Ticks the child node and then calls the supplied function on the return
-	/// status.
 	fn tick(&mut self) -> Status
 	{
 		// If the child has already run, this shouldn't change results since it will
 		// just return its last status
-		let child_status = self.child_vec.first_mut().unwrap().tick();
+		let child_status = self.child.tick();
 		(*self.func)(child_status)
 	}
 
-	/// Resets both this node and the child node.
 	fn reset(&mut self)
 	{
-
-		self.child_vec.first_mut().unwrap().reset();
+		self.child.reset();
 	}
 
-	/// Returns a vector containing a reference to this node's child
-	fn children(&self) -> Option<&Vec<Node>>
+	fn children(&self) -> Option<Vec<&Node>>
 	{
-		Some(&self.child_vec)
+		Some(vec![&self.child])
 	}
 
-	/// Returns the string "Decorator"
+	/// Returns the string "Decorator".
 	fn type_name(&self) -> &'static str
 	{
 		"Decorator"
 	}
 }
 
-/// Implements a node that will reset its child after the child succeeds or fails.
+/// A node that will repeat its child a specific number of times, possibly infinite.
 ///
-/// This can be used to create a node that is always ticked regardless of
-/// whether or not it has succeeded or failed in the past. For example, one may
-/// want to check that it is safe to perform an action or continue to perform an
-/// action at every tick.
-pub struct Reset
+/// A repeat node will report that it is running until its child node has been
+/// run to completion the specified number of times, upon which it will be
+/// considered successful. This could also be an infinite number, in which case
+/// this node will always be considered running.
+///
+/// # State
+///
+/// **Initialized:** Before being ticked after either being reset or created.
+///
+/// **Running:** Until the child node has been reset the specified number of
+/// times. If there is no limit, always.
+///
+/// **Succeeded:** Once the child has been reset the specified number of times.
+/// If there is no limit, never.
+///
+/// **Failed:** Never.
+///
+/// # Children
+///
+/// One. It is ticked or reset whenever the repeat node is ticked or reset. It
+/// also may be reset multiple times before the repeat node is reset or completed.
+///
+/// # Examples
+///
+/// Force the child to be reset a specific number of times:
+///
+/// ```
+/// let reset_limit = 5;
+/// let child = AlwaysFail::new();
+/// let node = Repeat::with_limit(child, reset_limit);
+///
+/// for _ in 0..reset_limit {
+///     assert_eq!(node.tick(), Status::Running);
+/// }
+/// assert_eq!(node.tick(), Status::Successful);
+/// ```
+pub struct Repeat
 {
-	/// Child node. Having this in a vec is the easiest way to satisfy the trait
-	child_vec: Vec<Node>,
+	/// Child node.
+	child: Node,
 
-	/// Optional number of times to do the reset
+	/// Optional number of times to do the reset.
 	attempt_limit: Option<u32>,
 
-	/// Number of times the child has been reset
+	/// Number of times the child has been reset.
 	attempts: u32,
 }
-impl Reset
+impl Repeat
 {
-	/// Creates a new Reset node that will reset the child indefinitely
+	/// Creates a new Repeat node that will repeat forever.
 	pub fn new(child: Node) -> Node
 	{
-		let internals = Reset {
-			child_vec: vec![child],
+		let internals = Repeat {
+			child: child,
 			attempt_limit: None,
 			attempts: 0,
 		};
 		Node::new(internals)
 	}
 
-	/// Creates a new Reset node that will reset the child a limited number of times
+	/// Creates a new Repeat node that will only repeat a limited number of times.
 	pub fn with_limit(child: Node, limit: u32) -> Node
 	{
-		let internals = Reset {
-			child_vec: vec![child],
+		let internals = Repeat {
+			child: child,
 			attempt_limit: Some(limit),
 			attempts: 0,
 		};
 		Node::new(internals)
 	}
 }
-impl Internals for Reset
+impl Internals for Repeat
 {
-	/// Ticks the child and returns the resulting status. If this node is under
-	/// its reset limit, it will also reset the child if the child return
-	/// `Status::Succeeded` or `Status::Failed`.
 	fn tick(&mut self) -> Status
 	{
-		// First, get the child status
-		let child_status = self.child_vec.first().unwrap().status();
+		// Check to see if we have a reset limit
+		if let Some(limit) = self.attempt_limit {
+			// Make sure we're below the limit
+			if self.attempts < limit {
+				// If this counts as a reset, add to our counter
+				if self.child.status().is_done() {
+					self.attempts += 1;
+				}
 
-		// If the child wasn't Running (or already reset), we need to reset it... if the count allows
-		let reset = child_status.is_done()
-		            && (self.attempt_limit == None
-		            || self.attempt_limit.unwrap() > self.attempts);
-		if reset {
-			// Theoretically, this could overflow if there is no attempt limit. But, if
-			// does, then the user really didn't plan - the node should never tick that
-			// many times in any situation.
-			self.child_vec.first_mut().unwrap().reset();
-			self.attempts += 1;
+				// Tick the child and return that we're still running
+				self.child.tick();
+				return Status::Running;
+			} else {
+				// We've used up all our resets
+				return Status::Succeeded;
+			}
 		}
-
-		// Now tick the child
-		self.child_vec.first_mut().unwrap().tick()
+		else {
+			// We're never going to do anything but be running
+			self.child.tick();
+			return Status::Running;
+		}
 	}
 
-	/// Resets this node and its child. This also resets the internal counter
-	/// for how many times the child node has been reset.
 	fn reset(&mut self)
 	{
 		// Reset our attempt count
 		self.attempts = 0;
 
 		// Reset the child
-		self.child_vec.first_mut().unwrap().reset();
+		self.child.reset();
 	}
 
-	/// Returns a vector containing a reference to this node's child
-	fn children(&self) -> Option<&Vec<Node>>
+	fn children(&self) -> Option<Vec<&Node>>
 	{
-		Some(&self.child_vec)
+		Some(vec![&self.child])
 	}
 
-	/// Returns the string "Reset"
+	/// Returns the string "Repeat".
 	fn type_name(&self) -> &'static str
 	{
-		"Reset"
+		"Repeat"
 	}
 }
 
-/// Implements a node that will reset its child after the child fails
-pub struct Retry
+/// A node that repeats its child until the child fails.
+///
+/// This node will return that it is running until the child fails. It can
+/// potentially have a finite reset limit. If the child ever returns that it
+/// fails, this node returns that it *succeeds*. If the limit is reached before
+/// the child fails, this node *fails*.
+///
+/// # State
+///
+/// **Initialized:** Before being ticked after either being created or reset.
+///
+/// **Running:** While the child node has yet to fail and it is below the reset
+/// limit.
+///
+/// **Succeeded:** Once the child node fails.
+///
+/// **Failed:** If the reset limit was reached before the child failed.
+///
+/// # Children
+///
+/// One, which will be ticked or reset every time the `UntilFail` node is
+/// ticked or reset. The child may also be reset multiple times before the parent
+/// node is reset or completed.
+///
+/// # Examples
+///
+/// A child that will be repeated infinitely until it fails:
+///
+/// ```
+/// let mut a = 0;
+/// let child = Condition::new(|| a < 10 );
+/// let mut node = UntilFail::new(child);
+///
+/// for _ in 0..10 {
+///     assert_eq!(node.tick(), Status::Running);
+///     a += 1;
+/// }
+///
+/// assert_eq!(node.tick(), Status::Succeeded);
+/// ```
+///
+/// An `UntilFail` node will fail if the child doesn't within the limit:
+///
+/// ```
+/// let child = AlwaysSucceed::new();
+/// let mut node = UntilFail::with_limit(child, 10);
+///
+/// for _ in 0..10 {
+///     assert_eq!(node.tick(), Status::Running);
+///     a += 1;
+/// }
+///
+/// assert_eq!(node.tick(), Status::Failed);
+/// ```
+pub struct UntilFail
 {
-	/// Child node. Having this in a vec is the easiest way to satisfy the trait
-	child_vec: Vec<Node>,
+	/// Child node.
+	child: Node,
 
-	/// Optional number of times to do the reset
+	/// Optional number of times to do the reset.
 	attempt_limit: Option<u32>,
 
-	/// Number of times the child has been reset
+	/// Number of times the child has been reset.
 	attempts: u32,
 }
-impl Retry
+impl UntilFail
 {
-	/// Creates a new Retry node that will retry the child indefinitely
+	/// Creates a new UntilFail node that will keep trying indefinitely.
 	pub fn new(child: Node) -> Node
 	{
-		let internals = Retry {
-			child_vec: vec![child],
+		let internals = UntilFail {
+			child: child,
 			attempt_limit: None,
 			attempts: 0,
 		};
 		Node::new(internals)
 	}
 
-	/// Creates a new Retry node that will retry the child a limited number of times
+	/// Creates a new UntilFail node that will only retry a specific number of times.
 	pub fn with_limit(child: Node, limit: u32) -> Node
 	{
-		let internals = Retry {
-			child_vec: vec![child],
+		let internals = UntilFail {
+			child: child,
 			attempt_limit: Some(limit),
 			attempts: 0,
 		};
 		Node::new(internals)
 	}
 }
-impl Internals for Retry
+impl Internals for UntilFail
 {
-	/// Ticks the child node and returns the resulting status. If the child
-	/// failed and it is within its reset limit, this node will reset its child.
 	fn tick(&mut self) -> Status
 	{
-		let child_status = self.child_vec.first_mut().unwrap().status();
+		// Check to see if we have a limited number of attempts
+		if let Some(limit) = self.attempt_limit {
+			// Make sure we're below that limit
+			if self.attempts < limit {
+				if self.child.status().is_done() {
+					self.attempts += 1;
+				}
 
-		// If the child failed, we need to retry it... if the count allows
-		let reset = child_status == Status::Failed
-		            && (self.attempt_limit == None
-		            || self.attempt_limit.unwrap() > self.attempts);
-		if reset {
-			// Theoretically, this could overflow if there is no attempt limit. But, if
-			// does, then the user really didn't plan - the node should never tick that
-			// many times in any situation.
-			self.child_vec.first_mut().unwrap().reset();
-			self.attempts += 1;
+				return if self.child.tick() == Status::Failed {
+					Status::Succeeded
+				} else { Status::Running };
+			}
+			else {
+				return Status::Failed;
+			}
 		}
-
-		// Now tick the child
-		self.child_vec.first_mut().unwrap().tick()
+		else {
+			self.child.tick();
+			return Status::Running;
+		}
 	}
 
-	/// Resets this node and its child node. This also clears the internal
-	/// counter for the number of times the child node has been reset.
 	fn reset(&mut self)
 	{
 		// Reset our own status
 		self.attempts = 0;
 
 		// Reset the child
-		self.child_vec.first_mut().unwrap().reset();
+		self.child.reset();
 	}
 
-	/// Returns a vector containing a reference to this node's child
-	fn children(&self) -> Option<&Vec<Node>>
+	fn children(&self) -> Option<Vec<&Node>>
 	{
-		Some(&self.child_vec)
+		Some(vec![&self.child])
 	}
 
-	/// Returns the string "Retry"
+	/// Returns the string "UntilFail".
 	fn type_name(&self) -> &'static str
 	{
-		"Retry"
+		"UntilFail"
+	}
+}
+
+/// A node that repeats its child until the child succeeds.
+///
+/// This node will return that it is running until the child succeeds. It can
+/// potentially have a finite reset limit. If the child ever returns that it
+/// succeeds, this node returns that it *succeeds*. If the limit is reached before
+/// the child succeeds, this node *fails*.
+///
+/// # State
+///
+/// **Initialized:** Before being ticked after either being created or reset.
+///
+/// **Running:** While the child node has yet to succeed and it is below the reset
+/// limit.
+///
+/// **Succeeded:** Once the child node succeeds.
+///
+/// **Failed:** If the reset limit was reached before the child succeeded.
+///
+/// # Children
+///
+/// One, which will be ticked or reset every time the `UntilSuccess` node is
+/// ticked or reset. The child may also be reset multiple times before the parent
+/// node is reset or completed.
+///
+/// # Examples
+///
+/// A child that will be repeated infinitely until it succeeds:
+///
+/// ```
+/// let mut a = 0;
+/// let child = Condition::new(|| a == 10 );
+/// let mut node = UntilSuccess::new(child);
+///
+/// for _ in 0..10 {
+///     assert_eq!(node.tick(), Status::Running);
+///     a += 1;
+/// }
+///
+/// assert_eq!(node.tick(), Status::Succeeded);
+/// ```
+///
+/// An `UntilSuccess` node will fail if the child doesn't succeed within the limit:
+///
+/// ```
+/// let child = AlwaysFail::new();
+/// let mut node = UntilSuccess::with_limit(child, 10);
+///
+/// for _ in 0..10 {
+///     assert_eq!(node.tick(), Status::Running);
+///     a += 1;
+/// }
+///
+/// assert_eq!(node.tick(), Status::Failed);
+/// ```
+pub struct UntilSuccess
+{
+	/// Child node.
+	child: Node,
+
+	/// Optional number of times to do the reset.
+	attempt_limit: Option<u32>,
+
+	/// Number of times the child has been reset.
+	attempts: u32,
+}
+impl UntilSuccess
+{
+	/// Creates a new `UntilSuccess` node that will keep trying indefinitely.
+	pub fn new(child: Node) -> Node
+	{
+		let internals = UntilSuccess {
+			child: child,
+			attempt_limit: None,
+			attempts: 0,
+		};
+		Node::new(internals)
+	}
+
+	/// Creates a new `UntilSuccess` node that will only retry a specific number of times.
+	pub fn with_limit(child: Node, limit: u32) -> Node
+	{
+		let internals = UntilSuccess {
+			child: child,
+			attempt_limit: Some(limit),
+			attempts: 0,
+		};
+		Node::new(internals)
+	}
+}
+impl Internals for UntilSuccess
+{
+	fn tick(&mut self) -> Status
+	{
+		// Check to see if we have a limited number of attempts
+		if let Some(limit) = self.attempt_limit {
+			// Make sure we're below that limit
+			if self.attempts < limit {
+				if self.child.status().is_done() {
+					self.attempts += 1;
+				}
+
+				return if self.child.tick() == Status::Succeeded {
+					Status::Succeeded
+				} else { Status::Running };
+			}
+			else {
+				return Status::Failed;
+			}
+		}
+		else {
+			self.child.tick();
+			return Status::Running;
+		}
+	}
+
+	fn reset(&mut self)
+	{
+		// Reset our own status
+		self.attempts = 0;
+
+		// Reset the child
+		self.child.reset();
+	}
+
+	fn children(&self) -> Option<Vec<&Node>>
+	{
+		Some(vec![&self.child])
+	}
+
+	/// Returns the string "UntilSuccess".
+	fn type_name(&self) -> &'static str
+	{
+		"UntilSuccess"
 	}
 }
 

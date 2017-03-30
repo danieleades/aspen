@@ -5,7 +5,13 @@ use std::fmt;
 use node::Node;
 use status::Status;
 
-/// Main behavior tree struct
+/// Main behavior tree struct.
+///
+/// A behavior tree is considered to have been run to completion when it
+/// returns either `Status::Succeeded` or `Status::Failed` when ticked. Unlike a
+/// `Node`, the `BehaviorTree` will not automatically reset itself when ticked.
+/// Instead, ticking or running a completed behavior tree will just return the
+/// value of the last tick - it must be explicitly reset.
 pub struct BehaviorTree
 {
 	/// Root node of the behavior tree.
@@ -21,25 +27,31 @@ impl BehaviorTree
 }
 impl BehaviorTree
 {
-	/// Returns a reference to the root node
+	/// Returns a reference to the root node.
 	pub fn root(&self) -> &Node
 	{
 		&self.root
 	}
 
-	/// Tick the behavior tree a single time
+	/// Tick the behavior tree a single time.
+	///
+	/// If the tree has already been run to completion, this will simply return
+	/// the value of the last tick.
 	pub fn tick(&mut self) -> Status
 	{
-		self.root.tick()
+		// If we're already done, just return the root status without ticking
+		if self.root.status().is_done() {
+			self.root.status()
+		} else { self.root.tick() }
 	}
 
-	/// Reset the tree so that it can be run again
+	/// Reset the tree so that it can be run again.
 	pub fn reset(&mut self)
 	{
 		self.root.reset()
 	}
 
-	/// Run the behavior tree until it either succeeds or fails
+	/// Run the behavior tree until it either succeeds or fails.
 	///
 	/// This makes no guarantees that it will run at the specified frequency. If a single
 	/// tick takes longer than the alloted tick time, then it will do so silently.
@@ -63,8 +75,9 @@ impl BehaviorTree
 		}
 
 		// Figure out the time-per-cycle
-		let cycle_dur_float = 1.0f32 / freq;
-		let cycle_dur = Duration::new(cycle_dur_float as u64, (cycle_dur_float * 1000000000.0f32) as u32);
+		let cycle_dur_float = freq.recip();
+		let cycle_dur = Duration::new(cycle_dur_float as u64,
+		                              (cycle_dur_float.fract() * 1000000000.0f32) as u32);
 
 		// Now, run at the given frequency
 		let mut status = Status::Running;
@@ -79,7 +92,7 @@ impl BehaviorTree
 			let elapsed = now.elapsed();
 
 			// Sleep for the remaining amount of time
-			if !status.is_done() && freq != ::std::f32::INFINITY && elapsed < cycle_dur {
+			if !status.is_done() && freq.is_finite() && elapsed < cycle_dur {
 				// Really, the Duration would take care of this case. However, specifying a
 				// frequency of infinity means running as fast a possible. In that case, I do
 				// not want to give this thread an opportunity to sleep at all

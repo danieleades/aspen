@@ -2,29 +2,100 @@
 use node::{Node, Internals};
 use status::Status;
 
-/// Implements a node that will tick all of its children every time it is
-/// ticked. This effectively runs all of its children in parallel.
+/// A node that handles "concurrent" behavior.
 ///
-/// Success or failure is determined by the count of children that succeeded.
+/// Every tick, this node will tick all of its children that have not been run
+/// to completion. Success or failure of this node is determined by how many of
+/// its children are in a successful or failed state. If the specified number
+/// of children have succeeded, this node succeeds. If it is impossible for the
+/// remaining children to bring the success count to the required threshold then
+/// the node fails. Otherwise it is considered running.
+///
+/// Note that a threshold of zero means this node always succeeds on the first
+/// tick and a threshold greater than the number of children means this node
+/// always fails on the first tick.
+///
+/// It is also important to note that this node can cause child `Action` nodes
+/// to actually run in parallel.
+///
+/// # State
+///
+/// **Initialized:** Before being ticked after either being created or reset.
+///
+/// **Running:** As long as the successful child count is below the threshold
+/// and the running children could potentially make the successful count cross
+/// the threshold.
+///
+/// **Succeeded:** The count of successful children is greater than the threshold.
+///
+/// **Failed:** The sum of the successful children and the running children is
+/// smaller than the threshold.
+///
+/// # Children
+///
+/// Any number. The children will be reset when this node is reset but may not
+/// necessarily ticked when this node is, depending on their current status.
+///
+/// There is a possibility that some children may not be ticked to completion
+/// based on when the `Parallel` node crosses its success or failure threshold.
+///
+/// # Examples
+///
+/// A node that has enough successful children:
+///
+/// ```
+/// let threshold = 3;
+/// let mut node = Parallel::new(vec![
+///     AlwaysSucceed::new(),
+///     AlwaysSucceed::new(),
+///     AlwaysSucceed::new(),
+///     AlwaysRunning::new(),
+///     AlwaysFail::new()
+/// ], threshold);
+///
+/// assert_eq!(node.tick(), Status::Succeeded);
+/// ```
+///
+/// A node that could either succeed or fail, so it is still running:
+///
+/// ```
+/// let threshold = 3;
+/// let mut node = Parallel::new(vec![
+///     AlwaysSucceed::new(),
+///     AlwaysSucceed::new(),
+///     AlwaysRunning::new(),
+///     AlwaysRunning::new(),
+///     AlwaysFail::new()
+/// ], threshold);
+///
+/// assert_eq!(node.tick(), Status::Running);
+/// ```
+///
+/// A node that could not possibly succeed, so it fails:
+///
+/// ```
+/// let threshold = 4;
+/// let mut node = Parallel::new(vec![
+///     AlwaysSucceed::new(),
+///     AlwaysSucceed::new(),
+///     AlwaysRunning::new(),
+///     AlwaysFail::new(),
+///     AlwaysFail::new()
+/// ], threshold);
+///
+/// assert_eq!(node.tick(), Status::Running);
+/// ```
 pub struct Parallel
 {
-	/// Children to be ticked
+	/// Child nodes.
 	children: Vec<Node>,
 
-	/// Number of nodes required to succeed before this one does
+	/// Number of child nodes required to succeed.
 	required_successes: usize,
 }
 impl Parallel
 {
-	/// Creates a new Parallel node with the given children. If a number of
-	/// children greater-than or equal-to `required_successes` succeed, then this
-	/// node will also succeed. If it ever becomes impossible for the count of
-	/// successful nodes to meet that criteria, then this node fails. Otherwise,
-	/// it is considered running.
-	///
-	/// Note that requiring zero successes means that this node will instantly
-	/// succeed and requiring more successes than it has children means that this
-	/// node will instantly fail.
+	/// Creates a `Parallel` node with the given children an required number of successes.
 	pub fn new(children: Vec<Node>, required_successes: usize) -> Node
 	{
 		let internals = Parallel {
@@ -36,16 +107,19 @@ impl Parallel
 }
 impl Internals for Parallel
 {
-	/// Ticks all of this node children. The return status is determined by the
-	/// number of children that succeeded and the required number of successes.
 	fn tick(&mut self) -> Status
 	{
 		let mut successes = 0;
 		let mut failures = 0;
 
-		// Tick every single child node
+		// Go through all the children to determine success or failure
 		for child in self.children.iter_mut() {
-			let child_status = child.tick();
+			// Check if this child has already completed
+			let child_status = if child.status().is_done() {
+				// It has, so we don't want to tick it again and accidentally
+				// restart it
+				child.status()
+			} else { child.tick() };
 
 			if child_status == Status::Succeeded {
 				successes += 1;
@@ -71,7 +145,6 @@ impl Internals for Parallel
 		}
 	}
 
-	/// Resets this node and all of its children
 	fn reset(&mut self)
 	{
 		// Reset all of our children
@@ -80,13 +153,12 @@ impl Internals for Parallel
 		}
 	}
 
-	/// Returns a vector containing references to all of this node's children
-	fn children(&self) -> Option<&Vec<Node>>
+	fn children(&self) -> Option<Vec<&Node>>
 	{
-		Some(&self.children)
+		Some(self.children.iter().collect())
 	}
 
-	/// Returns the string "Parallel"
+	/// Returns the string "Parallel".
 	fn type_name(&self) -> &'static str
 	{
 		"Parallel"

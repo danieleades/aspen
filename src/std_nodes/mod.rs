@@ -9,6 +9,7 @@ pub use self::decorator::Decorator;
 pub use self::decorator::Repeat;
 pub use self::decorator::UntilFail;
 pub use self::decorator::UntilSuccess;
+pub use self::decorator::Invert;
 pub use self::action::Action;
 pub use self::condition::Condition;
 pub use self::constants::AlwaysFail;

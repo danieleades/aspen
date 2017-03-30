@@ -528,6 +528,79 @@ impl Internals for UntilSuccess
 	}
 }
 
+/// A node that returns the opposite completed status from its child.
+///
+/// This node inverts the compeleted status of its child node. If the child
+/// succeeds, this node fails and vice versa. This node is considered running if
+/// the child is running.
+///
+/// # State
+///
+/// **Initialized:** Before being ticked after either being created or reset.
+///
+/// **Running:** While the child node is running.
+///
+/// **Succeeded:** Once the child node fails.
+///
+/// **Failed:** Once the child node succeeds.
+///
+/// # Children
+///
+/// One node that will be ticked or reset whenever the parent is ticked or
+/// reset.
+///
+/// # Examples
+///
+/// Causes a failed node to succeed:
+///
+/// ```
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
+/// let mut node = Invert::new(AlwaysFail::new());
+/// assert_eq!(node.tick(), Status::Succeeded);
+/// ```
+pub struct Invert
+{
+	/// Child node.
+	child: Node,
+}
+impl Invert
+{
+	/// Creates a new `Invert` node.
+	pub fn new(child: Node) -> Node
+	{
+		Node::new(Invert { child: child })
+	}
+}
+impl Internals for Invert
+{
+	fn tick(&mut self) -> Status
+	{
+		match self.child.tick() {
+			Status::Succeeded => Status::Failed,
+			Status::Failed    => Status::Succeeded,
+			s @ _             => s,
+		}
+	}
+
+	fn reset(&mut self)
+	{
+		// Reset the child
+		self.child.reset();
+	}
+
+	fn children(&self) -> Option<Vec<&Node>>
+	{
+		Some(vec![&self.child])
+	}
+
+	/// Returns the string "Invert".
+	fn type_name(&self) -> &'static str
+	{
+		"Invert"
+	}
+}
+
 #[cfg(test)]
 mod test
 {
@@ -626,5 +699,27 @@ mod test
 		let status = node.tick();
 		drop(node);
 		assert_eq!(status, Status::Failed);
+	}
+
+	#[test]
+	fn check_invert()
+	{
+		// Success to failure
+		let mut s2f = Invert::new(YesTick::new(Status::Failed));
+		let s2fs = s2f.tick();
+		drop(s2f);
+		assert_eq!(s2fs, Status::Succeeded);
+
+		// Failure to success
+		let mut f2s = Invert::new(YesTick::new(Status::Succeeded));
+		let f2ss = f2s.tick();
+		drop(f2s);
+		assert_eq!(f2ss, Status::Failed);
+
+		// Running as Running
+		let mut r = Invert::new(YesTick::new(Status::Running));
+		let rs = r.tick();
+		drop(r);
+		assert_eq!(rs, Status::Running);
 	}
 }

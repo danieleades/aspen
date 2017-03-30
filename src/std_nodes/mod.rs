@@ -1,11 +1,15 @@
 //! Contains a set of commonly used behavior tree nodes
 
+pub use self::sequence::ActiveSequence;
 pub use self::sequence::Sequence;
+pub use self::selector::ActiveSelector;
 pub use self::selector::Selector;
 pub use self::parallel::Parallel;
 pub use self::decorator::Decorator;
-pub use self::decorator::Reset;
-pub use self::decorator::Retry;
+pub use self::decorator::Repeat;
+pub use self::decorator::UntilFail;
+pub use self::decorator::UntilSuccess;
+pub use self::decorator::Invert;
 pub use self::action::Action;
 pub use self::condition::Condition;
 pub use self::constants::AlwaysFail;

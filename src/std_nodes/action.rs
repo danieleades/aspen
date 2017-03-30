@@ -1,37 +1,66 @@
-//! Nodes that run a task in a separate thread.
+//! Nodes that cause the execution of tasks.
 use std::thread;
 use std::sync::Arc;
 use std::sync::mpsc;
+use std::sync::mpsc::TryRecvError;
 use node::{Node, Internals};
 use status::Status;
 
-/// Represents the status of a taks
-enum TaskState
-{
-	/// A task that has not been started yet
-	Waiting,
-
-	/// A task that is currently running
-	Running(mpsc::Receiver<bool>),
-
-	/// A task that has been completed
-	Done(Status),
-}
-
-/// Implements a node that manages the execution of tasks.
+/// A node that manages the execution of tasks in a separate thread.
 ///
-/// This node has no children but instead accepts a function that will be used
-/// to evaluate the status of the node. This function will be ran in a separate
-/// thread with the return value of the function specifying whether it succeeded
-/// or failed. This node will be considered `Running` as long as the function is
-/// running.
+/// This node will launch the supplied function in a separate thread and ticks
+/// will monitor the state of that thread. If the supplied function returns
+/// `true` then the node is considered successful, otherwise it is considered to
+/// have failed.
+///
+/// This node should be the main way of modifying the world state. Note that
+/// most, in most cases, there will only be one thread modifying the world.
+///
+/// # State
+///
+/// **Initialized:** Before being ticked after either being created or reset.
+///
+/// **Running:** While the function is being executed in the other thread.
+///
+/// **Succeeded:** When the function returns `true`.
+///
+/// **Failed:** When the function returns `false`.
+///
+/// # Children
+///
+/// None.
+///
+/// # Examples
+///
+/// An action node that attempts to subtract two unsigned integers:
+///
+/// ```
+/// # use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
+/// const  FIRST:  usize = 10;
+/// const  SECOND: usize = 100;
+/// static result: AtomicUsize = ATOMIC_USIZE_INIT;
+///
+/// let mut action = Action::new(||{
+///     if FIRST < SECOND {
+///         result.store(SECOND - FIRST, Ordering::SeqCst);
+///         true
+///     } else { false }
+/// });
+///
+/// // Run the node until it completes
+/// while !action.tick().is_done() { };
+/// assert_eq!(action.status(), Status::Succeeded);
+/// assert_eq!(result.load(Ordering::SeqCst), 90);
+/// ```
 pub struct Action
 {
-	/// The task which is to be run
+	/// The task which is to be run.
 	func: Arc<Fn() -> bool + Send + Sync>,
 
-	/// State of the task
-	state: TaskState,
+	/// Channel on which the task will communicate.
+	rx: Option<mpsc::Receiver<bool>>,
 }
 impl Action
 {
@@ -41,14 +70,14 @@ impl Action
 	{
 		let internals = Action {
 			func: Arc::new(task),
-			state: TaskState::Waiting,
+			rx: None,
 		};
 
 		Node::new(internals)
 	}
 
-	/// Launches a new worker thread to run the task
-	fn start_thread(&mut self) -> Status
+	/// Launches a new worker thread to run the task.
+	fn start_thread(&mut self)
 	{
 		// Create our new channels
 		let (tx, rx) = mpsc::channel();
@@ -60,57 +89,29 @@ impl Action
 		thread::spawn(move || tx.send((func_clone)()).unwrap() );
 
 		// Store the rx for later use
-		self.state = TaskState::Running(rx);
-		Status::Running
-	}
-
-	/// Checks if the worker thread is done or not
-	fn check_thread(&mut self) -> Status
-	{
-		use std::sync::mpsc::TryRecvError;
-
-		// This is the only good way I know to get a reference to rx
-		let status = if let TaskState::Running(ref mut rx) = self.state {
-			// See if there's anything waiting
-			match rx.try_recv() {
-				// Task was done, figure out the result
-				Ok(res) => {
-					if res { Status::Succeeded } else { Status::Failed }
-				},
-
-				// Still waiting on the task
-				Err(TryRecvError::Empty) => Status::Running,
-
-				// Something bad happend. Task died before finishing
-				_ => panic!("Task died before finishing"),
-			}
-
-		} else { panic!("Wrong task state for check_thread") };
-
-		// If we're done, we need move the task to the next stage
-		if status.is_done() {
-			self.state = TaskState::Done(status);
-		}
-		status
+		self.rx = Some(rx);
 	}
 }
 impl Internals for Action
 {
-	/// Returns `Status::Running` if the task has been started but not
-	/// completed. Otherwise, it will return `Status::Succeeded` or
-	/// `Status::Failed` based on the return value of the task.
 	fn tick(&mut self) -> Status
 	{
-		match self.state {
-			TaskState::Waiting      => self.start_thread(),
-			TaskState::Running(_)   => self.check_thread(),
-			TaskState::Done(status) => status
+		if let Some(ref mut rx) = self.rx {
+			match rx.try_recv() {
+				Ok(true) => Status::Succeeded,
+				Ok(false) => Status::Failed,
+				Err(TryRecvError::Empty) => Status::Running,
+				_ => panic!("Task died before finishing"),
+			}
+		} else {
+			self.start_thread();
+			Status::Running
 		}
 	}
 
-	/// Resets the node to a state identical to when it was first constructed.
+	/// Resets the internal state of this node.
 	///
-	/// If there is a running task, this function will block until the task is
+	/// If there is a task currently running, this will block until the task is
 	/// completed.
 	fn reset(&mut self)
 	{
@@ -118,13 +119,13 @@ impl Internals for Action
 		// the thread due to time constraints, but it seems to me that it would be better
 		// to avoid potential bugs that come from a node only looking like its been
 		// fully reset.
-		if let TaskState::Running(ref mut rx) = self.state {
+		if let Some(ref mut rx) = self.rx {
 			rx.recv().unwrap();
 		}
-		self.state = TaskState::Waiting;
+		self.rx = None;
 	}
 
-	/// Returns the string "Action"
+	/// Returns the constant string "Action"
 	fn type_name(&self) -> &'static str
 	{
 		"Action"

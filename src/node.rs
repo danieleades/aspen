@@ -95,7 +95,7 @@ impl Node
 		::node_message::NodeMsg {
 			num_children: kids.len() as i32,
 			children: kids,
-			status: self.status as i8,
+			status: self.status.into(),
 			name: self.name().to_string(),
 		}
 	}

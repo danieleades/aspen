@@ -6,15 +6,18 @@ use std::sync::mpsc::TryRecvError;
 use node::{Node, Internals};
 use status::Status;
 
+pub type Result = ::std::result::Result<(), ()>;
+
 /// A node that manages the execution of tasks in a separate thread.
 ///
 /// This node will launch the supplied function in a separate thread and ticks
 /// will monitor the state of that thread. If the supplied function returns
-/// `true` then the node is considered successful, otherwise it is considered to
+/// `Ok` then the node is considered successful, otherwise it is considered to
 /// have failed.
 ///
-/// This node should be the main way of modifying the world state. Note that
-/// most, in most cases, there will only be one thread modifying the world.
+/// This node should be the main way of modifying the world state. Note that,
+/// despite the function being run in a separate thread, there will usually
+/// only be one thread modifying the world.
 ///
 /// # State
 ///
@@ -45,8 +48,8 @@ use status::Status;
 /// let mut action = Action::new(||{
 ///     if FIRST < SECOND {
 ///         result.store(SECOND - FIRST, Ordering::SeqCst);
-///         true
-///     } else { false }
+///         Ok(())
+///     } else { Err(()) }
 /// });
 ///
 /// // Run the node until it completes
@@ -57,16 +60,16 @@ use status::Status;
 pub struct Action
 {
 	/// The task which is to be run.
-	func: Arc<Fn() -> bool + Send + Sync>,
+	func: Arc<Fn() -> Result + Send + Sync>,
 
 	/// Channel on which the task will communicate.
-	rx: Option<mpsc::Receiver<bool>>,
+	rx: Option<mpsc::Receiver<Result>>,
 }
 impl Action
 {
 	/// Creates a new Action node that will execute the given task.
 	pub fn new<F>(task: F) -> Node
-		where F: Fn() -> bool + Send + Sync + 'static
+		where F: Fn() -> Result + Send + Sync + 'static
 	{
 		let internals = Action {
 			func: Arc::new(task),
@@ -98,8 +101,8 @@ impl Internals for Action
 	{
 		if let Some(ref mut rx) = self.rx {
 			match rx.try_recv() {
-				Ok(true) => Status::Succeeded,
-				Ok(false) => Status::Failed,
+				Ok(Ok(())) => Status::Succeeded,
+				Ok(Err(())) => Status::Failed,
 				Err(TryRecvError::Empty) => Status::Running,
 				_ => panic!("Task died before finishing"),
 			}
@@ -113,6 +116,7 @@ impl Internals for Action
 	///
 	/// If there is a task currently running, this will block until the task is
 	/// completed.
+	#[allow(unused_must_use)]
 	fn reset(&mut self)
 	{
 		// I debated what to do here for a while. I could see someone wanting to detach
@@ -137,7 +141,6 @@ mod test
 {
 	use std::sync::Mutex;
 	use std::sync::mpsc;
-	use std::sync::mpsc::{Sender, Receiver};
 	use std::time;
 	use std::thread;
 	use status::Status;
@@ -146,7 +149,7 @@ mod test
 	#[test]
 	fn failure()
 	{
-		let (tx, rx): (Sender<bool>, Receiver<bool>) = mpsc::channel();
+		let (tx, rx) = mpsc::channel();
 
 		let mrx = Mutex::new(rx);
 		let mut action = Action::new(move || {
@@ -159,7 +162,7 @@ mod test
 			thread::sleep(time::Duration::from_millis(100));
 		}
 
-		tx.send(false).unwrap();
+		tx.send(Err(())).unwrap();
 
 		let mut status = Status::Running;
 		while status == Status::Running {
@@ -172,7 +175,7 @@ mod test
 	#[test]
 	fn success()
 	{
-		let (tx, rx): (Sender<bool>, Receiver<bool>) = mpsc::channel();
+		let (tx, rx) = mpsc::channel();
 
 		let mrx = Mutex::new(rx);
 		let mut action = Action::new(move || {
@@ -185,7 +188,7 @@ mod test
 			thread::sleep(time::Duration::from_millis(100));
 		}
 
-		tx.send(true).unwrap();
+		tx.send(Ok(())).unwrap();
 
 		let mut status = Status::Running;
 		while status == Status::Running {

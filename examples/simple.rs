@@ -29,7 +29,7 @@ fn main()
 		Action::new(|| {
 			thread::sleep(time::Duration::from_secs(1));
 			ADD_RES.store(X + Y, Ordering::SeqCst);
-			true
+			Ok(())
 		}),
 
 		// Condition node to check if we can safely do the subtraction
@@ -40,7 +40,7 @@ fn main()
 			thread::sleep(time::Duration::from_secs(1));
 			SUB_RES.store(X - Y, Ordering::SeqCst);
 			SUB_USED.store(true, Ordering::SeqCst);
-			true
+			Ok(())
 		})
 	]);
 

@@ -1,8 +1,4 @@
 //! Contains the LCM message type used to represent a node.
-//!
-//! ID's should be unique among all nodes broadcast on the given channel,
-//! which usually means the nodes need to be unique within the behavior
-//! tree. The `uid()` function can be used to get a unique ID.
 
 #![allow(missing_docs)]
 

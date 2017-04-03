@@ -9,6 +9,10 @@ stages:
 
 # Build the project first
 build:
+  only:
+    - tags
+    - master
+    - /^[0-9]+-.*$/
   stage: build
   script:
     - mkdir -p target
@@ -24,6 +28,10 @@ build:
 
 # Use cargo to test the project
 test:
+  only:
+    - tags
+    - master
+    - /^[0-9]+-.*$/
   stage: test
   script:
     - mkdir -p target
@@ -41,6 +49,10 @@ test:
 
 # Make sure the docs build too
 docs:
+  only:
+    - tags
+    - master
+    - /^[0-9]+-.*$/
   stage: docs
   script:
     - mkdir -p target

@@ -163,19 +163,22 @@ impl Internals for Action
 /// A short action node that attempts to subtract two unsigned integers:
 ///
 /// ```
+/// # use std::rc::Rc;
+/// # use std::cell::Cell;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let first = 10u32;
 /// let second = 100u32;
-/// let mut result = 0u32;
+/// let result = Rc::new(Cell::new(0u32));
+/// let res_clone = result.clone();
 ///
-/// let mut action = ShortAction::new(||{
-///     result = second.checked_sub(first).ok_or(())?;
+/// let mut action = ShortAction::new(move ||{
+///     (*res_clone).set(second.checked_sub(first).ok_or(())?);
 ///     Ok(())
 /// });
 ///
 /// assert_eq!(action.tick(), Status::Succeeded);
-/// assert_eq!(result, 90);
+/// assert_eq!(result.get(), 90);
 /// ```
 pub struct ShortAction
 {

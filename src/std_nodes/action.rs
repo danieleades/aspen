@@ -25,9 +25,9 @@ pub type Result = ::std::result::Result<(), ()>;
 ///
 /// **Running:** While the function is being executed in the other thread.
 ///
-/// **Succeeded:** When the function returns `true`.
+/// **Succeeded:** When the function returns `Ok`.
 ///
-/// **Failed:** When the function returns `false`.
+/// **Failed:** When the function returns `Err`.
 ///
 /// # Children
 ///
@@ -46,10 +46,8 @@ pub type Result = ::std::result::Result<(), ()>;
 /// static result: AtomicUsize = ATOMIC_USIZE_INIT;
 ///
 /// let mut action = Action::new(||{
-///     if FIRST < SECOND {
-///         result.store(SECOND - FIRST, Ordering::SeqCst);
-///         Ok(())
-///     } else { Err(()) }
+///     result.store(SECOND.checked_sub(FIRST).ok_or(())?, Ordering::SeqCst);
+///     Ok(())
 /// });
 ///
 /// // Run the node until it completes
@@ -136,6 +134,93 @@ impl Internals for Action
 	}
 }
 
+/// A node that manages the execution of tasks within the ticking thread.
+///
+/// This node is an alternative to a normal Action node which can be used when
+/// the time required to do the task is significantly less than a single tick.
+/// If the task takes too long, or too many of these nodes are utilized, the
+/// ticking rate can be affected.
+///
+/// One can also break the task up over multiple ticks if the logic of the task
+/// is such that it can be done in small increments.
+///
+/// # State
+///
+/// **Initialized:** Before being ticked after either being created or reset.
+///
+/// **Running:** Generally only if the task can be broken into increments.
+///
+/// **Succeeded:** When the function returns 'Ok'.
+///
+/// **Failed:** When the function returns `Err`.
+///
+/// # Children
+///
+/// None.
+///
+/// # Examples
+///
+/// A short action node that attempts to subtract two unsigned integers:
+///
+/// ```
+/// # use std::rc::Rc;
+/// # use std::cell::Cell;
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
+/// let first = 10u32;
+/// let second = 100u32;
+/// let result = Rc::new(Cell::new(0u32));
+/// let res_clone = result.clone();
+///
+/// let mut action = ShortAction::new(move ||{
+///     (*res_clone).set(second.checked_sub(first).ok_or(())?);
+///     Ok(())
+/// });
+///
+/// assert_eq!(action.tick(), Status::Succeeded);
+/// assert_eq!(result.get(), 90);
+/// ```
+pub struct ShortAction
+{
+	/// The task which is to be run.
+	func: Box<FnMut() -> Result>,
+}
+impl ShortAction
+{
+	/// Creates a new `ShortAction` node that will execute the given task.
+	pub fn new<F>(task: F) -> Node
+		where F: FnMut() -> Result + 'static
+	{
+		let internals = ShortAction {
+			func: Box::new(task),
+		};
+
+		Node::new(internals)
+	}
+}
+impl Internals for ShortAction
+{
+	fn tick(&mut self) -> Status
+	{
+		let res = (*self.func)();
+		match res {
+			Ok(()) => Status::Succeeded,
+			Err(()) => Status::Failed,
+		}
+	}
+
+	fn reset(&mut self)
+	{
+		// No-op
+	}
+
+	/// Returns the constant string "ShortAction"
+	fn type_name(&self) -> &'static str
+	{
+		"ShortAction"
+	}
+}
+
 #[cfg(test)]
 mod test
 {
@@ -196,5 +281,17 @@ mod test
 		}
 
 		assert_eq!(status, Status::Succeeded);
+	}
+
+	#[test]
+	fn short_failure()
+	{
+		assert_eq!(ShortAction::new(|| Err(())).tick(), Status::Failed);
+	}
+
+	#[test]
+	fn short_success()
+	{
+		assert_eq!(ShortAction::new(|| Ok(())).tick(), Status::Succeeded);
 	}
 }

@@ -20,6 +20,7 @@ pub use self::decorator::Invert;
 
 mod action;
 pub use self::action::Action;
+pub use self::action::ShortAction;
 
 mod condition;
 pub use self::condition::Condition;

@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
 use std::sync::atomic::{ATOMIC_USIZE_INIT, ATOMIC_BOOL_INIT};
 use std::{thread, time};
 use aspen::BehaviorTree;
-use aspen::std_nodes::{Sequence, Condition, Action};
+use aspen::std_nodes::{Sequence, Condition, Action, ShortAction};
 
 const X: usize = 5;
 const Y: usize = 3;
@@ -35,9 +35,10 @@ fn main()
 		// Condition node to check if we can safely do the subtraction
 		Condition::new(|| X > Y ),
 
-		// Subtraction node. Only runs if the condition is successful
-		Action::new(|| {
-			thread::sleep(time::Duration::from_secs(1));
+		// Subtraction node. Only runs if the condition is successful. This one
+		// doesn't do a long task (there is not sleep statement), so we can use
+		// a `ShortAction` node, which will not boot up a new thread.
+		ShortAction::new(|| {
 			SUB_RES.store(X - Y, Ordering::SeqCst);
 			SUB_USED.store(true, Ordering::SeqCst);
 			Ok(())

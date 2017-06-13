@@ -27,22 +27,19 @@ use status::Status;
 ///
 /// # Examples
 ///
-/// A child that will be repeated infinitely until it fails (lifetime
-/// boilerplate stuff will hopefully be solved soon):
+/// A child that will be repeated infinitely until it fails.
 ///
 /// ```
-/// # use std::rc::Rc;
 /// # use std::cell::Cell;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
-/// let a = Rc::new(Cell::new(0));
-/// let b = a.clone();
-/// let child = Condition::new(move || b.get() < 10 );
+/// let data = Cell::new(0);
+/// let child = Condition::new(|| data.get() < 10 );
 /// let mut node = UntilFail::new(child);
 ///
 /// for _ in 0..10 {
 ///     assert_eq!(node.tick(), Status::Running);
-///     a.set(a.get() + 1);
+///     data.set(data.get() + 1);
 /// }
 ///
 /// assert_eq!(node.tick(), Status::Succeeded);
@@ -184,22 +181,19 @@ impl<'a> Internals for UntilFail<'a>
 ///
 /// # Examples
 ///
-/// A child that will be repeated infinitely until it succeeds (lifetime
-/// boilerplate will hopefully be fixed soon):
+/// A child that will be repeated infinitely until it succeeds.
 ///
 /// ```
-/// # use std::rc::Rc;
 /// # use std::cell::Cell;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
-/// let a = Rc::new(Cell::new(0));
-/// let b = a.clone();
-/// let child = Condition::new(move || b.get() == 10 );
+/// let data = Cell::new(0);
+/// let child = Condition::new(|| data.get() == 10 );
 /// let mut node = UntilSuccess::new(child);
 ///
 /// for _ in 0..10 {
 ///     assert_eq!(node.tick(), Status::Running);
-///     a.set(a.get() + 1);
+///     data.set(data.get() + 1);
 /// }
 ///
 /// assert_eq!(node.tick(), Status::Succeeded);

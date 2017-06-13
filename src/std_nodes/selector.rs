@@ -78,21 +78,21 @@ use ::Status;
 /// ]);
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct ActiveSelector
+pub struct ActiveSelector<'a>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node>,
+	children: Vec<Node<'a>>,
 }
-impl ActiveSelector
+impl<'a> ActiveSelector<'a>
 {
 	/// Creates a new Selector node from a vector of Nodes.
-	pub fn new(children: Vec<Node>) -> Node
+	pub fn new(children: Vec<Node<'a>>) -> Node<'a>
 	{
 		let internals = ActiveSelector { children: children };
 		Node::new(internals)
 	}
 }
-impl Internals for ActiveSelector
+impl<'a> Internals for ActiveSelector<'a>
 {
 	fn tick(&mut self) -> Status
 	{
@@ -205,10 +205,10 @@ impl Internals for ActiveSelector
 /// ]);
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct Selector
+pub struct Selector<'a>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node>,
+	children: Vec<Node<'a>>,
 
 	/// The next child to be ticked.
 	///
@@ -216,10 +216,10 @@ pub struct Selector
 	/// iterator version that I could come up with.
 	next_child: usize,
 }
-impl Selector
+impl<'a> Selector<'a>
 {
 	/// Creates a new Selector node from a vector of Nodes.
-	pub fn new(children: Vec<Node>) -> Node
+	pub fn new(children: Vec<Node<'a>>) -> Node<'a>
 	{
 		let internals = Selector {
 			children: children,
@@ -228,7 +228,7 @@ impl Selector
 		Node::new(internals)
 	}
 }
-impl Internals for Selector
+impl<'a> Internals for Selector<'a>
 {
 	fn tick(&mut self) -> Status
 	{

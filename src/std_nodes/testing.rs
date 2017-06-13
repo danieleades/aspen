@@ -8,7 +8,7 @@ pub struct NoTick;
 impl NoTick
 {
 	/// Construct a new `NoTick` node.
-	pub fn new() -> Node
+	pub fn new() -> Node<'static>
 	{
 		Node::new(NoTick { })
 	}
@@ -44,7 +44,7 @@ pub struct YesTick
 impl YesTick
 {
 	/// Create a new `YesTick` that always has the given status
-	pub fn new(status: Status) -> Node
+	pub fn new(status: Status) -> Node<'static>
 	{
 		let internals = YesTick { status: status, ticked: false };
 		Node::new(internals)
@@ -100,7 +100,7 @@ pub struct CountedTick
 impl CountedTick
 {
 	/// Creates a new `CountedTick` that always has the given status.
-	pub fn new(status: Status, count: u32, exact: bool) -> Node
+	pub fn new(status: Status, count: u32, exact: bool) -> Node<'static>
 	{
 		let internals = CountedTick {
 			status: status,
@@ -113,7 +113,7 @@ impl CountedTick
 	}
 
 	/// Creates a new `CountedTick` that will reset the count upon node reset
-	pub fn resetable(status: Status, count: u32, exact: bool) -> Node
+	pub fn resetable(status: Status, count: u32, exact: bool) -> Node<'static>
 	{
 		let internals = CountedTick {
 			status: status,

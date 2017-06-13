@@ -12,21 +12,19 @@ use status::Status;
 /// `Node`, the `BehaviorTree` will not automatically reset itself when ticked.
 /// Instead, ticking or running a completed behavior tree will just return the
 /// value of the last tick - it must be explicitly reset.
-pub struct BehaviorTree
+pub struct BehaviorTree<'a>
 {
 	/// Root node of the behavior tree.
-	root: Node
+	root: Node<'a>
 }
-impl BehaviorTree
+impl<'a> BehaviorTree<'a>
 {
 	/// Create a new behavior tree with the supplied `Node` as the root.
-	pub fn new(root: Node) -> BehaviorTree
+	pub fn new(root: Node<'a>) -> BehaviorTree
 	{
 		BehaviorTree { root: root }
 	}
-}
-impl BehaviorTree
-{
+
 	/// Returns a reference to the root node.
 	pub fn root(&self) -> &Node
 	{
@@ -103,7 +101,7 @@ impl BehaviorTree
 		return status;
 	}
 }
-impl fmt::Display for BehaviorTree
+impl<'a> fmt::Display for BehaviorTree<'a>
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{

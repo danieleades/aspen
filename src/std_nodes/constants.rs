@@ -50,26 +50,26 @@ use status::Status;
 /// let mut node = AlwaysFail::with_child(AlwaysSucceed::new());
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct AlwaysFail
+pub struct AlwaysFail<'a>
 {
 	/// Optional child node.
-	child: Option<Node>,
+	child: Option<Node<'a>>,
 }
-impl AlwaysFail
+impl<'a> AlwaysFail<'a>
 {
 	/// Construct a new AlwaysFail node.
-	pub fn new() -> Node
+	pub fn new() -> Node<'a>
 	{
 		Node::new(AlwaysFail { child: None })
 	}
 
 	/// Construct a new AlwaysFail node that has a child.
-	pub fn with_child(child: Node) -> Node
+	pub fn with_child(child: Node<'a>) -> Node<'a>
 	{
 		Node::new(AlwaysFail { child: Some(child) })
 	}
 }
-impl Internals for AlwaysFail
+impl<'a> Internals for AlwaysFail<'a>
 {
 	fn tick(&mut self) -> Status
 	{
@@ -154,26 +154,26 @@ impl Internals for AlwaysFail
 /// let mut node = AlwaysSucceed::with_child(AlwaysFail::new());
 /// assert_eq!(node.tick(), Status::Succeeded);
 /// ```
-pub struct AlwaysSucceed
+pub struct AlwaysSucceed<'a>
 {
 	/// Optional child node.
-	child: Option<Node>,
+	child: Option<Node<'a>>,
 }
-impl AlwaysSucceed
+impl<'a> AlwaysSucceed<'a>
 {
 	/// Construct a new AlwaysSucceed node.
-	pub fn new() -> Node
+	pub fn new() -> Node<'a>
 	{
 		Node::new(AlwaysSucceed { child: None })
 	}
 
 	/// Construct a new AlwaysSucceed node with a child.
-	pub fn with_child(child: Node) -> Node
+	pub fn with_child(child: Node<'a>) -> Node<'a>
 	{
 		Node::new(AlwaysSucceed { child: Some(child) })
 	}
 }
-impl Internals for AlwaysSucceed
+impl<'a> Internals for AlwaysSucceed<'a>
 {
 	fn tick(&mut self) -> Status
 	{
@@ -239,7 +239,7 @@ pub struct AlwaysRunning;
 impl AlwaysRunning
 {
 	/// Construct a new AlwaysRunning node.
-	pub fn new() -> Node
+	pub fn new() -> Node<'static>
 	{
 		Node::new(AlwaysRunning { })
 	}

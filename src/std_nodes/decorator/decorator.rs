@@ -40,26 +40,26 @@ use status::Status;
 /// let mut node = Decorator::new(child, invert);
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct Decorator
+pub struct Decorator<'a>
 {
 	/// Function that is performed on the child's status.
-	func: Box<Fn(Status) -> Status>,
+	func: Box<Fn(Status) -> Status + 'a>,
 
 	/// Child node.
-	child: Node,
+	child: Node<'a>,
 }
-impl Decorator
+impl<'a> Decorator<'a>
 {
 	/// Creates a new Decorator node with the supplied child node and function
 	/// to be run on the child's status.
-	pub fn new<F>(child: Node, func: F) -> Node
-		where F: Fn(Status) -> Status + 'static
+	pub fn new<F>(child: Node<'a>, func: F) -> Node<'a>
+		where F: Fn(Status) -> Status + 'a
 	{
 		let internals = Decorator { func: Box::new(func), child: child };
 		Node::new(internals)
 	}
 }
-impl Internals for Decorator
+impl<'a> Internals for Decorator<'a>
 {
 	fn tick(&mut self) -> Status
 	{
@@ -117,20 +117,20 @@ impl Internals for Decorator
 /// let mut node = Invert::new(AlwaysFail::new());
 /// assert_eq!(node.tick(), Status::Succeeded);
 /// ```
-pub struct Invert
+pub struct Invert<'a>
 {
 	/// Child node.
-	child: Node,
+	child: Node<'a>,
 }
-impl Invert
+impl<'a> Invert<'a>
 {
 	/// Creates a new `Invert` node.
-	pub fn new(child: Node) -> Node
+	pub fn new(child: Node<'a>) -> Node<'a>
 	{
 		Node::new(Invert { child: child })
 	}
 }
-impl Internals for Invert
+impl<'a> Internals for Invert<'a>
 {
 	fn tick(&mut self) -> Status
 	{

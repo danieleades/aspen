@@ -78,21 +78,21 @@ use ::Status;
 /// ]);
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct ActiveSequence
+pub struct ActiveSequence<'a>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node>,
+	children: Vec<Node<'a>>,
 }
-impl ActiveSequence
+impl<'a> ActiveSequence<'a>
 {
 	/// Creates a new `ActiveSequence` node from a vector of Nodes.
-	pub fn new(children: Vec<Node>) -> Node
+	pub fn new(children: Vec<Node<'a>>) -> Node<'a>
 	{
 		let internals = ActiveSequence { children: children };
 		Node::new(internals)
 	}
 }
-impl Internals for ActiveSequence
+impl<'a> Internals for ActiveSequence<'a>
 {
 	fn tick(&mut self) -> Status
 	{
@@ -203,16 +203,16 @@ impl Internals for ActiveSequence
 /// ]);
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct Sequence
+pub struct Sequence<'a>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node>,
+	children: Vec<Node<'a>>,
 	next_child: usize,
 }
-impl Sequence
+impl<'a> Sequence<'a>
 {
 	/// Creates a new `Sequence` node from a vector of Nodes.
-	pub fn new(children: Vec<Node>) -> Node
+	pub fn new(children: Vec<Node<'a>>) -> Node<'a>
 	{
 		let internals = Sequence {
 			children: children,
@@ -221,7 +221,7 @@ impl Sequence
 		Node::new(internals)
 	}
 }
-impl Internals for Sequence
+impl<'a> Internals for Sequence<'a>
 {
 	fn tick(&mut self) -> Status
 	{

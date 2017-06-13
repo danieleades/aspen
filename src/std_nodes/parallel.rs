@@ -91,18 +91,18 @@ use status::Status;
 ///
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct Parallel
+pub struct Parallel<'a>
 {
 	/// Child nodes.
-	children: Vec<Node>,
+	children: Vec<Node<'a>>,
 
 	/// Number of child nodes required to succeed.
 	required_successes: usize,
 }
-impl Parallel
+impl<'a> Parallel<'a>
 {
 	/// Creates a `Parallel` node with the given children an required number of successes.
-	pub fn new(children: Vec<Node>, required_successes: usize) -> Node
+	pub fn new(children: Vec<Node<'a>>, required_successes: usize) -> Node<'a>
 	{
 		let internals = Parallel {
 			children: children,
@@ -111,7 +111,7 @@ impl Parallel
 		Node::new(internals)
 	}
 }
-impl Internals for Parallel
+impl<'a> Internals for Parallel<'a>
 {
 	fn tick(&mut self) -> Status
 	{

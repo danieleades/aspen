@@ -66,7 +66,7 @@ pub struct Action
 impl Action
 {
 	/// Creates a new Action node that will execute the given task.
-	pub fn new<F>(task: F) -> Node
+	pub fn new<F>(task: F) -> Node<'static>
 		where F: Fn() -> Result + Send + Sync + 'static
 	{
 		let internals = Action {
@@ -180,16 +180,16 @@ impl Internals for Action
 /// assert_eq!(action.tick(), Status::Succeeded);
 /// assert_eq!(result.get(), 90);
 /// ```
-pub struct ShortAction
+pub struct ShortAction<'a>
 {
 	/// The task which is to be run.
-	func: Box<FnMut() -> Result>,
+	func: Box<FnMut() -> Result + 'a>,
 }
-impl ShortAction
+impl<'a> ShortAction<'a>
 {
 	/// Creates a new `ShortAction` node that will execute the given task.
-	pub fn new<F>(task: F) -> Node
-		where F: FnMut() -> Result + 'static
+	pub fn new<F>(task: F) -> Node<'a>
+		where F: FnMut() -> Result + 'a
 	{
 		let internals = ShortAction {
 			func: Box::new(task),
@@ -198,7 +198,7 @@ impl ShortAction
 		Node::new(internals)
 	}
 }
-impl Internals for ShortAction
+impl<'a> Internals for ShortAction<'a>
 {
 	fn tick(&mut self) -> Status
 	{

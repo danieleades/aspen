@@ -42,10 +42,10 @@ use status::Status;
 /// }
 /// assert_eq!(node.tick(), Status::Succeeded);
 /// ```
-pub struct Repeat
+pub struct Repeat<'a>
 {
 	/// Child node.
-	child: Node,
+	child: Node<'a>,
 
 	/// Optional number of times to do the reset.
 	attempt_limit: Option<u32>,
@@ -53,10 +53,10 @@ pub struct Repeat
 	/// Number of times the child has been reset.
 	attempts: u32,
 }
-impl Repeat
+impl<'a> Repeat<'a>
 {
 	/// Creates a new Repeat node that will repeat forever.
-	pub fn new(child: Node) -> Node
+	pub fn new(child: Node<'a>) -> Node<'a>
 	{
 		let internals = Repeat {
 			child: child,
@@ -80,7 +80,7 @@ impl Repeat
 		Node::new(internals)
 	}
 }
-impl Internals for Repeat
+impl<'a> Internals for Repeat<'a>
 {
 	fn tick(&mut self) -> Status
 	{

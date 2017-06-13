@@ -64,10 +64,10 @@ use status::Status;
 ///
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct UntilFail
+pub struct UntilFail<'a>
 {
 	/// Child node.
-	child: Node,
+	child: Node<'a>,
 
 	/// Optional number of times to do the reset.
 	attempt_limit: Option<u32>,
@@ -75,10 +75,10 @@ pub struct UntilFail
 	/// Number of times the child has been reset.
 	attempts: u32,
 }
-impl UntilFail
+impl<'a> UntilFail<'a>
 {
 	/// Creates a new `UntilFail` node that will keep trying indefinitely.
-	pub fn new(child: Node) -> Node
+	pub fn new(child: Node<'a>) -> Node<'a>
 	{
 		let internals = UntilFail {
 			child: child,
@@ -102,7 +102,7 @@ impl UntilFail
 		Node::new(internals)
 	}
 }
-impl Internals for UntilFail
+impl<'a> Internals for UntilFail<'a>
 {
 	fn tick(&mut self) -> Status
 	{
@@ -221,10 +221,10 @@ impl Internals for UntilFail
 ///
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct UntilSuccess
+pub struct UntilSuccess<'a>
 {
 	/// Child node.
-	child: Node,
+	child: Node<'a>,
 
 	/// Optional number of times to do the reset.
 	attempt_limit: Option<u32>,
@@ -232,10 +232,10 @@ pub struct UntilSuccess
 	/// Number of times the child has been reset.
 	attempts: u32,
 }
-impl UntilSuccess
+impl<'a> UntilSuccess<'a>
 {
 	/// Creates a new `UntilSuccess` node that will keep trying indefinitely.
-	pub fn new(child: Node) -> Node
+	pub fn new(child: Node<'a>) -> Node<'a>
 	{
 		let internals = UntilSuccess {
 			child: child,
@@ -249,7 +249,7 @@ impl UntilSuccess
 	///
 	/// `limit` is the number of times the node can be *reset*, not the number
 	/// of times it can be run. A limit of one means the node can be run twice.
-	pub fn with_limit(child: Node, limit: u32) -> Node
+	pub fn with_limit(child: Node<'a>, limit: u32) -> Node<'a>
 	{
 		let internals = UntilSuccess {
 			child: child,
@@ -259,7 +259,7 @@ impl UntilSuccess
 		Node::new(internals)
 	}
 }
-impl Internals for UntilSuccess
+impl<'a> Internals for UntilSuccess<'a>
 {
 	fn tick(&mut self) -> Status
 	{

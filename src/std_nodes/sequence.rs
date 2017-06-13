@@ -119,9 +119,9 @@ impl<'a> Internals for ActiveSequence<'a>
 		}
 	}
 
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Vec<&Node>
 	{
-		Some(self.children.iter().collect())
+		self.children.iter().collect()
 	}
 
 	/// Returns the string "ActiveSequence".
@@ -246,9 +246,9 @@ impl<'a> Internals for Sequence<'a>
 		}
 	}
 
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Vec<&Node>
 	{
-		Some(self.children.iter().collect())
+		self.children.iter().collect()
 	}
 
 	/// Returns the string "Sequence".

@@ -70,7 +70,9 @@ impl<'a> Node<'a>
 	}
 
 	/// Returns a vector containing references to all of this node's children.
-	pub fn children(&self) -> Option<Vec<&Node>>
+	///
+	/// This is likely the most unstable part of Aspen, use with caution.
+	pub fn children(&self) -> Vec<&Node>
 	{
 		(*self.internals).children()
 	}
@@ -88,9 +90,7 @@ impl<'a> Node<'a>
 	/// Creates a new `NodeMsg` from this node
 	pub fn as_message(&self) -> ::node_message::NodeMsg
 	{
-		let kids = if let Some(kids) = self.children() {
-			kids.iter().map(|c| c.as_message() ).collect()
-		} else { Vec::new() };
+		let kids: Vec<_> = self.children().iter().map(|c| c.as_message() ).collect();
 
 		::node_message::NodeMsg {
 			num_children: kids.len() as i32,
@@ -105,10 +105,8 @@ impl<'a> fmt::Display for Node<'a>
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
 		write!(f, "{}:( status = {:?}", self.name(), self.status())?;
-		if let Some(children) = self.children() {
-			for child in children {
-				write!(f, ", {}", child)?;
-			}
+		for child in self.children() {
+			write!(f, ", {}", child)?;
 		}
 		write!(f, " )")
 	}
@@ -140,9 +138,11 @@ pub trait Internals
 	///
 	/// Default behavior is to return `None`, which should be suitable for any
 	/// leaf node.
-	fn children(&self) -> Option<Vec<&Node>>
+	///
+	/// This is likely the most unstable part of Aspen, use with caution.
+	fn children(&self) -> Vec<&Node>
 	{
-		None
+		Vec::new()
 	}
 
 	/// Returns the type of the node as a string literal.

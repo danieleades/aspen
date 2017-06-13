@@ -74,9 +74,9 @@ impl<'a> Internals for Decorator<'a>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Vec<&Node>
 	{
-		Some(vec![&self.child])
+		vec![&self.child]
 	}
 
 	/// Returns the string "Decorator".
@@ -147,9 +147,9 @@ impl<'a> Internals for Invert<'a>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Vec<&Node>
 	{
-		Some(vec![&self.child])
+		vec![&self.child]
 	}
 
 	/// Returns the string "Invert".

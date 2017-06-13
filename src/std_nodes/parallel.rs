@@ -159,9 +159,9 @@ impl<'a> Internals for Parallel<'a>
 		}
 	}
 
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Vec<&Node>
 	{
-		Some(self.children.iter().collect())
+		self.children.iter().collect()
 	}
 
 	/// Returns the string "Parallel".

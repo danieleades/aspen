@@ -143,9 +143,9 @@ impl<'a> Internals for UntilFail<'a>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Vec<&Node>
 	{
-		Some(vec![&self.child])
+		vec![&self.child]
 	}
 
 	/// Returns the string "UntilFail".
@@ -297,9 +297,9 @@ impl<'a> Internals for UntilSuccess<'a>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Vec<&Node>
 	{
-		Some(vec![&self.child])
+		vec![&self.child]
 	}
 
 	/// Returns the string "UntilSuccess".

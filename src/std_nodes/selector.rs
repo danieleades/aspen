@@ -122,9 +122,9 @@ impl<'a> Internals for ActiveSelector<'a>
 		}
 	}
 
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Vec<&Node>
 	{
-		Some(self.children.iter().collect())
+		self.children.iter().collect()
 	}
 
 	/// Returns the string "ActiveSelector".
@@ -253,9 +253,9 @@ impl<'a> Internals for Selector<'a>
 		}
 	}
 
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Vec<&Node>
 	{
-		Some(self.children.iter().collect())
+		self.children.iter().collect()
 	}
 
 	/// Returns the string "Selector".

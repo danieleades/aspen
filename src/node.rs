@@ -88,7 +88,7 @@ impl<'a> Node<'a>
 	/// Creates a new `NodeMsg` from this node
 	pub fn as_message(&self) -> ::node_message::NodeMsg
 	{
-		let kids = self.children().iter().map(|c| c.as_message() ).collect();
+		let kids: Vec<_> = self.children().iter().map(|c| c.as_message() ).collect();
 
 		::node_message::NodeMsg {
 			num_children: kids.len() as i32,

@@ -89,12 +89,12 @@ impl<'a> Internals for AlwaysFail<'a>
 		}
 	}
 
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Vec<&Node>
 	{
 		if let Some(ref child) = self.child {
-			Some(vec![child])
+			vec![child]
 		} else {
-			None
+			Vec::new()
 		}
 	}
 
@@ -186,12 +186,12 @@ impl<'a> Internals for AlwaysSucceed<'a>
 		Status::Succeeded
 	}
 
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Vec<&Node>
 	{
 		if let Some(ref child) = self.child {
-			Some(vec![child])
+			vec![child]
 		} else {
-			None
+			Vec::new()
 		}
 	}
 

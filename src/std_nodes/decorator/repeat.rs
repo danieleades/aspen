@@ -117,9 +117,9 @@ impl<'a> Internals for Repeat<'a>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Option<Vec<&Node>>
+	fn children(&self) -> Vec<&Node>
 	{
-		Some(vec![&self.child])
+		vec![&self.child]
 	}
 
 	/// Returns the string "Repeat".

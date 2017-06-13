@@ -169,8 +169,10 @@ impl Internals for Action
 /// let result = Cell::new(0u32);
 ///
 /// let mut action = InlineAction::new(||{
-///     result.set(second.checked_sub(first).ok_or(())?);
-///     Ok(())
+///     if let Some(n) = second.checked_sub(first) {
+///         result.set(n);
+///         Status::Succeeded
+///     } else { Status::Failed }
 /// });
 ///
 /// assert_eq!(action.tick(), Status::Succeeded);
@@ -179,13 +181,13 @@ impl Internals for Action
 pub struct InlineAction<'a>
 {
 	/// The task which is to be run.
-	func: Box<FnMut() -> Result + 'a>,
+	func: Box<FnMut() -> Status + 'a>,
 }
 impl<'a> InlineAction<'a>
 {
 	/// Creates a new `ShortAction` node that will execute the given task.
 	pub fn new<F>(task: F) -> Node<'a>
-		where F: FnMut() -> Result + 'a
+		where F: FnMut() -> Status + 'a
 	{
 		let internals = InlineAction {
 			func: Box::new(task),
@@ -198,11 +200,7 @@ impl<'a> Internals for InlineAction<'a>
 {
 	fn tick(&mut self) -> Status
 	{
-		let res = (*self.func)();
-		match res {
-			Ok(()) => Status::Succeeded,
-			Err(()) => Status::Failed,
-		}
+		(*self.func)()
 	}
 
 	fn reset(&mut self)
@@ -280,14 +278,20 @@ mod test
 	}
 
 	#[test]
-	fn short_failure()
+	fn inline_failure()
 	{
-		assert_eq!(InlineAction::new(|| Err(())).tick(), Status::Failed);
+		assert_eq!(InlineAction::new(|| Status::Failed).tick(), Status::Failed);
 	}
 
 	#[test]
-	fn short_success()
+	fn inline_success()
 	{
-		assert_eq!(InlineAction::new(|| Ok(())).tick(), Status::Succeeded);
+		assert_eq!(InlineAction::new(|| Status::Succeeded).tick(), Status::Succeeded);
+	}
+
+	#[test]
+	fn inline_running()
+	{
+		assert_eq!(InlineAction::new(|| Status::Running).tick(), Status::Running);
 	}
 }

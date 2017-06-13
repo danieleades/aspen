@@ -137,12 +137,10 @@ impl Internals for Action
 /// A node that manages the execution of tasks within the ticking thread.
 ///
 /// This node is an alternative to a normal Action node which can be used when
-/// the time required to do the task is significantly less than a single tick.
-/// If the task takes too long, or too many of these nodes are utilized, the
-/// ticking rate can be affected.
-///
-/// One can also break the task up over multiple ticks if the logic of the task
-/// is such that it can be done in small increments.
+/// the time required to do the task is significantly less than a single tick
+/// or if it can be broken down into descrete steps. If the task takes too
+/// long, or too many of these nodes are utilized, the ticking rate can be
+/// affected.
 ///
 /// # State
 ///
@@ -170,41 +168,39 @@ impl Internals for Action
 /// let second = 100u32;
 /// let result = Cell::new(0u32);
 ///
-/// let mut action = ShortAction::new(||{
-///     result.set(second.checked_sub(first).ok_or(())?);
-///     Ok(())
+/// let mut action = InlineAction::new(||{
+///     if let Some(n) = second.checked_sub(first) {
+///         result.set(n);
+///         Status::Succeeded
+///     } else { Status::Failed }
 /// });
 ///
 /// assert_eq!(action.tick(), Status::Succeeded);
 /// assert_eq!(result.get(), 90);
 /// ```
-pub struct ShortAction<'a>
+pub struct InlineAction<'a>
 {
 	/// The task which is to be run.
-	func: Box<FnMut() -> Result + 'a>,
+	func: Box<FnMut() -> Status + 'a>,
 }
-impl<'a> ShortAction<'a>
+impl<'a> InlineAction<'a>
 {
 	/// Creates a new `ShortAction` node that will execute the given task.
 	pub fn new<F>(task: F) -> Node<'a>
-		where F: FnMut() -> Result + 'a
+		where F: FnMut() -> Status + 'a
 	{
-		let internals = ShortAction {
+		let internals = InlineAction {
 			func: Box::new(task),
 		};
 
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for ShortAction<'a>
+impl<'a> Internals for InlineAction<'a>
 {
 	fn tick(&mut self) -> Status
 	{
-		let res = (*self.func)();
-		match res {
-			Ok(()) => Status::Succeeded,
-			Err(()) => Status::Failed,
-		}
+		(*self.func)()
 	}
 
 	fn reset(&mut self)
@@ -212,10 +208,10 @@ impl<'a> Internals for ShortAction<'a>
 		// No-op
 	}
 
-	/// Returns the constant string "ShortAction"
+	/// Returns the constant string "InlineAction"
 	fn type_name(&self) -> &'static str
 	{
-		"ShortAction"
+		"InlineAction"
 	}
 }
 
@@ -282,14 +278,20 @@ mod test
 	}
 
 	#[test]
-	fn short_failure()
+	fn inline_failure()
 	{
-		assert_eq!(ShortAction::new(|| Err(())).tick(), Status::Failed);
+		assert_eq!(InlineAction::new(|| Status::Failed).tick(), Status::Failed);
 	}
 
 	#[test]
-	fn short_success()
+	fn inline_success()
 	{
-		assert_eq!(ShortAction::new(|| Ok(())).tick(), Status::Succeeded);
+		assert_eq!(InlineAction::new(|| Status::Succeeded).tick(), Status::Succeeded);
+	}
+
+	#[test]
+	fn inline_running()
+	{
+		assert_eq!(InlineAction::new(|| Status::Running).tick(), Status::Running);
 	}
 }

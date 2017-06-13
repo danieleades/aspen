@@ -70,6 +70,8 @@ impl<'a> Node<'a>
 	}
 
 	/// Returns a vector containing references to all of this node's children.
+	///
+	/// This is likely the most unstable part of Aspen, use with caution.
 	pub fn children(&self) -> Vec<&Node>
 	{
 		(*self.internals).children()
@@ -136,6 +138,8 @@ pub trait Internals
 	///
 	/// Default behavior is to return `None`, which should be suitable for any
 	/// leaf node.
+	///
+	/// This is likely the most unstable part of Aspen, use with caution.
 	fn children(&self) -> Vec<&Node>
 	{
 		Vec::new()

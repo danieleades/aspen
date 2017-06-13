@@ -12,21 +12,21 @@ use status::Status;
 ///
 /// This class is largely just a wrapper around an `Internals` object. This is
 /// to enforce some runtime behavior.
-pub struct Node
+pub struct Node<'a>
 {
 	/// The status from the last time this node was ticked
 	status: Status,
 
 	/// The internal logic for this node
-	internals: Box<Internals>,
+	internals: Box<Internals + 'a>,
 }
-impl Node
+impl<'a> Node<'a>
 {
 	/// Creates a new `Node` with the given `Internals`.
 	///
 	/// The internals are used to govern the tick logic of the node.
-	pub fn new<I>(internals: I) -> Node
-		where I: Internals + 'static
+	pub fn new<I>(internals: I) -> Node<'a>
+		where I: Internals + 'a
 	{
 		Node {
 			status: Status::Initialized,
@@ -100,7 +100,7 @@ impl Node
 		}
 	}
 }
-impl fmt::Display for Node
+impl<'a> fmt::Display for Node<'a>
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{

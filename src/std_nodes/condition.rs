@@ -38,24 +38,24 @@ use status::Status;
 /// let mut node = Condition::new(|| FIRST > SECOND );
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct Condition
+pub struct Condition<'a>
 {
 	/// Function that is performed to determine the node's status
 	///
 	/// A return value of `true` means success and a return value of `false`
 	/// means failure.
-	func: Box<Fn() -> bool>,
+	func: Box<Fn() -> bool + 'a>,
 }
-impl Condition
+impl<'a> Condition<'a>
 {
 	/// Constructs a new Condition node that will run the given function.
-	pub fn new<F: Fn() -> bool + 'static>(func: F) -> Node
+	pub fn new<F: Fn() -> bool + 'a>(func: F) -> Node<'a>
 	{
 		let internals = Condition { func: Box::new(func) };
 		Node::new(internals)
 	}
 }
-impl Internals for Condition
+impl<'a> Internals for Condition<'a>
 {
 	fn tick(&mut self) -> Status
 	{

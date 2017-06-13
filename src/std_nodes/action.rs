@@ -66,7 +66,7 @@ pub struct Action
 impl Action
 {
 	/// Creates a new Action node that will execute the given task.
-	pub fn new<F>(task: F) -> Node
+	pub fn new<F>(task: F) -> Node<'static>
 		where F: Fn() -> Result + Send + Sync + 'static
 	{
 		let internals = Action {
@@ -163,33 +163,31 @@ impl Internals for Action
 /// A short action node that attempts to subtract two unsigned integers:
 ///
 /// ```
-/// # use std::rc::Rc;
 /// # use std::cell::Cell;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let first = 10u32;
 /// let second = 100u32;
-/// let result = Rc::new(Cell::new(0u32));
-/// let res_clone = result.clone();
+/// let result = Cell::new(0u32);
 ///
-/// let mut action = ShortAction::new(move ||{
-///     (*res_clone).set(second.checked_sub(first).ok_or(())?);
+/// let mut action = ShortAction::new(||{
+///     result.set(second.checked_sub(first).ok_or(())?);
 ///     Ok(())
 /// });
 ///
 /// assert_eq!(action.tick(), Status::Succeeded);
 /// assert_eq!(result.get(), 90);
 /// ```
-pub struct ShortAction
+pub struct ShortAction<'a>
 {
 	/// The task which is to be run.
-	func: Box<FnMut() -> Result>,
+	func: Box<FnMut() -> Result + 'a>,
 }
-impl ShortAction
+impl<'a> ShortAction<'a>
 {
 	/// Creates a new `ShortAction` node that will execute the given task.
-	pub fn new<F>(task: F) -> Node
-		where F: FnMut() -> Result + 'static
+	pub fn new<F>(task: F) -> Node<'a>
+		where F: FnMut() -> Result + 'a
 	{
 		let internals = ShortAction {
 			func: Box::new(task),
@@ -198,7 +196,7 @@ impl ShortAction
 		Node::new(internals)
 	}
 }
-impl Internals for ShortAction
+impl<'a> Internals for ShortAction<'a>
 {
 	fn tick(&mut self) -> Status
 	{

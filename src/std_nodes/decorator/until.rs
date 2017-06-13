@@ -27,22 +27,19 @@ use status::Status;
 ///
 /// # Examples
 ///
-/// A child that will be repeated infinitely until it fails (lifetime
-/// boilerplate stuff will hopefully be solved soon):
+/// A child that will be repeated infinitely until it fails.
 ///
 /// ```
-/// # use std::rc::Rc;
 /// # use std::cell::Cell;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
-/// let a = Rc::new(Cell::new(0));
-/// let b = a.clone();
-/// let child = Condition::new(move || b.get() < 10 );
+/// let data = Cell::new(0);
+/// let child = Condition::new(|| data.get() < 10 );
 /// let mut node = UntilFail::new(child);
 ///
 /// for _ in 0..10 {
 ///     assert_eq!(node.tick(), Status::Running);
-///     a.set(a.get() + 1);
+///     data.set(data.get() + 1);
 /// }
 ///
 /// assert_eq!(node.tick(), Status::Succeeded);
@@ -64,10 +61,10 @@ use status::Status;
 ///
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct UntilFail
+pub struct UntilFail<'a>
 {
 	/// Child node.
-	child: Node,
+	child: Node<'a>,
 
 	/// Optional number of times to do the reset.
 	attempt_limit: Option<u32>,
@@ -75,10 +72,10 @@ pub struct UntilFail
 	/// Number of times the child has been reset.
 	attempts: u32,
 }
-impl UntilFail
+impl<'a> UntilFail<'a>
 {
 	/// Creates a new `UntilFail` node that will keep trying indefinitely.
-	pub fn new(child: Node) -> Node
+	pub fn new(child: Node<'a>) -> Node<'a>
 	{
 		let internals = UntilFail {
 			child: child,
@@ -102,7 +99,7 @@ impl UntilFail
 		Node::new(internals)
 	}
 }
-impl Internals for UntilFail
+impl<'a> Internals for UntilFail<'a>
 {
 	fn tick(&mut self) -> Status
 	{
@@ -184,22 +181,19 @@ impl Internals for UntilFail
 ///
 /// # Examples
 ///
-/// A child that will be repeated infinitely until it succeeds (lifetime
-/// boilerplate will hopefully be fixed soon):
+/// A child that will be repeated infinitely until it succeeds.
 ///
 /// ```
-/// # use std::rc::Rc;
 /// # use std::cell::Cell;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
-/// let a = Rc::new(Cell::new(0));
-/// let b = a.clone();
-/// let child = Condition::new(move || b.get() == 10 );
+/// let data = Cell::new(0);
+/// let child = Condition::new(|| data.get() == 10 );
 /// let mut node = UntilSuccess::new(child);
 ///
 /// for _ in 0..10 {
 ///     assert_eq!(node.tick(), Status::Running);
-///     a.set(a.get() + 1);
+///     data.set(data.get() + 1);
 /// }
 ///
 /// assert_eq!(node.tick(), Status::Succeeded);
@@ -221,10 +215,10 @@ impl Internals for UntilFail
 ///
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct UntilSuccess
+pub struct UntilSuccess<'a>
 {
 	/// Child node.
-	child: Node,
+	child: Node<'a>,
 
 	/// Optional number of times to do the reset.
 	attempt_limit: Option<u32>,
@@ -232,10 +226,10 @@ pub struct UntilSuccess
 	/// Number of times the child has been reset.
 	attempts: u32,
 }
-impl UntilSuccess
+impl<'a> UntilSuccess<'a>
 {
 	/// Creates a new `UntilSuccess` node that will keep trying indefinitely.
-	pub fn new(child: Node) -> Node
+	pub fn new(child: Node<'a>) -> Node<'a>
 	{
 		let internals = UntilSuccess {
 			child: child,
@@ -249,7 +243,7 @@ impl UntilSuccess
 	///
 	/// `limit` is the number of times the node can be *reset*, not the number
 	/// of times it can be run. A limit of one means the node can be run twice.
-	pub fn with_limit(child: Node, limit: u32) -> Node
+	pub fn with_limit(child: Node<'a>, limit: u32) -> Node<'a>
 	{
 		let internals = UntilSuccess {
 			child: child,
@@ -259,7 +253,7 @@ impl UntilSuccess
 		Node::new(internals)
 	}
 }
-impl Internals for UntilSuccess
+impl<'a> Internals for UntilSuccess<'a>
 {
 	fn tick(&mut self) -> Status
 	{

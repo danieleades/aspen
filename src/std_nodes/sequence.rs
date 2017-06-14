@@ -78,29 +78,31 @@ use ::Status;
 /// ]);
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct ActiveSequence<'a>
+pub struct ActiveSequence<'a, S>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node<'a>>,
+	children: Vec<Node<'a, S>>,
 }
-impl<'a> ActiveSequence<'a>
+impl<'a, S> ActiveSequence<'a, S>
+	where S: Clone + 'a
 {
 	/// Creates a new `ActiveSequence` node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a>>) -> Node<'a>
+	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
 	{
 		let internals = ActiveSequence { children: children };
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for ActiveSequence<'a>
+impl<'a, S> Internals<S> for ActiveSequence<'a, S>
+	where S: Clone
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: S) -> Status
 	{
 		// Tick all of our children as long as they succeed
 		let mut ret_status = Status::Succeeded;
 		for child in self.children.iter_mut() {
 			if ret_status == Status::Succeeded {
-				ret_status = child.tick();
+				ret_status = child.tick(world.clone());
 			}
 			else {
 				child.reset();
@@ -119,7 +121,7 @@ impl<'a> Internals for ActiveSequence<'a>
 		}
 	}
 
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Vec<&Node<S>>
 	{
 		self.children.iter().collect()
 	}
@@ -226,16 +228,17 @@ macro_rules! ActiveSequence
 /// ]);
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct Sequence<'a>
+pub struct Sequence<'a, S>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node<'a>>,
+	children: Vec<Node<'a, S>>,
 	next_child: usize,
 }
-impl<'a> Sequence<'a>
+impl<'a, S> Sequence<'a, S>
+	where S: Clone + 'a
 {
 	/// Creates a new `Sequence` node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a>>) -> Node<'a>
+	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
 	{
 		let internals = Sequence {
 			children: children,
@@ -244,14 +247,15 @@ impl<'a> Sequence<'a>
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for Sequence<'a>
+impl<'a, S> Internals<S> for Sequence<'a, S>
+	where S: Clone
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: S) -> Status
 	{
 		// Tick the children as long as they keep failing
 		let mut ret_status = Status::Succeeded;
 		while self.next_child < self.children.len() && ret_status == Status::Succeeded {
-			ret_status = self.children[self.next_child].tick();
+			ret_status = self.children[self.next_child].tick(world.clone());
 
 			if ret_status.is_done() {
 				self.next_child += 1;
@@ -269,7 +273,7 @@ impl<'a> Internals for Sequence<'a>
 		}
 	}
 
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Vec<&Node<S>>
 	{
 		self.children.iter().collect()
 	}

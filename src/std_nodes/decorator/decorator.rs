@@ -40,33 +40,35 @@ use status::Status;
 /// let mut node = Decorator::new(child, invert);
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct Decorator<'a>
+pub struct Decorator<'a, S>
 {
 	/// Function that is performed on the child's status.
-	func: Box<Fn(Status) -> Status + 'a>,
+	func: Box<Fn(Status, S) -> Status + 'a>,
 
 	/// Child node.
-	child: Node<'a>,
+	child: Node<'a, S>,
 }
-impl<'a> Decorator<'a>
+impl<'a, S> Decorator<'a, S>
+	where S: Clone + 'a
 {
 	/// Creates a new Decorator node with the supplied child node and function
 	/// to be run on the child's status.
-	pub fn new<F>(child: Node<'a>, func: F) -> Node<'a>
-		where F: Fn(Status) -> Status + 'a
+	pub fn new<F>(child: Node<'a, S>, func: F) -> Node<'a, S>
+		where F: Fn(Status, S) -> Status + 'a
 	{
 		let internals = Decorator { func: Box::new(func), child: child };
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for Decorator<'a>
+impl<'a, S> Internals<S> for Decorator<'a, S>
+	where S: Clone
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: S) -> Status
 	{
 		// If the child has already run, this shouldn't change results since it will
 		// just return its last status
-		let child_status = self.child.tick();
-		(*self.func)(child_status)
+		let child_status = self.child.tick(world.clone());
+		(*self.func)(child_status, world)
 	}
 
 	fn reset(&mut self)
@@ -74,7 +76,7 @@ impl<'a> Internals for Decorator<'a>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Vec<&Node<S>>
 	{
 		vec![&self.child]
 	}
@@ -117,24 +119,25 @@ impl<'a> Internals for Decorator<'a>
 /// let mut node = Invert::new(AlwaysFail::new());
 /// assert_eq!(node.tick(), Status::Succeeded);
 /// ```
-pub struct Invert<'a>
+pub struct Invert<'a, S>
 {
 	/// Child node.
-	child: Node<'a>,
+	child: Node<'a, S>,
 }
-impl<'a> Invert<'a>
+impl<'a, S> Invert<'a, S>
+	where S: 'a
 {
 	/// Creates a new `Invert` node.
-	pub fn new(child: Node<'a>) -> Node<'a>
+	pub fn new(child: Node<'a, S>) -> Node<'a, S>
 	{
 		Node::new(Invert { child: child })
 	}
 }
-impl<'a> Internals for Invert<'a>
+impl<'a, S> Internals<S> for Invert<'a, S>
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: S) -> Status
 	{
-		match self.child.tick() {
+		match self.child.tick(world) {
 			Status::Succeeded => Status::Failed,
 			Status::Failed    => Status::Succeeded,
 			s @ _             => s,
@@ -147,7 +150,7 @@ impl<'a> Internals for Invert<'a>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Vec<&Node<S>>
 	{
 		vec![&self.child]
 	}

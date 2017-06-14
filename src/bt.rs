@@ -12,35 +12,31 @@ use status::Status;
 /// `Node`, the `BehaviorTree` will not automatically reset itself when ticked.
 /// Instead, ticking or running a completed behavior tree will just return the
 /// value of the last tick - it must be explicitly reset.
-pub struct BehaviorTree<'a>
+pub struct BehaviorTree<'a, S>
 {
 	/// Root node of the behavior tree.
-	root: Node<'a>
+	root: Node<'a, S>
 }
-impl<'a> BehaviorTree<'a>
+impl<'a, S> BehaviorTree<'a, S>
 {
 	/// Create a new behavior tree with the supplied `Node` as the root.
-	pub fn new(root: Node<'a>) -> BehaviorTree
+	pub fn new(root: Node<'a, S>) -> BehaviorTree<'a, S>
 	{
 		BehaviorTree { root: root }
 	}
 
 	/// Returns a reference to the root node.
-	pub fn root(&self) -> &Node
+	pub fn root(&self) -> &Node<'a, S>
 	{
 		&self.root
 	}
 
 	/// Tick the behavior tree a single time.
 	///
-	/// If the tree has already been run to completion, this will simply return
-	/// the value of the last tick.
-	pub fn tick(&mut self) -> Status
+	/// If the tree has already been completed, ticking it again will reset it.
+	pub fn tick(&mut self, world: S) -> Status
 	{
-		// If we're already done, just return the root status without ticking
-		if self.root.status().is_done() {
-			self.root.status()
-		} else { self.root.tick() }
+		self.root.tick(world)
 	}
 
 	/// Reset the tree so that it can be run again.
@@ -48,7 +44,10 @@ impl<'a> BehaviorTree<'a>
 	{
 		self.root.reset()
 	}
-
+}
+impl<'a, S> BehaviorTree<'a, S>
+	where S: Clone
+{
 	/// Run the behavior tree until it either succeeds or fails.
 	///
 	/// This makes no guarantees that it will run at the specified frequency. If a single
@@ -59,12 +58,12 @@ impl<'a> BehaviorTree<'a>
 	///
 	/// NOTE: The only time this will return `Status::Running` is if the frequency is zero
 	/// and the behavior tree is running after the first tick.
-	pub fn run<F>(&mut self, freq: f32, mut hook: Option<F>) -> Status
-		where F: FnMut(&BehaviorTree)
+	pub fn run<F>(&mut self, freq: f32, world: S, mut hook: Option<F>) -> Status
+		where F: FnMut(&BehaviorTree<'a, S>)
 	{
 		// Deal with the "special" case of a zero frequency
 		if freq == 0.0f32 {
-			let status = self.tick();
+			let status = self.tick(world);
 			if let Some(ref mut f) = hook {
 				f(self);
 			}
@@ -82,7 +81,7 @@ impl<'a> BehaviorTree<'a>
 		while status == Status::Running {
 			let now = Instant::now();
 
-			status = self.tick();
+			status = self.tick(world.clone());
 			if let Some(ref mut f) = hook {
 				f(self);
 			}
@@ -101,7 +100,7 @@ impl<'a> BehaviorTree<'a>
 		return status;
 	}
 }
-impl<'a> fmt::Display for BehaviorTree<'a>
+impl<'a, S> fmt::Display for BehaviorTree<'a, S>
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{

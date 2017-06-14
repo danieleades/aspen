@@ -61,10 +61,10 @@ use status::Status;
 ///
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct UntilFail<'a>
+pub struct UntilFail<'a, S>
 {
 	/// Child node.
-	child: Node<'a>,
+	child: Node<'a, S>,
 
 	/// Optional number of times to do the reset.
 	attempt_limit: Option<u32>,
@@ -72,10 +72,11 @@ pub struct UntilFail<'a>
 	/// Number of times the child has been reset.
 	attempts: u32,
 }
-impl<'a> UntilFail<'a>
+impl<'a, S> UntilFail<'a, S>
+	where S: 'a
 {
 	/// Creates a new `UntilFail` node that will keep trying indefinitely.
-	pub fn new(child: Node<'a>) -> Node<'a>
+	pub fn new(child: Node<'a, S>) -> Node<'a, S>
 	{
 		let internals = UntilFail {
 			child: child,
@@ -89,7 +90,7 @@ impl<'a> UntilFail<'a>
 	///
 	/// The limit is the number of times the node will run, not the number of
 	/// times it will be reset. A limit of zero means instant failure.
-	pub fn with_limit(limit: u32, child: Node<'a>) -> Node<'a>
+	pub fn with_limit(limit: u32, child: Node<'a, S>) -> Node<'a, S>
 	{
 		let internals = UntilFail {
 			child: child,
@@ -99,20 +100,20 @@ impl<'a> UntilFail<'a>
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for UntilFail<'a>
+impl<'a, S> Internals<S> for UntilFail<'a, S>
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: S) -> Status
 	{
 		// Take care of the infinite version so we don't have to worry
 		if self.attempt_limit.is_none() {
-			return if self.child.tick() == Status::Failed {
+			return if self.child.tick(world) == Status::Failed {
 				Status::Succeeded
 			} else { Status::Running };
 		}
 
 		// We're using the finite version
 		let limit = self.attempt_limit.unwrap();
-		let child_status = self.child.tick();
+		let child_status = self.child.tick(world);
 
 		// It's either check this here or do it at both of the following
 		// returns. I'll take here.
@@ -143,7 +144,7 @@ impl<'a> Internals for UntilFail<'a>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Vec<&Node<S>>
 	{
 		vec![&self.child]
 	}
@@ -242,10 +243,10 @@ macro_rules! UntilFail
 ///
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
-pub struct UntilSuccess<'a>
+pub struct UntilSuccess<'a, S>
 {
 	/// Child node.
-	child: Node<'a>,
+	child: Node<'a, S>,
 
 	/// Optional number of times to do the reset.
 	attempt_limit: Option<u32>,
@@ -253,10 +254,11 @@ pub struct UntilSuccess<'a>
 	/// Number of times the child has been reset.
 	attempts: u32,
 }
-impl<'a> UntilSuccess<'a>
+impl<'a, S> UntilSuccess<'a, S>
+	where S: 'a
 {
 	/// Creates a new `UntilSuccess` node that will keep trying indefinitely.
-	pub fn new(child: Node<'a>) -> Node<'a>
+	pub fn new(child: Node<'a, S>) -> Node<'a, S>
 	{
 		let internals = UntilSuccess {
 			child: child,
@@ -270,7 +272,7 @@ impl<'a> UntilSuccess<'a>
 	///
 	/// `limit` is the number of times the node can be *reset*, not the number
 	/// of times it can be run. A limit of one means the node can be run twice.
-	pub fn with_limit(limit: u32, child: Node<'a>) -> Node<'a>
+	pub fn with_limit(limit: u32, child: Node<'a, S>) -> Node<'a, S>
 	{
 		let internals = UntilSuccess {
 			child: child,
@@ -280,20 +282,20 @@ impl<'a> UntilSuccess<'a>
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for UntilSuccess<'a>
+impl<'a, S> Internals<S> for UntilSuccess<'a, S>
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: S) -> Status
 	{
 		// Take care of the infinite version so we don't have to worry
 		if self.attempt_limit.is_none() {
-			return if self.child.tick() == Status::Succeeded {
+			return if self.child.tick(world) == Status::Succeeded {
 				Status::Succeeded
 			} else { Status::Running };
 		}
 
 		// We're using the finite version
 		let limit = self.attempt_limit.unwrap();
-		let child_status = self.child.tick();
+		let child_status = self.child.tick(world);
 
 		// It's either check this here or do it at both of the following
 		// returns. I'll take here.
@@ -324,7 +326,7 @@ impl<'a> Internals for UntilSuccess<'a>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Vec<&Node<S>>
 	{
 		vec![&self.child]
 	}

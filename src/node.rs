@@ -12,21 +12,21 @@ use status::Status;
 ///
 /// This class is largely just a wrapper around an `Internals` object. This is
 /// to enforce some runtime behavior.
-pub struct Node<'a>
+pub struct Node<'a, S>
 {
 	/// The status from the last time this node was ticked
 	status: Status,
 
 	/// The internal logic for this node
-	internals: Box<Internals + 'a>,
+	internals: Box<Internals<S> + 'a>,
 }
-impl<'a> Node<'a>
+impl<'a, S> Node<'a, S>
 {
 	/// Creates a new `Node` with the given `Internals`.
 	///
 	/// The internals are used to govern the tick logic of the node.
-	pub fn new<I>(internals: I) -> Node<'a>
-		where I: Internals + 'a
+	pub fn new<I>(internals: I) -> Node<'a, S>
+		where I: Internals<S> + 'a
 	{
 		Node {
 			status: Status::Initialized,
@@ -39,7 +39,7 @@ impl<'a> Node<'a>
 	/// If the node is currently considered to have run to completion, this
 	/// will call `Node::reset` on the node before calling the internal tick
 	/// logic.
-	pub fn tick(&mut self) -> Status
+	pub fn tick(&mut self, world: S) -> Status
 	{
 		// Reset the node if it has already been completed
 		if self.status.is_done() {
@@ -47,7 +47,7 @@ impl<'a> Node<'a>
 		}
 
 		// Tick the internals
-		self.status = (*self.internals).tick();
+		self.status = (*self.internals).tick(world);
 		return self.status;
 	}
 
@@ -72,7 +72,7 @@ impl<'a> Node<'a>
 	/// Returns a vector containing references to all of this node's children.
 	///
 	/// This is likely the most unstable part of Aspen, use with caution.
-	pub fn children(&self) -> Vec<&Node>
+	pub fn children(&self) -> Vec<&Node<S>>
 	{
 		(*self.internals).children()
 	}
@@ -100,7 +100,7 @@ impl<'a> Node<'a>
 		}
 	}
 }
-impl<'a> fmt::Display for Node<'a>
+impl<'a, S> fmt::Display for Node<'a, S>
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
@@ -116,7 +116,7 @@ impl<'a> fmt::Display for Node<'a>
 ///
 /// This is the object that controls the tick behavior of the `Node`, with
 /// `Node` just being a wrapper to enforce some runtime behavior.
-pub trait Internals
+pub trait Internals<S>
 {
 	/// Ticks the internal state of the node a single time.
 	///
@@ -126,7 +126,7 @@ pub trait Internals
 	///
 	/// In other words, the `Internals` will only ever be ticked when the node
 	/// state is either `Status::Running` or `Status::Initialized`.
-	fn tick(&mut self) -> Status;
+	fn tick(&mut self, world: S) -> Status;
 
 	/// Resets the internal state of the node.
 	///
@@ -140,7 +140,7 @@ pub trait Internals
 	/// leaf node.
 	///
 	/// This is likely the most unstable part of Aspen, use with caution.
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Vec<&Node<S>>
 	{
 		Vec::new()
 	}

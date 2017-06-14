@@ -55,19 +55,21 @@ pub type Result = ::std::result::Result<(), ()>;
 /// assert_eq!(action.status(), Status::Succeeded);
 /// assert_eq!(result.load(Ordering::SeqCst), 90);
 /// ```
-pub struct Action
+pub struct Action<S>
+	where S: Clone + Send
 {
 	/// The task which is to be run.
-	func: Arc<Fn() -> Result + Send + Sync>,
+	func: Arc<Fn(S) -> Result + Send + Sync>,
 
 	/// Channel on which the task will communicate.
 	rx: Option<mpsc::Receiver<Result>>,
 }
-impl Action
+impl<S> Action<S>
+	where S: Clone + Send + 'static
 {
 	/// Creates a new Action node that will execute the given task.
-	pub fn new<F>(task: F) -> Node<'static>
-		where F: Fn() -> Result + Send + Sync + 'static
+	pub fn new<F>(task: F) -> Node<'static, S>
+		where F: Fn(S) -> Result + Send + Sync + 'static
 	{
 		let internals = Action {
 			func: Arc::new(task),
@@ -78,7 +80,7 @@ impl Action
 	}
 
 	/// Launches a new worker thread to run the task.
-	fn start_thread(&mut self)
+	fn start_thread(&mut self, world: S)
 	{
 		// Create our new channels
 		let (tx, rx) = mpsc::channel();
@@ -87,15 +89,17 @@ impl Action
 		let func_clone = self.func.clone();
 
 		// Finally, boot up the thread
-		thread::spawn(move || tx.send((func_clone)()).unwrap() );
+		let world_clone = world.clone();
+		thread::spawn(move || tx.send((func_clone)(world_clone)).unwrap() );
 
 		// Store the rx for later use
 		self.rx = Some(rx);
 	}
 }
-impl Internals for Action
+impl<S> Internals<S> for Action<S>
+	where S: Clone + Send + 'static
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: S) -> Status
 	{
 		if let Some(ref mut rx) = self.rx {
 			match rx.try_recv() {
@@ -105,7 +109,7 @@ impl Internals for Action
 				_ => panic!("Task died before finishing"),
 			}
 		} else {
-			self.start_thread();
+			self.start_thread(world);
 			Status::Running
 		}
 	}
@@ -197,16 +201,17 @@ macro_rules! Action
 /// assert_eq!(action.tick(), Status::Succeeded);
 /// assert_eq!(result.get(), 90);
 /// ```
-pub struct InlineAction<'a>
+pub struct InlineAction<'a, S>
 {
 	/// The task which is to be run.
-	func: Box<FnMut() -> Status + 'a>,
+	func: Box<FnMut(S) -> Status + 'a>,
 }
-impl<'a> InlineAction<'a>
+impl<'a, S> InlineAction<'a, S>
+	where S: 'a
 {
 	/// Creates a new `ShortAction` node that will execute the given task.
-	pub fn new<F>(task: F) -> Node<'a>
-		where F: FnMut() -> Status + 'a
+	pub fn new<F>(task: F) -> Node<'a, S>
+		where F: FnMut(S) -> Status + 'a
 	{
 		let internals = InlineAction {
 			func: Box::new(task),
@@ -215,11 +220,11 @@ impl<'a> InlineAction<'a>
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for InlineAction<'a>
+impl<'a, S> Internals<S> for InlineAction<'a, S>
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: S) -> Status
 	{
-		(*self.func)()
+		(*self.func)(world)
 	}
 
 	fn reset(&mut self)

@@ -115,7 +115,7 @@ impl<'a> Internals for AlwaysFail<'a>
 /// # let (a, b) = (12, 13);
 /// let fail = AlwaysFail!{};
 /// let fail_child = AlwaysFail!{
-///     Condition!{ a < b }
+///     Condition!{ || a < b }
 /// };
 /// # }
 /// ```
@@ -244,7 +244,7 @@ impl<'a> Internals for AlwaysSucceed<'a>
 /// # let (a, b) = (12, 13);
 /// let succeed = AlwaysSucceed!{};
 /// let succeed_child = AlwaysSucceed!{
-///     Condition!{ a < b }
+///     Condition!{ || a < b }
 /// };
 /// # }
 /// ```

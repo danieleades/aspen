@@ -142,16 +142,14 @@ impl Internals for Action
 /// # #[macro_use] extern crate aspen;
 /// # fn foo() -> Result<(), ()> { Ok(()) }
 /// # fn main() {
-/// let mut action = Action!{
-///     foo()
-/// };
+/// let mut action = Action!{ || foo() };
 /// # }
 /// ```
 #[macro_export]
 macro_rules! Action
 {
-	( $( $e:expr );* ) => {
-		$crate::std_nodes::Action::new(|| { $( $e );* })
+	( $e:expr ) => {
+		$crate::std_nodes::Action::new($e)
 	}
 }
 
@@ -245,16 +243,14 @@ impl<'a> Internals for InlineAction<'a>
 /// # use aspen::Status;
 /// # fn foo() -> Status { Status::Running }
 /// # fn main() {
-/// let mut action = InlineAction!{
-///     foo()
-/// };
+/// let mut action = InlineAction!{ || foo() };
 /// # }
 /// ```
 #[macro_export]
 macro_rules! InlineAction
 {
-	( $( $e:expr );* ) => {
-		$crate::std_nodes::InlineAction::new(|| { $( $e );* })
+	( $e:expr ) => {
+		$crate::std_nodes::InlineAction::new($e)
 	}
 }
 

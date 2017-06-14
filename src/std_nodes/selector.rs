@@ -143,9 +143,9 @@ impl<'a> Internals for ActiveSelector<'a>
 /// # fn main() {
 /// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let active_selector = ActiveSelector!{
-///     Condition!{ a < b },
-///     Condition!{ c == d },
-///     Condition!{ d < a }
+///     Condition!{ || a < b },
+///     Condition!{ || c == d },
+///     Condition!{ || d < a }
 /// };
 /// # }
 /// ```
@@ -297,9 +297,9 @@ impl<'a> Internals for Selector<'a>
 /// # fn main() {
 /// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let selector = Selector!{
-///     Condition!{ a < b },
-///     Condition!{ c == d },
-///     Condition!{ d < a }
+///     Condition!{ || a < b },
+///     Condition!{ || c == d },
+///     Condition!{ || d < a }
 /// };
 /// # }
 /// ```

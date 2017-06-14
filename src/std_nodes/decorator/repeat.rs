@@ -138,10 +138,10 @@ impl<'a> Internals for Repeat<'a>
 /// # fn main() {
 /// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let repeat = Repeat!{
-///     Condition!{ a < b }
+///     Condition!{ || a < b }
 /// };
 /// let limited_repeat = Repeat!{ 12,
-///     Condition!{ a < b }
+///     Condition!{ || a < b }
 /// };
 /// # }
 /// ```

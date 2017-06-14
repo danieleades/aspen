@@ -168,7 +168,7 @@ impl<'a> Internals for Invert<'a>
 /// # fn main() {
 /// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let invert = Invert!{
-///     Condition!{ a < b }
+///     Condition!{ || a < b }
 /// };
 /// # }
 /// ```

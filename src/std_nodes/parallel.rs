@@ -180,9 +180,9 @@ impl<'a> Internals for Parallel<'a>
 /// # fn main() {
 /// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let parallel = Parallel!{ 3,
-///     Condition!{ a < b },
-///     Condition!{ c == d },
-///     Condition!{ d < a }
+///     Condition!{ || a < b },
+///     Condition!{ || c == d },
+///     Condition!{ || d < a }
 /// };
 /// # }
 /// ```

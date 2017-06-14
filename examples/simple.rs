@@ -27,23 +27,23 @@ fn main()
 	// Create the tree - sleep to simulate work
 	let root = Sequence::new(vec![
 		// Addition node
-		Action!{
+		Action!{ || {
 			thread::sleep(time::Duration::from_secs(1));
 			ADD_RES.store(X + Y, Ordering::SeqCst);
 			Ok(())
-		},
+		}},
 
 		// Condition node to check if we can safely do the subtraction
-		Condition!{ X > Y },
+		Condition!{ || X > Y },
 
 		// Subtraction node. Only runs if the condition is successful. This one
 		// doesn't do a long task (there is not sleep statement), so we can use
 		// a `InlineAction` node, which will not boot up a new thread.
-		InlineAction!{
+		InlineAction!{ || {
 			SUB_RES.store(X - Y, Ordering::Relaxed);
 			SUB_USED.store(true, Ordering::Relaxed);
 			Status::Succeeded
-		}
+		}}
 	]);
 
 	// Put it all in a tree, print it, and run it

@@ -140,9 +140,9 @@ impl<'a> Internals for ActiveSequence<'a>
 /// # fn main() {
 /// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let active_sequence = ActiveSequence!{
-///     Condition!{ a < b },
-///     Condition!{ c == d },
-///     Condition!{ d < a }
+///     Condition!{ || a < b },
+///     Condition!{ || c == d },
+///     Condition!{ || d < a }
 /// };
 /// # }
 /// ```
@@ -290,9 +290,9 @@ impl<'a> Internals for Sequence<'a>
 /// # fn main() {
 /// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let selector = Selector!{
-///     Condition!{ a < b },
-///     Condition!{ c == d },
-///     Condition!{ d < a }
+///     Condition!{ || a < b },
+///     Condition!{ || c == d },
+///     Condition!{ || d < a }
 /// };
 /// # }
 /// ```

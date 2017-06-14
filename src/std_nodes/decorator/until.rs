@@ -164,10 +164,10 @@ impl<'a> Internals for UntilFail<'a>
 /// # fn main() {
 /// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let until_fail = UntilFail!{
-///     Condition!{ a < b }
+///     Condition!{ || a < b }
 /// };
 /// let limited_until_fail = UntilFail!{ 12,
-///     Condition!{ a < b }
+///     Condition!{ || a < b }
 /// };
 /// # }
 /// ```
@@ -345,10 +345,10 @@ impl<'a> Internals for UntilSuccess<'a>
 /// # fn main() {
 /// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let until_success = UntilSuccess!{
-///     Condition!{ a < b }
+///     Condition!{ || a < b }
 /// };
 /// let limited_until_success = UntilSuccess!{ 12,
-///     Condition!{ a < b }
+///     Condition!{ || a < b }
 /// };
 /// # }
 /// ```

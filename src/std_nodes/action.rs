@@ -134,6 +134,27 @@ impl Internals for Action
 	}
 }
 
+/// Convenience macro for creating Action nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # fn foo() -> Result<(), ()> { Ok(()) }
+/// # fn main() {
+/// let mut action = Action!{
+///     foo()
+/// };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! Action
+{
+	( $( $e:expr );* ) => {
+		$crate::std_nodes::Action::new(|| { $( $e );* })
+	}
+}
+
 /// A node that manages the execution of tasks within the ticking thread.
 ///
 /// This node is an alternative to a normal Action node which can be used when
@@ -212,6 +233,28 @@ impl<'a> Internals for InlineAction<'a>
 	fn type_name(&self) -> &'static str
 	{
 		"InlineAction"
+	}
+}
+
+/// Convenience macro for creating InlineAction nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # use aspen::Status;
+/// # fn foo() -> Status { Status::Running }
+/// # fn main() {
+/// let mut action = InlineAction!{
+///     foo()
+/// };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! InlineAction
+{
+	( $( $e:expr );* ) => {
+		$crate::std_nodes::InlineAction::new(|| { $( $e );* })
 	}
 }
 

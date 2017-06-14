@@ -34,7 +34,7 @@ use status::Status;
 /// # use aspen::Status;
 /// let run_limit = 5;
 /// let child = AlwaysFail::new();
-/// let mut node = Repeat::with_limit(child, run_limit);
+/// let mut node = Repeat::with_limit(run_limit, child);
 ///
 /// // Subtract one since there is a run in the assert
 /// for _ in 0..(run_limit - 1) {
@@ -70,7 +70,7 @@ impl<'a> Repeat<'a>
 	///
 	/// The limit specifies the number of times this node can be run. A limit
 	/// of zero means that the node will instantly succeed.
-	pub fn with_limit(child: Node, limit: u32) -> Node
+	pub fn with_limit(limit: u32, child: Node<'a>) -> Node<'a>
 	{
 		let internals = Repeat {
 			child: child,
@@ -129,6 +129,33 @@ impl<'a> Internals for Repeat<'a>
 	}
 }
 
+/// Convenience macro for creating Repeat nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # fn main() {
+/// # let (a, b, c, d) = (12, 13, 11, 10);
+/// let repeat = Repeat!{
+///     Condition!{ a < b }
+/// };
+/// let limited_repeat = Repeat!{ 12,
+///     Condition!{ a < b }
+/// };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! Repeat
+{
+	( $e:expr ) => {
+		$crate::std_nodes::Repeat::new($e)
+	};
+	( $c:expr, $e:expr ) => {
+		$crate::std_nodes::Repeat::with_limit($c, $e)
+	}
+}
+
 #[cfg(test)]
 mod test
 {
@@ -136,12 +163,12 @@ mod test
 	use std_nodes::*;
 
 	#[test]
-	fn repeat_infinite()
+	fn repeat_finite()
 	{
 		// No good way to test the infinite one
 		let limit = 5;
 		let child = CountedTick::new(Status::Failed, limit, true);
-		let mut node = Repeat::with_limit(child, limit);
+		let mut node = Repeat::with_limit(limit, child);
 		for _ in 0..(limit - 1) {
 			assert_eq!(node.tick(), Status::Running);
 		}

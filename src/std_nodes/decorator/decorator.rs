@@ -159,6 +159,27 @@ impl<'a> Internals for Invert<'a>
 	}
 }
 
+/// Convenience macro for creating Invert nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # fn main() {
+/// # let (a, b, c, d) = (12, 13, 11, 10);
+/// let invert = Invert!{
+///     Condition!{ a < b }
+/// };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! Invert
+{
+	( $e:expr ) => {
+		$crate::std_nodes::Invert::new($e)
+	};
+}
+
 #[cfg(test)]
 mod test
 {

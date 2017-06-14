@@ -1,10 +1,11 @@
+#[macro_use]
 extern crate aspen;
 
 use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
 use std::sync::atomic::{ATOMIC_USIZE_INIT, ATOMIC_BOOL_INIT};
 use std::{thread, time};
 use aspen::{BehaviorTree, Status};
-use aspen::std_nodes::{Sequence, Condition, Action, InlineAction};
+use aspen::std_nodes::Sequence;
 
 const X: usize = 5;
 const Y: usize = 3;
@@ -26,23 +27,23 @@ fn main()
 	// Create the tree - sleep to simulate work
 	let root = Sequence::new(vec![
 		// Addition node
-		Action::new(|| {
+		Action!{
 			thread::sleep(time::Duration::from_secs(1));
 			ADD_RES.store(X + Y, Ordering::SeqCst);
 			Ok(())
-		}),
+		},
 
 		// Condition node to check if we can safely do the subtraction
-		Condition::new(|| X > Y ),
+		Condition!{ X > Y },
 
 		// Subtraction node. Only runs if the condition is successful. This one
 		// doesn't do a long task (there is not sleep statement), so we can use
 		// a `InlineAction` node, which will not boot up a new thread.
-		InlineAction::new(|| {
+		InlineAction!{
 			SUB_RES.store(X - Y, Ordering::Relaxed);
 			SUB_USED.store(true, Ordering::Relaxed);
 			Status::Succeeded
-		})
+		}
 	]);
 
 	// Put it all in a tree, print it, and run it

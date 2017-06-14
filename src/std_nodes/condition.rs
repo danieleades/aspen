@@ -79,6 +79,25 @@ impl<'a> Internals for Condition<'a>
 	}
 }
 
+/// Convenience macro for creating Condition nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # fn main() {
+/// # let (a, b) = (12, 13);
+/// let condition = Condition!{ a < b };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! Condition
+{
+	( $( $e:expr );* ) => {
+		$crate::std_nodes::Condition::new(|| { $( $e );* })
+	}
+}
+
 #[cfg(test)]
 mod test
 {

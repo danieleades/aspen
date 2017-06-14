@@ -47,13 +47,13 @@ use status::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let threshold = 3;
-/// let mut node = Parallel::new(vec![
+/// let mut node = Parallel::new(threshold, vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),
 ///     AlwaysRunning::new(),
 ///     AlwaysFail::new()
-/// ], threshold);
+/// ]);
 ///
 /// assert_eq!(node.tick(), Status::Succeeded);
 /// ```
@@ -64,13 +64,13 @@ use status::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let threshold = 3;
-/// let mut node = Parallel::new(vec![
+/// let mut node = Parallel::new(threshold, vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),
 ///     AlwaysRunning::new(),
 ///     AlwaysRunning::new(),
 ///     AlwaysFail::new()
-/// ], threshold);
+/// ]);
 ///
 /// assert_eq!(node.tick(), Status::Running);
 /// ```
@@ -81,13 +81,13 @@ use status::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let threshold = 4;
-/// let mut node = Parallel::new(vec![
+/// let mut node = Parallel::new(threshold, vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),
 ///     AlwaysRunning::new(),
 ///     AlwaysFail::new(),
 ///     AlwaysFail::new()
-/// ], threshold);
+/// ]);
 ///
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
@@ -102,7 +102,7 @@ pub struct Parallel<'a>
 impl<'a> Parallel<'a>
 {
 	/// Creates a `Parallel` node with the given children an required number of successes.
-	pub fn new(children: Vec<Node<'a>>, required_successes: usize) -> Node<'a>
+	pub fn new(required_successes: usize, children: Vec<Node<'a>>) -> Node<'a>
 	{
 		let internals = Parallel {
 			children: children,
@@ -171,6 +171,29 @@ impl<'a> Internals for Parallel<'a>
 	}
 }
 
+/// Convenience macro for creating Parallel nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # fn main() {
+/// # let (a, b, c, d) = (12, 13, 11, 10);
+/// let parallel = Parallel!{ 3,
+///     Condition!{ a < b },
+///     Condition!{ c == d },
+///     Condition!{ d < a }
+/// };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! Parallel
+{
+	( $c:expr, $( $e:expr ),* ) => {
+		$crate::std_nodes::Parallel::new($c, vec![$( $e ),*])
+	};
+}
+
 #[cfg(test)]
 mod test
 {
@@ -186,7 +209,7 @@ mod test
 		                    YesTick::new(Status::Running),
 		                    YesTick::new(Status::Failed),
 		                    YesTick::new(Status::Failed)];
-		let mut parallel = Parallel::new(children, 2);
+		let mut parallel = Parallel::new(2, children);
 		let status = parallel.tick();
 		drop(parallel);
 		assert_eq!(status, Status::Succeeded);
@@ -201,7 +224,7 @@ mod test
 		                    YesTick::new(Status::Running),
 		                    YesTick::new(Status::Failed),
 		                    YesTick::new(Status::Failed)];
-		let mut parallel = Parallel::new(children, 5);
+		let mut parallel = Parallel::new(5, children);
 		let status = parallel.tick();
 		drop(parallel);
 		assert_eq!(status, Status::Failed);
@@ -216,7 +239,7 @@ mod test
 		                    YesTick::new(Status::Running),
 		                    YesTick::new(Status::Failed),
 		                    YesTick::new(Status::Failed)];
-		let mut parallel = Parallel::new(children, 3);
+		let mut parallel = Parallel::new(3, children);
 		let status = parallel.tick();
 		drop(parallel);
 		assert_eq!(status, Status::Running);

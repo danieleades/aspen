@@ -131,6 +131,29 @@ impl<'a> Internals for ActiveSequence<'a>
 	}
 }
 
+/// Convenience macro for creating ActiveSequence nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # fn main() {
+/// # let (a, b, c, d) = (12, 13, 11, 10);
+/// let active_sequence = ActiveSequence!{
+///     Condition!{ a < b },
+///     Condition!{ c == d },
+///     Condition!{ d < a }
+/// };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! ActiveSequence
+{
+	( $( $e:expr ),* ) => {
+		$crate::std_nodes::ActiveSequence::new(vec![$( $e ),*])
+	};
+}
+
 /// A node that will tick its children in order as long as they succeed.
 ///
 /// This node will tick all of its children in order until one of them returns
@@ -256,6 +279,29 @@ impl<'a> Internals for Sequence<'a>
 	{
 		"Sequence"
 	}
+}
+
+/// Convenience macro for creating Selector nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # fn main() {
+/// # let (a, b, c, d) = (12, 13, 11, 10);
+/// let selector = Selector!{
+///     Condition!{ a < b },
+///     Condition!{ c == d },
+///     Condition!{ d < a }
+/// };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! Selector
+{
+	( $( $e:expr ),* ) => {
+		$crate::std_nodes::Selector::new(vec![$( $e ),*])
+	};
 }
 
 #[cfg(test)]

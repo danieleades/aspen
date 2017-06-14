@@ -58,7 +58,7 @@ pub struct AlwaysFail<'a>
 impl<'a> AlwaysFail<'a>
 {
 	/// Construct a new AlwaysFail node.
-	pub fn new() -> Node<'a>
+	pub fn new() -> Node<'static>
 	{
 		Node::new(AlwaysFail { child: None })
 	}
@@ -102,6 +102,31 @@ impl<'a> Internals for AlwaysFail<'a>
 	fn type_name(&self) -> &'static str
 	{
 		"AlwaysFail"
+	}
+}
+
+/// Convenience macro for creating AlwaysFail nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # fn main() {
+/// # let (a, b) = (12, 13);
+/// let fail = AlwaysFail!{};
+/// let fail_child = AlwaysFail!{
+///     Condition!{ a < b }
+/// };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! AlwaysFail
+{
+	( $e:expr ) => {
+		$crate::std_nodes::AlwaysFail::with_child($e)
+	};
+	( ) => {
+		$crate::std_nodes::AlwaysFail::new()
 	}
 }
 
@@ -162,7 +187,7 @@ pub struct AlwaysSucceed<'a>
 impl<'a> AlwaysSucceed<'a>
 {
 	/// Construct a new AlwaysSucceed node.
-	pub fn new() -> Node<'a>
+	pub fn new() -> Node<'static>
 	{
 		Node::new(AlwaysSucceed { child: None })
 	}
@@ -206,6 +231,31 @@ impl<'a> Internals for AlwaysSucceed<'a>
 	fn type_name(&self) -> &'static str
 	{
 		"AlwaysSucceed"
+	}
+}
+
+/// Convenience macro for creating AlwaysSucceed nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # fn main() {
+/// # let (a, b) = (12, 13);
+/// let succeed = AlwaysSucceed!{};
+/// let succeed_child = AlwaysSucceed!{
+///     Condition!{ a < b }
+/// };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! AlwaysSucceed
+{
+	( $e:expr ) => {
+		$crate::std_nodes::AlwaysSucceed::with_child($e)
+	};
+	( ) => {
+		$crate::std_nodes::AlwaysSucceed::new()
 	}
 }
 
@@ -260,6 +310,24 @@ impl Internals for AlwaysRunning
 	fn type_name(&self) -> &'static str
 	{
 		"AlwaysRunning"
+	}
+}
+
+/// Convenience macro for creating AlwaysRunning nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # fn main() {
+/// let running = AlwaysRunning!{};
+/// # }
+/// ```
+#[macro_export]
+macro_rules! AlwaysRunning
+{
+	( ) => {
+		$crate::std_nodes::AlwaysRunning::new()
 	}
 }
 

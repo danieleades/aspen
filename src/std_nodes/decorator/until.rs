@@ -52,7 +52,7 @@ use status::Status;
 /// # use aspen::Status;
 /// let tries = 10;
 /// let child = AlwaysSucceed::new();
-/// let mut node = UntilFail::with_limit(child, tries);
+/// let mut node = UntilFail::with_limit(tries, child);
 ///
 /// // Subtract one since our final assert counts as a try
 /// for _ in 0..(tries - 1) {
@@ -89,7 +89,7 @@ impl<'a> UntilFail<'a>
 	///
 	/// The limit is the number of times the node will run, not the number of
 	/// times it will be reset. A limit of zero means instant failure.
-	pub fn with_limit(child: Node, limit: u32) -> Node
+	pub fn with_limit(limit: u32, child: Node<'a>) -> Node<'a>
 	{
 		let internals = UntilFail {
 			child: child,
@@ -155,6 +155,33 @@ impl<'a> Internals for UntilFail<'a>
 	}
 }
 
+/// Convenience macro for creating UntilFail nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # fn main() {
+/// # let (a, b, c, d) = (12, 13, 11, 10);
+/// let until_fail = UntilFail!{
+///     Condition!{ a < b }
+/// };
+/// let limited_until_fail = UntilFail!{ 12,
+///     Condition!{ a < b }
+/// };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! UntilFail
+{
+	( $e:expr ) => {
+		$crate::std_nodes::UntilFail::new($e)
+	};
+	( $c:expr, $e:expr ) => {
+		$crate::std_nodes::UntilFail::with_limit($c, $e)
+	}
+}
+
 /// A node that repeats its child until the child succeeds.
 ///
 /// This node will return that it is running until the child succeeds. It can
@@ -206,7 +233,7 @@ impl<'a> Internals for UntilFail<'a>
 /// # use aspen::Status;
 /// let runs = 10;
 /// let child = AlwaysFail::new();
-/// let mut node = UntilSuccess::with_limit(child, runs);
+/// let mut node = UntilSuccess::with_limit(runs, child);
 ///
 /// // Minus one since our final assert is a run
 /// for _ in 0..(runs - 1) {
@@ -243,7 +270,7 @@ impl<'a> UntilSuccess<'a>
 	///
 	/// `limit` is the number of times the node can be *reset*, not the number
 	/// of times it can be run. A limit of one means the node can be run twice.
-	pub fn with_limit(child: Node<'a>, limit: u32) -> Node<'a>
+	pub fn with_limit(limit: u32, child: Node<'a>) -> Node<'a>
 	{
 		let internals = UntilSuccess {
 			child: child,
@@ -309,6 +336,33 @@ impl<'a> Internals for UntilSuccess<'a>
 	}
 }
 
+/// Convenience macro for creating UntilSuccess nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # fn main() {
+/// # let (a, b, c, d) = (12, 13, 11, 10);
+/// let until_success = UntilSuccess!{
+///     Condition!{ a < b }
+/// };
+/// let limited_until_success = UntilSuccess!{ 12,
+///     Condition!{ a < b }
+/// };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! UntilSuccess
+{
+	( $e:expr ) => {
+		$crate::std_nodes::UntilSuccess::new($e)
+	};
+	( $c:expr, $e:expr ) => {
+		$crate::std_nodes::UntilSuccess::with_limit($c, $e)
+	}
+}
+
 #[cfg(test)]
 mod test
 {
@@ -330,7 +384,7 @@ mod test
 	{
 		let limit = 5;
 		let child = CountedTick::new(Status::Succeeded, limit, true);
-		let mut node = UntilFail::with_limit(child, limit);
+		let mut node = UntilFail::with_limit(limit, child);
 		for _ in 0..(limit - 1) {
 			assert_eq!(node.tick(), Status::Running);
 		}
@@ -354,7 +408,7 @@ mod test
 	{
 		let limit = 5;
 		let child = CountedTick::new(Status::Failed, limit, true);
-		let mut node = UntilSuccess::with_limit(child, limit);
+		let mut node = UntilSuccess::with_limit(limit, child);
 		for _ in 0..(limit - 1) {
 			assert_eq!(node.tick(), Status::Running);
 		}

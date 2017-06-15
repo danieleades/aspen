@@ -43,31 +43,30 @@ use status::Status;
 pub struct Decorator<'a, S>
 {
 	/// Function that is performed on the child's status.
-	func: Box<Fn(Status, S) -> Status + 'a>,
+	func: Box<Fn(Status, &S) -> Status + 'a>,
 
 	/// Child node.
 	child: Node<'a, S>,
 }
 impl<'a, S> Decorator<'a, S>
-	where S: Clone + 'a
+	where S: 'a
 {
 	/// Creates a new Decorator node with the supplied child node and function
 	/// to be run on the child's status.
 	pub fn new<F>(child: Node<'a, S>, func: F) -> Node<'a, S>
-		where F: Fn(Status, S) -> Status + 'a
+		where F: Fn(Status, &S) -> Status + 'a
 	{
 		let internals = Decorator { func: Box::new(func), child: child };
 		Node::new(internals)
 	}
 }
 impl<'a, S> Internals<S> for Decorator<'a, S>
-	where S: Clone
 {
-	fn tick(&mut self, world: S) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		// If the child has already run, this shouldn't change results since it will
 		// just return its last status
-		let child_status = self.child.tick(world.clone());
+		let child_status = self.child.tick(world);
 		(*self.func)(child_status, world)
 	}
 
@@ -135,7 +134,7 @@ impl<'a, S> Invert<'a, S>
 }
 impl<'a, S> Internals<S> for Invert<'a, S>
 {
-	fn tick(&mut self, world: S) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		match self.child.tick(world) {
 			Status::Succeeded => Status::Failed,

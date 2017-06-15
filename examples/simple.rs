@@ -1,60 +1,74 @@
 #[macro_use]
 extern crate aspen;
 
-use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
-use std::sync::atomic::{ATOMIC_USIZE_INIT, ATOMIC_BOOL_INIT};
+use std::sync::{Arc, Mutex};
 use std::{thread, time};
 use aspen::{BehaviorTree, Status};
-use aspen::std_nodes::Sequence;
 
-const X: usize = 5;
-const Y: usize = 3;
+const INPUT_A: u32 = 5;
+const INPUT_B: u32 = 7;
 
-// Have some variable serve as the world state
-static ADD_RES:  AtomicUsize = ATOMIC_USIZE_INIT;
-static SUB_RES:  AtomicUsize = ATOMIC_USIZE_INIT;
-static SUB_USED: AtomicBool  = ATOMIC_BOOL_INIT;
-
-// Display the tree after each tick
-fn hook(tree: &BehaviorTree)
+#[derive(Debug, Default)]
+struct WorldState
 {
-	println!("{}", tree);
+	add_res: Option<u32>,
+	sub_res: Option<u32>,
 }
 
 // Entry point of the program
 fn main()
 {
+	// The sync elements are required because the Action node works in a
+	// separate thread. Otherwise should not be necessary.
+	let world_state: Arc<Mutex<WorldState>> = Default::default();
+
 	// Create the tree - sleep to simulate work
-	let root = Sequence::new(vec![
+	let root = Sequence!{
 		// Addition node
-		Action!{ || {
-			thread::sleep(time::Duration::from_secs(1));
-			ADD_RES.store(X + Y, Ordering::SeqCst);
-			Ok(())
-		}},
+		Action!{ do_add },
 
 		// Condition node to check if we can safely do the subtraction
-		Condition!{ || X > Y },
+		Condition!{ |_| INPUT_B > INPUT_A },
 
 		// Subtraction node. Only runs if the condition is successful. This one
 		// doesn't do a long task (there is not sleep statement), so we can use
 		// a `InlineAction` node, which will not boot up a new thread.
-		InlineAction!{ || {
-			SUB_RES.store(X - Y, Ordering::Relaxed);
-			SUB_USED.store(true, Ordering::Relaxed);
-			Status::Succeeded
-		}}
-	]);
+		InlineAction!{ do_sub }
+	};
 
 	// Put it all in a tree, print it, and run it
 	let mut tree = BehaviorTree::new(root);
 	println!("{}", tree);
-	let res = tree.run(4.0, Some(hook));
+	let res = tree.run(4.0, world_state.clone(), Some(hook));
 
 	println!("\nTree finished: {:?}", res);
-	println!("\nX: {}\nY: {}", X, Y);
-	println!("\nADD_RES: {}\nSUB_RES: {}\nSUB_USED: {}",
-	         ADD_RES.load(Ordering::SeqCst),
-	         SUB_RES.load(Ordering::SeqCst),
-	         SUB_USED.load(Ordering::SeqCst));
+	println!("\nINPUT_A: {}\nINPUT_B: {}", INPUT_A, INPUT_B);
+	println!("{:?}", world_state);
+}
+
+fn do_add(state: Arc<Mutex<WorldState>>) -> Result<(), ()>
+{
+	let locked_state = state.lock().unwrap();
+
+	// Sleep to simulate doing a lot of work
+	thread::sleep(time::Duration::from_secs(1));
+	locked_state.add_res = INPUT_A.checked_add(INPUT_B);
+
+	if locked_state.add_res.is_some() {
+		Ok(())
+	} else { Err(()) }
+}
+
+fn do_sub(state: Arc<Mutex<WorldState>>) -> Status
+{
+	// We know that the subtraction will be valid because of the condition node
+	let locked_state = state.lock().unwrap();
+	locked_state.sub_res = Some(INPUT_B - INPUT_A);
+	Status::Succeeded
+}
+
+// Display the tree after each tick
+fn hook<S>(tree: &BehaviorTree<S>)
+{
+	println!("{}", tree);
 }

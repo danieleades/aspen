@@ -102,7 +102,7 @@ impl<'a, S> UntilFail<'a, S>
 }
 impl<'a, S> Internals<S> for UntilFail<'a, S>
 {
-	fn tick(&mut self, world: S) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		// Take care of the infinite version so we don't have to worry
 		if self.attempt_limit.is_none() {
@@ -284,7 +284,7 @@ impl<'a, S> UntilSuccess<'a, S>
 }
 impl<'a, S> Internals<S> for UntilSuccess<'a, S>
 {
-	fn tick(&mut self, world: S) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		// Take care of the infinite version so we don't have to worry
 		if self.attempt_limit.is_none() {

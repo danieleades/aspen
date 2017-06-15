@@ -56,20 +56,20 @@ pub type Result = ::std::result::Result<(), ()>;
 /// assert_eq!(result.load(Ordering::SeqCst), 90);
 /// ```
 pub struct Action<S>
-	where S: Clone + Send
+	where S: Send + Sync + 'static
 {
 	/// The task which is to be run.
-	func: Arc<Fn(S) -> Result + Send + Sync>,
+	func: Arc<Fn(Arc<S>) -> Result + Send + Sync>,
 
 	/// Channel on which the task will communicate.
 	rx: Option<mpsc::Receiver<Result>>,
 }
 impl<S> Action<S>
-	where S: Clone + Send + 'static
+	where S: Send + Sync + 'static
 {
 	/// Creates a new Action node that will execute the given task.
-	pub fn new<F>(task: F) -> Node<'static, S>
-		where F: Fn(S) -> Result + Send + Sync + 'static
+	pub fn new<F>(task: F) -> Node<'static, Arc<S>>
+		where F: Fn(Arc<S>) -> Result + Send + Sync + 'static
 	{
 		let internals = Action {
 			func: Arc::new(task),
@@ -80,7 +80,7 @@ impl<S> Action<S>
 	}
 
 	/// Launches a new worker thread to run the task.
-	fn start_thread(&mut self, world: S)
+	fn start_thread(&mut self, world: &Arc<S>)
 	{
 		// Create our new channels
 		let (tx, rx) = mpsc::channel();
@@ -96,10 +96,10 @@ impl<S> Action<S>
 		self.rx = Some(rx);
 	}
 }
-impl<S> Internals<S> for Action<S>
-	where S: Clone + Send + 'static
+impl<S> Internals<Arc<S>> for Action<S>
+	where S: Send + Sync + 'static
 {
-	fn tick(&mut self, world: S) -> Status
+	fn tick(&mut self, world: &mut Arc<S>) -> Status
 	{
 		if let Some(ref mut rx) = self.rx {
 			match rx.try_recv() {
@@ -204,14 +204,14 @@ macro_rules! Action
 pub struct InlineAction<'a, S>
 {
 	/// The task which is to be run.
-	func: Box<FnMut(S) -> Status + 'a>,
+	func: Box<FnMut(&mut S) -> Status + 'a>,
 }
 impl<'a, S> InlineAction<'a, S>
 	where S: 'a
 {
 	/// Creates a new `ShortAction` node that will execute the given task.
 	pub fn new<F>(task: F) -> Node<'a, S>
-		where F: FnMut(S) -> Status + 'a
+		where F: FnMut(&mut S) -> Status + 'a
 	{
 		let internals = InlineAction {
 			func: Box::new(task),
@@ -222,7 +222,7 @@ impl<'a, S> InlineAction<'a, S>
 }
 impl<'a, S> Internals<S> for InlineAction<'a, S>
 {
-	fn tick(&mut self, world: S) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		(*self.func)(world)
 	}

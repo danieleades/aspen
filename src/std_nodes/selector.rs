@@ -84,7 +84,7 @@ pub struct ActiveSelector<'a, S>
 	children: Vec<Node<'a, S>>,
 }
 impl<'a, S> ActiveSelector<'a, S>
-	where S: Clone + 'a
+	where S: 'a
 {
 	/// Creates a new Selector node from a vector of Nodes.
 	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
@@ -94,9 +94,8 @@ impl<'a, S> ActiveSelector<'a, S>
 	}
 }
 impl<'a, S> Internals<S> for ActiveSelector<'a, S>
-	where S: Clone
 {
-	fn tick(&mut self, world: S) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		// Tick the children in order
 		let mut ret_status = Status::Failed;
@@ -108,7 +107,7 @@ impl<'a, S> Internals<S> for ActiveSelector<'a, S>
 				child.reset()
 			}
 			else {
-				ret_status = child.tick(world.clone());
+				ret_status = child.tick(world);
 			}
 		}
 
@@ -257,12 +256,12 @@ impl<'a, S> Selector<'a, S>
 impl<'a, S> Internals<S> for Selector<'a, S>
 	where S: Clone
 {
-	fn tick(&mut self, world: S) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		// Tick the children as long as they keep failing
 		let mut ret_status = Status::Failed;
 		while self.next_child < self.children.len() && ret_status == Status::Failed {
-			ret_status = self.children[self.next_child].tick(world.clone());
+			ret_status = self.children[self.next_child].tick(world);
 
 			if ret_status.is_done() {
 				self.next_child += 1;

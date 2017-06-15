@@ -39,7 +39,7 @@ impl<'a, S> Node<'a, S>
 	/// If the node is currently considered to have run to completion, this
 	/// will call `Node::reset` on the node before calling the internal tick
 	/// logic.
-	pub fn tick(&mut self, world: S) -> Status
+	pub fn tick(&mut self, world: &mut S) -> Status
 	{
 		// Reset the node if it has already been completed
 		if self.status.is_done() {
@@ -126,7 +126,7 @@ pub trait Internals<S>
 	///
 	/// In other words, the `Internals` will only ever be ticked when the node
 	/// state is either `Status::Running` or `Status::Initialized`.
-	fn tick(&mut self, world: S) -> Status;
+	fn tick(&mut self, world: &mut S) -> Status;
 
 	/// Resets the internal state of the node.
 	///

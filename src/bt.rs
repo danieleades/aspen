@@ -34,7 +34,7 @@ impl<'a, S> BehaviorTree<'a, S>
 	/// Tick the behavior tree a single time.
 	///
 	/// If the tree has already been completed, ticking it again will reset it.
-	pub fn tick(&mut self, world: S) -> Status
+	pub fn tick(&mut self, world: &mut S) -> Status
 	{
 		self.root.tick(world)
 	}
@@ -58,7 +58,7 @@ impl<'a, S> BehaviorTree<'a, S>
 	///
 	/// NOTE: The only time this will return `Status::Running` is if the frequency is zero
 	/// and the behavior tree is running after the first tick.
-	pub fn run<F>(&mut self, freq: f32, world: S, mut hook: Option<F>) -> Status
+	pub fn run<F>(&mut self, freq: f32, world: &mut S, mut hook: Option<F>) -> Status
 		where F: FnMut(&BehaviorTree<'a, S>)
 	{
 		// Deal with the "special" case of a zero frequency
@@ -81,7 +81,7 @@ impl<'a, S> BehaviorTree<'a, S>
 		while status == Status::Running {
 			let now = Instant::now();
 
-			status = self.tick(world.clone());
+			status = self.tick(world);
 			if let Some(ref mut f) = hook {
 				f(self);
 			}

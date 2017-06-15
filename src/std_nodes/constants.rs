@@ -72,7 +72,7 @@ impl<'a, S> AlwaysFail<'a, S>
 }
 impl<'a, S> Internals<S> for AlwaysFail<'a, S>
 {
-	fn tick(&mut self, world: S) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		if let Some(ref mut child) = self.child {
 			if !child.tick(world).is_done() {
@@ -202,7 +202,7 @@ impl<'a, S> AlwaysSucceed<'a, S>
 }
 impl<'a, S> Internals<S> for AlwaysSucceed<'a, S>
 {
-	fn tick(&mut self, world: S) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		if let Some(ref mut child) = self.child {
 			if !child.tick(world).is_done() {
@@ -298,7 +298,7 @@ impl AlwaysRunning
 }
 impl<S> Internals<S> for AlwaysRunning
 {
-	fn tick(&mut self, _: S) -> Status
+	fn tick(&mut self, _: &mut S) -> Status
 	{
 		Status::Running
 	}

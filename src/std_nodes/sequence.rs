@@ -84,7 +84,7 @@ pub struct ActiveSequence<'a, S>
 	children: Vec<Node<'a, S>>,
 }
 impl<'a, S> ActiveSequence<'a, S>
-	where S: Clone + 'a
+	where S: 'a
 {
 	/// Creates a new `ActiveSequence` node from a vector of Nodes.
 	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
@@ -94,15 +94,14 @@ impl<'a, S> ActiveSequence<'a, S>
 	}
 }
 impl<'a, S> Internals<S> for ActiveSequence<'a, S>
-	where S: Clone
 {
-	fn tick(&mut self, world: S) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		// Tick all of our children as long as they succeed
 		let mut ret_status = Status::Succeeded;
 		for child in self.children.iter_mut() {
 			if ret_status == Status::Succeeded {
-				ret_status = child.tick(world.clone());
+				ret_status = child.tick(world);
 			}
 			else {
 				child.reset();
@@ -235,7 +234,7 @@ pub struct Sequence<'a, S>
 	next_child: usize,
 }
 impl<'a, S> Sequence<'a, S>
-	where S: Clone + 'a
+	where S: 'a
 {
 	/// Creates a new `Sequence` node from a vector of Nodes.
 	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
@@ -248,14 +247,13 @@ impl<'a, S> Sequence<'a, S>
 	}
 }
 impl<'a, S> Internals<S> for Sequence<'a, S>
-	where S: Clone
 {
-	fn tick(&mut self, world: S) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		// Tick the children as long as they keep failing
 		let mut ret_status = Status::Succeeded;
 		while self.next_child < self.children.len() && ret_status == Status::Succeeded {
-			ret_status = self.children[self.next_child].tick(world.clone());
+			ret_status = self.children[self.next_child].tick(world);
 
 			if ret_status.is_done() {
 				self.next_child += 1;
@@ -301,10 +299,10 @@ impl<'a, S> Internals<S> for Sequence<'a, S>
 /// # }
 /// ```
 #[macro_export]
-macro_rules! Selector
+macro_rules! Sequence
 {
 	( $( $e:expr ),* ) => {
-		$crate::std_nodes::Selector::new(vec![$( $e ),*])
+		$crate::std_nodes::Sequence::new(vec![$( $e ),*])
 	};
 }
 

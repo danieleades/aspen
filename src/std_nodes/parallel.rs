@@ -92,7 +92,6 @@ use status::Status;
 /// assert_eq!(node.tick(), Status::Failed);
 /// ```
 pub struct Parallel<'a, S>
-	where S: Clone
 {
 	/// Child nodes.
 	children: Vec<Node<'a, S>>,
@@ -101,7 +100,7 @@ pub struct Parallel<'a, S>
 	required_successes: usize,
 }
 impl<'a, S> Parallel<'a, S>
-	where S: Clone + 'a
+	where S: 'a
 {
 	/// Creates a `Parallel` node with the given children an required number of successes.
 	pub fn new(required_successes: usize, children: Vec<Node<'a, S>>) -> Node<'a, S>
@@ -114,9 +113,8 @@ impl<'a, S> Parallel<'a, S>
 	}
 }
 impl<'a, S> Internals<S> for Parallel<'a, S>
-	where S: Clone
 {
-	fn tick(&mut self, world: S) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		let mut successes = 0;
 		let mut failures = 0;
@@ -128,7 +126,7 @@ impl<'a, S> Internals<S> for Parallel<'a, S>
 				// It has, so we don't want to tick it again and accidentally
 				// restart it
 				child.status()
-			} else { child.tick(world.clone()) };
+			} else { child.tick(world) };
 
 			if child_status == Status::Succeeded {
 				successes += 1;

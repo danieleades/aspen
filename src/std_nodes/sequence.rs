@@ -269,6 +269,8 @@ impl<'a, S> Internals<S> for Sequence<'a, S>
 		for child in self.children.iter_mut() {
 			child.reset();
 		}
+
+		self.next_child = 0;
 	}
 
 	fn children(&self) -> Vec<&Node<S>>

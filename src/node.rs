@@ -54,11 +54,14 @@ impl<'a, S> Node<'a, S>
 	/// Resets the node.
 	///
 	/// This returns the node to a state that is identical to when it was first
-	/// created.
+	/// created. If the node state is still `Initialized`, then the internal
+	/// reset method will not be called.
 	pub fn reset(&mut self)
 	{
-		self.status = Status::Initialized;
-		(*self.internals).reset();
+		if self.status != Status::Initialized {
+			self.status = Status::Initialized;
+			(*self.internals).reset();
+		}
 	}
 
 	/// Gets the current status of the node.

@@ -34,9 +34,13 @@ impl<'a, S> BehaviorTree<'a, S>
 	/// Tick the behavior tree a single time.
 	///
 	/// If the tree has already been completed, ticking it again will reset it.
+	/// When the tree is reset, it will return an `Initialized` status once.
 	pub fn tick(&mut self, world: &mut S) -> Status
 	{
-		self.root.tick(world)
+		if self.root.status().is_done() {
+			self.root.reset();
+			Status::Initialized
+		} else { self.root.tick(world) }
 	}
 
 	/// Reset the tree so that it can be run again.
@@ -44,10 +48,7 @@ impl<'a, S> BehaviorTree<'a, S>
 	{
 		self.root.reset()
 	}
-}
-impl<'a, S> BehaviorTree<'a, S>
-	where S: Clone
-{
+
 	/// Run the behavior tree until it either succeeds or fails.
 	///
 	/// This makes no guarantees that it will run at the specified frequency. If a single

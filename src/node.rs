@@ -14,11 +14,16 @@ use status::Status;
 /// to enforce some runtime behavior.
 pub struct Node<'a, S>
 {
-	/// The status from the last time this node was ticked
+	/// The status from the last time this node was ticked.
 	status: Status,
 
-	/// The internal logic for this node
+	/// The internal logic for this node.
 	internals: Box<Internals<S> + 'a>,
+
+	/// The name for this node.
+	///
+	/// If present, it will be used instead of the type name.
+	name: Option<String>,
 }
 impl<'a, S> Node<'a, S>
 {
@@ -31,6 +36,7 @@ impl<'a, S> Node<'a, S>
 		Node {
 			status: Status::Initialized,
 			internals: Box::new(internals),
+			name: None,
 		}
 	}
 
@@ -84,9 +90,18 @@ impl<'a, S> Node<'a, S>
 	///
 	/// This will usually be the type of the node, e.g. "Sequence". There are
 	/// plans to allow nodes to have unique names.
-	pub fn name(&self) -> &'static str
+	pub fn name(&self) -> &str
 	{
-		(*self.internals).type_name()
+		if let Some(ref name) = self.name {
+			name
+		} else { (*self.internals).type_name() }
+	}
+
+	/// Sets the name for this particular node.
+	pub fn named<T: Into<Option<String>>>(mut self, name: T) -> Node<'a, S>
+	{
+		self.name = name.into();
+		self
 	}
 
 	#[cfg(feature = "lcm")]

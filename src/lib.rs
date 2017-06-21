@@ -1,4 +1,4 @@
-#![warn(missing_docs)]
+#![deny(missing_docs)]
 
 //! This crate is an implementation of behavior trees in Rust. It is largely
 //! based on behavior trees as described by Marzinotto et al. ^1 and was designed to be used on an actual robot using LCM

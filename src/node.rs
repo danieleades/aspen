@@ -100,22 +100,11 @@ impl<'a, S> Node<'a, S>
 	/// Sets the name for this particular node.
 	pub fn named<T: Into<Option<String>>>(mut self, name: T) -> Node<'a, S>
 	{
+		// We consume the node and return it to fit better into the current
+		// pattern of making trees. By using a reference, named nodes would not
+		// be able to be made inline. This also makes the macros look much nicer.
 		self.name = name.into();
 		self
-	}
-
-	#[cfg(feature = "lcm")]
-	/// Creates a new `NodeMsg` from this node
-	pub fn as_message(&self) -> ::node_message::NodeMsg
-	{
-		let kids: Vec<_> = self.children().iter().map(|c| c.as_message() ).collect();
-
-		::node_message::NodeMsg {
-			num_children: kids.len() as i32,
-			children: kids,
-			status: self.status.into(),
-			name: self.name().to_string(),
-		}
 	}
 }
 impl<'a, S> fmt::Display for Node<'a, S>

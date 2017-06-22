@@ -6,28 +6,30 @@ use std::sync::mpsc::TryRecvError;
 use node::{Node, Internals};
 use status::Status;
 
-pub type Result = ::std::result::Result<(), ()>;
-
 /// A node that manages the execution of tasks in a separate thread.
 ///
 /// This node will launch the supplied function in a separate thread and ticks
-/// will monitor the state of that thread. If the supplied function returns
-/// `Ok` then the node is considered successful, otherwise it is considered to
-/// have failed.
+/// will monitor the state of that thread. The return value of the function is
+/// the status of the Action node.
 ///
 /// This node should be the main way of modifying the world state. Note that,
 /// despite the function being run in a separate thread, there will usually
 /// only be one thread modifying the world.
 ///
+/// Note that the supplied function will be called again the next tick if the
+/// function returns either `Initialized` or `Running`.
+///
 /// # State
 ///
-/// **Initialized:** Before being ticked after either being created or reset.
+/// **Initialized:** Before being ticked after either being created or reset,
+/// or if the function returned `Initialized`.
 ///
-/// **Running:** While the function is being executed in the other thread.
+/// **Running:** While the function is being executed in the other thread or if
+/// the function returned `Running`.
 ///
-/// **Succeeded:** When the function returns `Ok`.
+/// **Succeeded:** When the function returns `Succeeded`.
 ///
-/// **Failed:** When the function returns `Err`.
+/// **Failed:** When the function returns `Failed`.
 ///
 /// # Children
 ///
@@ -39,35 +41,40 @@ pub type Result = ::std::result::Result<(), ()>;
 ///
 /// ```
 /// # use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
+/// # use std::sync::Arc;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// const  FIRST:  usize = 10;
 /// const  SECOND: usize = 100;
-/// static result: AtomicUsize = ATOMIC_USIZE_INIT;
+/// let mut result = Arc::new(AtomicUsize::default());
 ///
-/// let mut action = Action::new(||{
-///     result.store(SECOND.checked_sub(FIRST).ok_or(())?, Ordering::SeqCst);
-///     Ok(())
+/// let mut action = Action::new(|s: Arc<AtomicUsize>| {
+///     if let Some(val) = SECOND.checked_sub(FIRST) {
+///         s.store(val, Ordering::SeqCst);
+///         Status::Succeeded
+///     } else { Status::Failed }
 /// });
 ///
 /// // Run the node until it completes
-/// while !action.tick().is_done() { };
+/// while !action.tick(&mut result).is_done() { };
 /// assert_eq!(action.status(), Status::Succeeded);
 /// assert_eq!(result.load(Ordering::SeqCst), 90);
 /// ```
-pub struct Action
+pub struct Action<S>
+	where S: Clone + Send + Sync + 'static
 {
 	/// The task which is to be run.
-	func: Arc<Fn() -> Result + Send + Sync>,
+	func: Arc<Fn(S) -> Status + Send + Sync>,
 
 	/// Channel on which the task will communicate.
-	rx: Option<mpsc::Receiver<Result>>,
+	rx: Option<mpsc::Receiver<Status>>,
 }
-impl Action
+impl<S> Action<S>
+	where S: Clone + Send + Sync + 'static
 {
 	/// Creates a new Action node that will execute the given task.
-	pub fn new<F>(task: F) -> Node<'static>
-		where F: Fn() -> Result + Send + Sync + 'static
+	pub fn new<F>(task: F) -> Node<'static, S>
+		where F: Fn(S) -> Status + Send + Sync + 'static
 	{
 		let internals = Action {
 			func: Arc::new(task),
@@ -78,43 +85,56 @@ impl Action
 	}
 
 	/// Launches a new worker thread to run the task.
-	fn start_thread(&mut self)
+	fn start_thread(&mut self, world: &S)
 	{
 		// Create our new channels
-		let (tx, rx) = mpsc::channel();
+		let (tx, rx) = mpsc::sync_channel(0);
 
 		// Then clone the function so we can move it
 		let func_clone = self.func.clone();
 
 		// Finally, boot up the thread
-		thread::spawn(move || tx.send((func_clone)()).unwrap() );
+		let world_clone = world.clone();
+		thread::spawn(move || tx.send((func_clone)(world_clone)).unwrap() );
 
 		// Store the rx for later use
 		self.rx = Some(rx);
 	}
 }
-impl Internals for Action
+impl<S> Internals<S> for Action<S>
+	where S: Clone + Send + Sync + 'static
 {
-	fn tick(&mut self) -> Status
+	/// Ticks the Action node a single time.
+	///
+	/// The first time being ticked after being reset (or initialized), it will
+	/// clone `world` and use the clone as the argument for the task function,
+	/// which will be run in a separate thread. Usually, this should be an `Arc`.
+	fn tick(&mut self, world: &mut S) -> Status
 	{
-		if let Some(ref mut rx) = self.rx {
+		let (status, reset) = if let Some(ref mut rx) = self.rx {
 			match rx.try_recv() {
-				Ok(Ok(())) => Status::Succeeded,
-				Ok(Err(())) => Status::Failed,
-				Err(TryRecvError::Empty) => Status::Running,
-				_ => panic!("Task died before finishing"),
+				Ok(Status::Running)      => (Status::Running, true),
+				Ok(Status::Initialized)  => (Status::Initialized, true),
+				Ok(s)                    => (s, false),
+				Err(TryRecvError::Empty) => (Status::Running, false),
+				Err(e) => panic!("Thread died before finishing {}", e),
 			}
 		} else {
-			self.start_thread();
-			Status::Running
+			self.start_thread(world);
+			(Status::Running, false)
+		};
+
+		if reset {
+			self.rx.take();
 		}
+
+		status
 	}
 
 	/// Resets the internal state of this node.
 	///
 	/// If there is a task currently running, this will block until the task is
 	/// completed.
-	#[allow(unused_must_use)]
 	fn reset(&mut self)
 	{
 		// I debated what to do here for a while. I could see someone wanting to detach
@@ -140,9 +160,9 @@ impl Internals for Action
 ///
 /// ```
 /// # #[macro_use] extern crate aspen;
-/// # fn foo() -> Result<(), ()> { Ok(()) }
+/// # fn foo(_: ()) -> aspen::Status { aspen::Status::Succeeded }
 /// # fn main() {
-/// let mut action = Action!{ || foo() };
+/// let mut action = Action!{ |s| foo(s) };
 /// # }
 /// ```
 #[macro_export]
@@ -157,19 +177,20 @@ macro_rules! Action
 ///
 /// This node is an alternative to a normal Action node which can be used when
 /// the time required to do the task is significantly less than a single tick
-/// or if it can be broken down into descrete steps. If the task takes too
+/// or if it can be broken down into discrete steps. If the task takes too
 /// long, or too many of these nodes are utilized, the ticking rate can be
 /// affected.
 ///
 /// # State
 ///
-/// **Initialized:** Before being ticked after either being created or reset.
+/// **Initialized:** Before being ticked after either being created or reset,
+/// or if the supplied function returns `Initialized`.
 ///
-/// **Running:** Generally only if the task can be broken into increments.
+/// **Running:** Whe the function returns `Running`.
 ///
-/// **Succeeded:** When the function returns 'Ok'.
+/// **Succeeded:** When the function returns `Succeeded`.
 ///
-/// **Failed:** When the function returns `Err`.
+/// **Failed:** When the function returns `Failed`.
 ///
 /// # Children
 ///
@@ -180,33 +201,33 @@ macro_rules! Action
 /// A short action node that attempts to subtract two unsigned integers:
 ///
 /// ```
-/// # use std::cell::Cell;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let first = 10u32;
 /// let second = 100u32;
-/// let result = Cell::new(0u32);
+/// let mut result = 0u32;
 ///
-/// let mut action = InlineAction::new(||{
+/// let mut action = InlineAction::new(|r|{
 ///     if let Some(n) = second.checked_sub(first) {
-///         result.set(n);
+///         *r = n;
 ///         Status::Succeeded
 ///     } else { Status::Failed }
 /// });
 ///
-/// assert_eq!(action.tick(), Status::Succeeded);
-/// assert_eq!(result.get(), 90);
+/// assert_eq!(action.tick(&mut result), Status::Succeeded);
+/// assert_eq!(result, 90);
 /// ```
-pub struct InlineAction<'a>
+pub struct InlineAction<'a, S>
 {
 	/// The task which is to be run.
-	func: Box<FnMut() -> Status + 'a>,
+	func: Box<FnMut(&mut S) -> Status + 'a>,
 }
-impl<'a> InlineAction<'a>
+impl<'a, S> InlineAction<'a, S>
+	where S: 'a
 {
 	/// Creates a new `ShortAction` node that will execute the given task.
-	pub fn new<F>(task: F) -> Node<'a>
-		where F: FnMut() -> Status + 'a
+	pub fn new<F>(task: F) -> Node<'a, S>
+		where F: FnMut(&mut S) -> Status + 'a
 	{
 		let internals = InlineAction {
 			func: Box::new(task),
@@ -215,11 +236,11 @@ impl<'a> InlineAction<'a>
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for InlineAction<'a>
+impl<'a, S> Internals<S> for InlineAction<'a, S>
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
-		(*self.func)()
+		(*self.func)(world)
 	}
 
 	fn reset(&mut self)
@@ -241,9 +262,9 @@ impl<'a> Internals for InlineAction<'a>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # use aspen::Status;
-/// # fn foo() -> Status { Status::Running }
+/// # fn foo(_: &mut ()) -> Status { Status::Running }
 /// # fn main() {
-/// let mut action = InlineAction!{ || foo() };
+/// let mut action = InlineAction!{ |s| foo(s) };
 /// # }
 /// ```
 #[macro_export]
@@ -257,8 +278,7 @@ macro_rules! InlineAction
 #[cfg(test)]
 mod test
 {
-	use std::sync::Mutex;
-	use std::sync::mpsc;
+	use std::sync::{mpsc, Mutex};
 	use std::time;
 	use std::thread;
 	use status::Status;
@@ -267,24 +287,24 @@ mod test
 	#[test]
 	fn failure()
 	{
-		let (tx, rx) = mpsc::channel();
-
+		let (tx, rx) = mpsc::sync_channel(0);
 		let mrx = Mutex::new(rx);
-		let mut action = Action::new(move || {
+
+		let mut action = Action::new(move |_| {
 			// Block until the message is sent, then return its value
 			mrx.lock().unwrap().recv().unwrap()
 		});
 
 		for _ in 0..5 {
-			assert_eq!(action.tick(), Status::Running);
+			assert_eq!(action.tick(&mut ()), Status::Running);
 			thread::sleep(time::Duration::from_millis(100));
 		}
 
-		tx.send(Err(())).unwrap();
+		tx.send(Status::Failed).unwrap();
 
 		let mut status = Status::Running;
 		while status == Status::Running {
-			status = action.tick();
+			status = action.tick(&mut ());
 		}
 
 		assert_eq!(status, Status::Failed);
@@ -293,24 +313,24 @@ mod test
 	#[test]
 	fn success()
 	{
-		let (tx, rx) = mpsc::channel();
-
+		let (tx, rx) = mpsc::sync_channel(0);
 		let mrx = Mutex::new(rx);
-		let mut action = Action::new(move || {
+
+		let mut action = Action::new(move |_| {
 			// Block until the message is sent, then return its value
 			mrx.lock().unwrap().recv().unwrap()
 		});
 
 		for _ in 0..5 {
-			assert_eq!(action.tick(), Status::Running);
+			assert_eq!(action.tick(&mut ()), Status::Running);
 			thread::sleep(time::Duration::from_millis(100));
 		}
 
-		tx.send(Ok(())).unwrap();
+		tx.send(Status::Succeeded).unwrap();
 
 		let mut status = Status::Running;
 		while status == Status::Running {
-			status = action.tick();
+			status = action.tick(&mut ());
 		}
 
 		assert_eq!(status, Status::Succeeded);
@@ -319,18 +339,18 @@ mod test
 	#[test]
 	fn inline_failure()
 	{
-		assert_eq!(InlineAction::new(|| Status::Failed).tick(), Status::Failed);
+		assert_eq!(InlineAction::new(|_| Status::Failed).tick(&mut ()), Status::Failed);
 	}
 
 	#[test]
 	fn inline_success()
 	{
-		assert_eq!(InlineAction::new(|| Status::Succeeded).tick(), Status::Succeeded);
+		assert_eq!(InlineAction::new(|_| Status::Succeeded).tick(&mut ()), Status::Succeeded);
 	}
 
 	#[test]
 	fn inline_running()
 	{
-		assert_eq!(InlineAction::new(|| Status::Running).tick(), Status::Running);
+		assert_eq!(InlineAction::new(|_| Status::Running).tick(&mut ()), Status::Running);
 	}
 }

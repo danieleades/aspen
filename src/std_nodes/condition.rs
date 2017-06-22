@@ -32,35 +32,37 @@ use status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
-/// const FIRST: u32 = 10;
-/// const SECOND: u32 = 100;
+/// const CHECK_VALUE: u32 = 100;
+/// let mut state = 10u32;
 ///
-/// let mut node = Condition::new(|| FIRST > SECOND );
-/// assert_eq!(node.tick(), Status::Failed);
+/// let mut node = Condition::new(|s| *s > CHECK_VALUE );
+/// assert_eq!(node.tick(&mut state), Status::Failed);
 /// ```
-pub struct Condition<'a>
+pub struct Condition<'a, S>
 {
 	/// Function that is performed to determine the node's status
 	///
 	/// A return value of `true` means success and a return value of `false`
 	/// means failure.
-	func: Box<Fn() -> bool + 'a>,
+	func: Box<Fn(&S) -> bool + 'a>,
 }
-impl<'a> Condition<'a>
+impl<'a, S> Condition<'a, S>
+	where S: 'a
 {
 	/// Constructs a new Condition node that will run the given function.
-	pub fn new<F: Fn() -> bool + 'a>(func: F) -> Node<'a>
+	pub fn new<F>(func: F) -> Node<'a, S>
+		where F: Fn(&S) -> bool + 'a
 	{
 		let internals = Condition { func: Box::new(func) };
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for Condition<'a>
+impl<'a, S> Internals<S> for Condition<'a, S>
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		// Otherwise, run the function
-		if (*self.func)() {
+		if (*self.func)(world) {
 			Status::Succeeded
 		} else {
 			Status::Failed
@@ -85,9 +87,9 @@ impl<'a> Internals for Condition<'a>
 ///
 /// ```
 /// # #[macro_use] extern crate aspen;
+/// # fn test(_: &()) -> bool { false }
 /// # fn main() {
-/// # let (a, b) = (12, 13);
-/// let condition = Condition!{ || a < b };
+/// let condition = Condition!{ |s| test(s) };
 /// # }
 /// ```
 #[macro_export]
@@ -107,14 +109,14 @@ mod test
 	#[test]
 	fn failure()
 	{
-		let mut cond = Condition::new(|| false);
-		assert_eq!(cond.tick(), Status::Failed);
+		let mut cond = Condition::new(|_| false);
+		assert_eq!(cond.tick(&mut ()), Status::Failed);
 	}
 
 	#[test]
 	fn success()
 	{
-		let mut cond = Condition::new(|| true);
-		assert_eq!(cond.tick(), Status::Succeeded);
+		let mut cond = Condition::new(|_| true);
+		assert_eq!(cond.tick(&mut ()), Status::Succeeded);
 	}
 }

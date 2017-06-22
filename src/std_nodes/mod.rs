@@ -1,4 +1,4 @@
-//! Contains a set of commonly used behavior tree nodes
+//! Contains a set of commonly used behavior tree nodes.
 
 mod sequence;
 pub use self::sequence::ActiveSequence;

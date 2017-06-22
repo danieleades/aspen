@@ -1,6 +1,6 @@
 [package]
 name = "aspen"
-version = "0.2.5"
+version = "0.3.0"
 authors = ["Nathan Kent <nate@nkent.net>"]
 license = "MIT"
 
@@ -12,13 +12,5 @@ repository = "https://gitlab.com/neachdainn/aspen.git"
 
 readme = "README.adoc"
 
-build = "build.rs"
-
-[features]
-default = []
-
 [dependencies]
-lcm = { version = "0.2.0", optional = true }
-
-[build-dependencies]
-lcm_gen = "0.1.1"
+log = "0.3.8"

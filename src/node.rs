@@ -3,7 +3,7 @@
 use std::fmt;
 use status::Status;
 
-/// Represents a generic node
+/// Represents a generic node.
 ///
 /// The logic of the node is controlled by the supplied `Internals` object.
 /// Nodes are considered to have been run to completion when they return either
@@ -12,25 +12,31 @@ use status::Status;
 ///
 /// This class is largely just a wrapper around an `Internals` object. This is
 /// to enforce some runtime behavior.
-pub struct Node<'a>
+pub struct Node<'a, S>
 {
-	/// The status from the last time this node was ticked
+	/// The status from the last time this node was ticked.
 	status: Status,
 
-	/// The internal logic for this node
-	internals: Box<Internals + 'a>,
+	/// The internal logic for this node.
+	internals: Box<Internals<S> + 'a>,
+
+	/// The name for this node.
+	///
+	/// If present, it will be used instead of the type name.
+	name: Option<String>,
 }
-impl<'a> Node<'a>
+impl<'a, S> Node<'a, S>
 {
 	/// Creates a new `Node` with the given `Internals`.
 	///
 	/// The internals are used to govern the tick logic of the node.
-	pub fn new<I>(internals: I) -> Node<'a>
-		where I: Internals + 'a
+	pub fn new<I>(internals: I) -> Node<'a, S>
+		where I: Internals<S> + 'a
 	{
 		Node {
 			status: Status::Initialized,
 			internals: Box::new(internals),
+			name: None,
 		}
 	}
 
@@ -39,26 +45,31 @@ impl<'a> Node<'a>
 	/// If the node is currently considered to have run to completion, this
 	/// will call `Node::reset` on the node before calling the internal tick
 	/// logic.
-	pub fn tick(&mut self) -> Status
+	pub fn tick(&mut self, world: &mut S) -> Status
 	{
-		// Reset the node if it has already been completed
+		// Reset the node if it's already completed
 		if self.status.is_done() {
 			self.reset();
 		}
 
 		// Tick the internals
-		self.status = (*self.internals).tick();
+		trace!("Ticking node {}", self.name());
+		self.status = (*self.internals).tick(world);
 		return self.status;
 	}
 
 	/// Resets the node.
 	///
 	/// This returns the node to a state that is identical to when it was first
-	/// created.
+	/// created. If the node state is still `Initialized`, then the internal
+	/// reset method will not be called.
 	pub fn reset(&mut self)
 	{
-		self.status = Status::Initialized;
-		(*self.internals).reset();
+		if self.status != Status::Initialized {
+			trace!("Resetting node {} ({:?})", self.name(), self.status());
+			self.status = Status::Initialized;
+			(*self.internals).reset();
+		}
 	}
 
 	/// Gets the current status of the node.
@@ -72,35 +83,41 @@ impl<'a> Node<'a>
 	/// Returns a vector containing references to all of this node's children.
 	///
 	/// This is likely the most unstable part of Aspen, use with caution.
-	pub fn children(&self) -> Vec<&Node>
+	pub fn children(&self) -> Vec<&Node<S>>
 	{
 		(*self.internals).children()
 	}
 
 	/// Returns the name of this node.
 	///
-	/// This will usually be the type of the node, e.g. "Sequence". There are
-	/// plans to allow nodes to have unique names.
-	pub fn name(&self) -> &'static str
+	/// Unless this node was renamed via the `named` method, this will be the
+	/// type name of the underlying `Internals` object.
+	pub fn name(&self) -> &str
 	{
-		(*self.internals).type_name()
+		if let Some(ref name) = self.name {
+			name
+		} else { (*self.internals).type_name() }
 	}
 
-	#[cfg(feature = "lcm")]
-	/// Creates a new `NodeMsg` from this node
-	pub fn as_message(&self) -> ::node_message::NodeMsg
+	/// Sets the name for this particular node.
+	pub fn named<T: Into<Option<String>>>(mut self, name: T) -> Node<'a, S>
 	{
-		let kids: Vec<_> = self.children().iter().map(|c| c.as_message() ).collect();
 
-		::node_message::NodeMsg {
-			num_children: kids.len() as i32,
-			children: kids,
-			status: self.status.into(),
-			name: self.name().to_string(),
+		// We consume the node and return it to fit better into the current
+		// pattern of making trees. By using a reference, named nodes would not
+		// be able to be made inline. This also makes the macros look much nicer.
+		let new_name = name.into();
+		if let Some(ref s) = new_name {
+			trace!("Renaming node from {} to {}", self.name(), s);
 		}
+		else {
+			trace!("Removing name from {}", self.name());
+		}
+		self.name = new_name;
+		self
 	}
 }
-impl<'a> fmt::Display for Node<'a>
+impl<'a, S> fmt::Display for Node<'a, S>
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
@@ -116,7 +133,7 @@ impl<'a> fmt::Display for Node<'a>
 ///
 /// This is the object that controls the tick behavior of the `Node`, with
 /// `Node` just being a wrapper to enforce some runtime behavior.
-pub trait Internals
+pub trait Internals<S>
 {
 	/// Ticks the internal state of the node a single time.
 	///
@@ -126,7 +143,7 @@ pub trait Internals
 	///
 	/// In other words, the `Internals` will only ever be ticked when the node
 	/// state is either `Status::Running` or `Status::Initialized`.
-	fn tick(&mut self) -> Status;
+	fn tick(&mut self, world: &mut S) -> Status;
 
 	/// Resets the internal state of the node.
 	///
@@ -140,7 +157,7 @@ pub trait Internals
 	/// leaf node.
 	///
 	/// This is likely the most unstable part of Aspen, use with caution.
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Vec<&Node<S>>
 	{
 		Vec::new()
 	}

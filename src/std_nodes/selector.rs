@@ -50,7 +50,7 @@ use ::Status;
 ///     AlwaysSucceed::new(),
 ///     AlwaysRunning::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 ///
 /// A node that returns that it is running:
@@ -63,7 +63,7 @@ use ::Status;
 ///     AlwaysRunning::new(),
 ///     AlwaysSucceed::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Running);
+/// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 ///
 /// A node that returns that it fails:
@@ -76,25 +76,26 @@ use ::Status;
 ///     AlwaysFail::new(),
 ///     AlwaysFail::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct ActiveSelector<'a>
+pub struct ActiveSelector<'a, S>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node<'a>>,
+	children: Vec<Node<'a, S>>,
 }
-impl<'a> ActiveSelector<'a>
+impl<'a, S> ActiveSelector<'a, S>
+	where S: 'a
 {
 	/// Creates a new Selector node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a>>) -> Node<'a>
+	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
 	{
 		let internals = ActiveSelector { children: children };
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for ActiveSelector<'a>
+impl<'a, S> Internals<S> for ActiveSelector<'a, S>
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		// Tick the children in order
 		let mut ret_status = Status::Failed;
@@ -106,7 +107,7 @@ impl<'a> Internals for ActiveSelector<'a>
 				child.reset()
 			}
 			else {
-				ret_status = child.tick();
+				ret_status = child.tick(world);
 			}
 		}
 
@@ -122,7 +123,7 @@ impl<'a> Internals for ActiveSelector<'a>
 		}
 	}
 
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Vec<&Node<S>>
 	{
 		self.children.iter().collect()
 	}
@@ -141,11 +142,10 @@ impl<'a> Internals for ActiveSelector<'a>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let active_selector = ActiveSelector!{
-///     Condition!{ || a < b },
-///     Condition!{ || c == d },
-///     Condition!{ || d < a }
+///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
+///     Condition!{ |&(_, b)| b == 9 },
+///     Condition!{ |&(a, b)| a < b }
 /// };
 /// # }
 /// ```
@@ -200,7 +200,7 @@ macro_rules! ActiveSelector
 ///     AlwaysSucceed::new(),
 ///     AlwaysRunning::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 ///
 /// A node that returns that it is running:
@@ -213,7 +213,7 @@ macro_rules! ActiveSelector
 ///     AlwaysRunning::new(),
 ///     AlwaysSucceed::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Running);
+/// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 ///
 /// A node that returns that it fails:
@@ -226,12 +226,12 @@ macro_rules! ActiveSelector
 ///     AlwaysFail::new(),
 ///     AlwaysFail::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct Selector<'a>
+pub struct Selector<'a, S>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node<'a>>,
+	children: Vec<Node<'a, S>>,
 
 	/// The next child to be ticked.
 	///
@@ -239,10 +239,11 @@ pub struct Selector<'a>
 	/// iterator version that I could come up with.
 	next_child: usize,
 }
-impl<'a> Selector<'a>
+impl<'a, S> Selector<'a, S>
+	where S: Clone + 'a
 {
 	/// Creates a new Selector node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a>>) -> Node<'a>
+	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
 	{
 		let internals = Selector {
 			children: children,
@@ -251,14 +252,15 @@ impl<'a> Selector<'a>
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for Selector<'a>
+impl<'a, S> Internals<S> for Selector<'a, S>
+	where S: Clone
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		// Tick the children as long as they keep failing
 		let mut ret_status = Status::Failed;
 		while self.next_child < self.children.len() && ret_status == Status::Failed {
-			ret_status = self.children[self.next_child].tick();
+			ret_status = self.children[self.next_child].tick(world);
 
 			if ret_status.is_done() {
 				self.next_child += 1;
@@ -274,9 +276,11 @@ impl<'a> Internals for Selector<'a>
 		for child in self.children.iter_mut() {
 			child.reset();
 		}
+
+		self.next_child = 0;
 	}
 
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Vec<&Node<S>>
 	{
 		self.children.iter().collect()
 	}
@@ -295,11 +299,10 @@ impl<'a> Internals for Selector<'a>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let selector = Selector!{
-///     Condition!{ || a < b },
-///     Condition!{ || c == d },
-///     Condition!{ || d < a }
+///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
+///     Condition!{ |&(_, b)| b == 9 },
+///     Condition!{ |&(a, b)| b < a }
 /// };
 /// # }
 /// ```
@@ -329,7 +332,7 @@ mod test
 		let mut sel = Selector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick();
+		let status = sel.tick(&mut ());
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);
@@ -350,7 +353,7 @@ mod test
 		let mut sel = Selector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick();
+		let status = sel.tick(&mut ());
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);
@@ -370,7 +373,7 @@ mod test
 		let mut sel = Selector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick();
+		let status = sel.tick(&mut ());
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);
@@ -391,7 +394,7 @@ mod test
 		let mut sel = ActiveSelector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick();
+		let status = sel.tick(&mut ());
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);
@@ -412,7 +415,7 @@ mod test
 		let mut sel = ActiveSelector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick();
+		let status = sel.tick(&mut ());
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);
@@ -432,7 +435,7 @@ mod test
 		let mut sel = ActiveSelector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick();
+		let status = sel.tick(&mut ());
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);

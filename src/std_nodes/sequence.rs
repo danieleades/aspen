@@ -50,7 +50,7 @@ use ::Status;
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 ///
 /// A node that returns it is running:
@@ -63,7 +63,7 @@ use ::Status;
 ///     AlwaysRunning::new(),
 ///     AlwaysFail::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Running);
+/// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 ///
 /// A node that returns it failed:
@@ -76,31 +76,32 @@ use ::Status;
 ///     AlwaysSucceed::new(),
 ///     AlwaysFail::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct ActiveSequence<'a>
+pub struct ActiveSequence<'a, S>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node<'a>>,
+	children: Vec<Node<'a, S>>,
 }
-impl<'a> ActiveSequence<'a>
+impl<'a, S> ActiveSequence<'a, S>
+	where S: 'a
 {
 	/// Creates a new `ActiveSequence` node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a>>) -> Node<'a>
+	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
 	{
 		let internals = ActiveSequence { children: children };
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for ActiveSequence<'a>
+impl<'a, S> Internals<S> for ActiveSequence<'a, S>
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		// Tick all of our children as long as they succeed
 		let mut ret_status = Status::Succeeded;
 		for child in self.children.iter_mut() {
 			if ret_status == Status::Succeeded {
-				ret_status = child.tick();
+				ret_status = child.tick(world);
 			}
 			else {
 				child.reset();
@@ -119,7 +120,7 @@ impl<'a> Internals for ActiveSequence<'a>
 		}
 	}
 
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Vec<&Node<S>>
 	{
 		self.children.iter().collect()
 	}
@@ -138,11 +139,10 @@ impl<'a> Internals for ActiveSequence<'a>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let active_sequence = ActiveSequence!{
-///     Condition!{ || a < b },
-///     Condition!{ || c == d },
-///     Condition!{ || d < a }
+///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
+///     Condition!{ |&(_, b)| b == 9 },
+///     Condition!{ |&(a, b)| b < a }
 /// };
 /// # }
 /// ```
@@ -198,7 +198,7 @@ macro_rules! ActiveSequence
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 ///
 /// A node that returns it is running:
@@ -211,7 +211,7 @@ macro_rules! ActiveSequence
 ///     AlwaysRunning::new(),
 ///     AlwaysFail::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Running);
+/// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 ///
 /// A node that returns it failed:
@@ -224,18 +224,19 @@ macro_rules! ActiveSequence
 ///     AlwaysSucceed::new(),
 ///     AlwaysFail::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct Sequence<'a>
+pub struct Sequence<'a, S>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node<'a>>,
+	children: Vec<Node<'a, S>>,
 	next_child: usize,
 }
-impl<'a> Sequence<'a>
+impl<'a, S> Sequence<'a, S>
+	where S: 'a
 {
 	/// Creates a new `Sequence` node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a>>) -> Node<'a>
+	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
 	{
 		let internals = Sequence {
 			children: children,
@@ -244,14 +245,14 @@ impl<'a> Sequence<'a>
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for Sequence<'a>
+impl<'a, S> Internals<S> for Sequence<'a, S>
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		// Tick the children as long as they keep failing
 		let mut ret_status = Status::Succeeded;
 		while self.next_child < self.children.len() && ret_status == Status::Succeeded {
-			ret_status = self.children[self.next_child].tick();
+			ret_status = self.children[self.next_child].tick(world);
 
 			if ret_status.is_done() {
 				self.next_child += 1;
@@ -267,9 +268,11 @@ impl<'a> Internals for Sequence<'a>
 		for child in self.children.iter_mut() {
 			child.reset();
 		}
+
+		self.next_child = 0;
 	}
 
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Vec<&Node<S>>
 	{
 		self.children.iter().collect()
 	}
@@ -288,19 +291,18 @@ impl<'a> Internals for Sequence<'a>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let selector = Selector!{
-///     Condition!{ || a < b },
-///     Condition!{ || c == d },
-///     Condition!{ || d < a }
+///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
+///     Condition!{ |&(_, b)| b == 9 },
+///     Condition!{ |&(a, b)| b < a }
 /// };
 /// # }
 /// ```
 #[macro_export]
-macro_rules! Selector
+macro_rules! Sequence
 {
 	( $( $e:expr ),* ) => {
-		$crate::std_nodes::Selector::new(vec![$( $e ),*])
+		$crate::std_nodes::Sequence::new(vec![$( $e ),*])
 	};
 }
 
@@ -322,7 +324,7 @@ mod test
 		let mut seq = Sequence::new(children);
 
 		// Tick the sequence
-		let status = seq.tick();
+		let status = seq.tick(&mut ());
 
 		// Drop the sequence so the nodes can do their own checks
 		drop(seq);
@@ -342,7 +344,7 @@ mod test
 		let mut seq = Sequence::new(children);
 
 		// Tick the sequence
-		let status = seq.tick();
+		let status = seq.tick(&mut ());
 
 		// Drop the sequence so the nodes can do their own checks
 		drop(seq);
@@ -363,7 +365,7 @@ mod test
 		let mut seq = Sequence::new(children);
 
 		// Tick the sequence
-		let status = seq.tick();
+		let status = seq.tick(&mut ());
 
 		// Drop the sequence so the nodes can do their own checks
 		drop(seq);
@@ -384,7 +386,7 @@ mod test
 		let mut seq = ActiveSequence::new(children);
 
 		// Tick the sequence
-		let status = seq.tick();
+		let status = seq.tick(&mut ());
 
 		// Drop the sequence so the nodes can do their own checks
 		drop(seq);
@@ -404,7 +406,7 @@ mod test
 		let mut seq = ActiveSequence::new(children);
 
 		// Tick the sequence
-		let status = seq.tick();
+		let status = seq.tick(&mut ());
 
 		// Drop the sequence so the nodes can do their own checks
 		drop(seq);
@@ -425,7 +427,7 @@ mod test
 		let mut seq = ActiveSequence::new(children);
 
 		// Tick the sequence
-		let status = seq.tick();
+		let status = seq.tick(&mut ());
 
 		// Drop the sequence so the nodes can do their own checks
 		drop(seq);

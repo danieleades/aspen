@@ -38,14 +38,14 @@ use status::Status;
 ///
 /// // Subtract one since there is a run in the assert
 /// for _ in 0..(run_limit - 1) {
-///     assert_eq!(node.tick(), Status::Running);
+///     assert_eq!(node.tick(&mut ()), Status::Running);
 /// }
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
-pub struct Repeat<'a>
+pub struct Repeat<'a, S>
 {
 	/// Child node.
-	child: Node<'a>,
+	child: Node<'a, S>,
 
 	/// Optional number of times to do the reset.
 	attempt_limit: Option<u32>,
@@ -53,10 +53,11 @@ pub struct Repeat<'a>
 	/// Number of times the child has been reset.
 	attempts: u32,
 }
-impl<'a> Repeat<'a>
+impl<'a, S> Repeat<'a, S>
+	where S: 'a
 {
 	/// Creates a new Repeat node that will repeat forever.
-	pub fn new(child: Node<'a>) -> Node<'a>
+	pub fn new(child: Node<'a, S>) -> Node<'a, S>
 	{
 		let internals = Repeat {
 			child: child,
@@ -70,7 +71,7 @@ impl<'a> Repeat<'a>
 	///
 	/// The limit specifies the number of times this node can be run. A limit
 	/// of zero means that the node will instantly succeed.
-	pub fn with_limit(limit: u32, child: Node<'a>) -> Node<'a>
+	pub fn with_limit(limit: u32, child: Node<'a, S>) -> Node<'a, S>
 	{
 		let internals = Repeat {
 			child: child,
@@ -80,19 +81,19 @@ impl<'a> Repeat<'a>
 		Node::new(internals)
 	}
 }
-impl<'a> Internals for Repeat<'a>
+impl<'a, S> Internals<S> for Repeat<'a, S>
 {
-	fn tick(&mut self) -> Status
+	fn tick(&mut self, world: &mut S) -> Status
 	{
 		// Take care of the infinite version so we don't have to worry
 		if self.attempt_limit.is_none() {
-			self.child.tick();
+			self.child.tick(world);
 			return Status::Running;
 		}
 
 		// We're using the finite version
 		let limit = self.attempt_limit.unwrap();
-		let child_status = self.child.tick();
+		let child_status = self.child.tick(world);
 
 		if child_status.is_done() {
 			self.attempts += 1;
@@ -117,7 +118,7 @@ impl<'a> Internals for Repeat<'a>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Vec<&Node>
+	fn children(&self) -> Vec<&Node<S>>
 	{
 		vec![&self.child]
 	}
@@ -136,12 +137,11 @@ impl<'a> Internals for Repeat<'a>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let repeat = Repeat!{
-///     Condition!{ || a < b }
+///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
 /// let limited_repeat = Repeat!{ 12,
-///     Condition!{ || a < b }
+///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
 /// # }
 /// ```
@@ -170,9 +170,9 @@ mod test
 		let child = CountedTick::new(Status::Failed, limit, true);
 		let mut node = Repeat::with_limit(limit, child);
 		for _ in 0..(limit - 1) {
-			assert_eq!(node.tick(), Status::Running);
+			assert_eq!(node.tick(&mut ()), Status::Running);
 		}
-		let status = node.tick();
+		let status = node.tick(&mut ());
 		drop(node);
 		assert_eq!(status, Status::Succeeded);
 	}

@@ -20,7 +20,7 @@ fn main()
 {
 	// The sync elements are required because the Action node works in a
 	// separate thread. Otherwise should not be necessary.
-	let world_state: Arc<Mutex<WorldState>> = Default::default();
+	let mut world_state: Arc<Mutex<WorldState>> = Default::default();
 
 	// Create the tree - sleep to simulate work
 	let root = Sequence!{
@@ -39,30 +39,30 @@ fn main()
 	// Put it all in a tree, print it, and run it
 	let mut tree = BehaviorTree::new(root);
 	println!("{}", tree);
-	let res = tree.run(4.0, world_state.clone(), Some(hook));
+	let res = tree.run(4.0, &mut world_state, Some(hook));
 
 	println!("\nTree finished: {:?}", res);
 	println!("\nINPUT_A: {}\nINPUT_B: {}", INPUT_A, INPUT_B);
 	println!("{:?}", world_state);
 }
 
-fn do_add(state: Arc<Mutex<WorldState>>) -> Result<(), ()>
+fn do_add(state: Arc<Mutex<WorldState>>) -> Status
 {
-	let locked_state = state.lock().unwrap();
+	let mut locked_state = state.lock().unwrap();
 
 	// Sleep to simulate doing a lot of work
 	thread::sleep(time::Duration::from_secs(1));
 	locked_state.add_res = INPUT_A.checked_add(INPUT_B);
 
 	if locked_state.add_res.is_some() {
-		Ok(())
-	} else { Err(()) }
+		Status::Succeeded
+	} else { Status::Failed }
 }
 
-fn do_sub(state: Arc<Mutex<WorldState>>) -> Status
+fn do_sub(state: &mut Arc<Mutex<WorldState>>) -> Status
 {
 	// We know that the subtraction will be valid because of the condition node
-	let locked_state = state.lock().unwrap();
+	let mut locked_state = state.lock().unwrap();
 	locked_state.sub_res = Some(INPUT_B - INPUT_A);
 	Status::Succeeded
 }

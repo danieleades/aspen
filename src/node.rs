@@ -3,7 +3,7 @@
 use std::fmt;
 use status::Status;
 
-/// Represents a generic node
+/// Represents a generic node.
 ///
 /// The logic of the node is controlled by the supplied `Internals` object.
 /// Nodes are considered to have been run to completion when they return either
@@ -47,12 +47,13 @@ impl<'a, S> Node<'a, S>
 	/// logic.
 	pub fn tick(&mut self, world: &mut S) -> Status
 	{
-		// Reset the node if it has already been completed
+		// Reset the node if it's already completed
 		if self.status.is_done() {
 			self.reset();
 		}
 
 		// Tick the internals
+		trace!("Ticking node {}", self.name());
 		self.status = (*self.internals).tick(world);
 		return self.status;
 	}
@@ -65,6 +66,7 @@ impl<'a, S> Node<'a, S>
 	pub fn reset(&mut self)
 	{
 		if self.status != Status::Initialized {
+			trace!("Resetting node {} ({:?})", self.name(), self.status());
 			self.status = Status::Initialized;
 			(*self.internals).reset();
 		}
@@ -88,8 +90,8 @@ impl<'a, S> Node<'a, S>
 
 	/// Returns the name of this node.
 	///
-	/// This will usually be the type of the node, e.g. "Sequence". There are
-	/// plans to allow nodes to have unique names.
+	/// Unless this node was renamed via the `named` method, this will be the
+	/// type name of the underlying `Internals` object.
 	pub fn name(&self) -> &str
 	{
 		if let Some(ref name) = self.name {
@@ -100,10 +102,18 @@ impl<'a, S> Node<'a, S>
 	/// Sets the name for this particular node.
 	pub fn named<T: Into<Option<String>>>(mut self, name: T) -> Node<'a, S>
 	{
+
 		// We consume the node and return it to fit better into the current
 		// pattern of making trees. By using a reference, named nodes would not
 		// be able to be made inline. This also makes the macros look much nicer.
-		self.name = name.into();
+		let new_name = name.into();
+		if let Some(ref s) = new_name {
+			trace!("Renaming node from {} to {}", self.name(), s);
+		}
+		else {
+			trace!("Removing name from {}", self.name());
+		}
+		self.name = new_name;
 		self
 	}
 }

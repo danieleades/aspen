@@ -30,7 +30,7 @@ use status::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let mut node = AlwaysFail::new();
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
 ///
 /// If the child is considered running, so is this node:
@@ -39,7 +39,7 @@ use status::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let mut node = AlwaysFail::with_child(AlwaysRunning::new());
-/// assert_eq!(node.tick(), Status::Running);
+/// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 ///
 /// If the child is done running, its status is disregarded:
@@ -48,7 +48,7 @@ use status::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let mut node = AlwaysFail::with_child(AlwaysSucceed::new());
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
 pub struct AlwaysFail<'a, S>
 {
@@ -110,13 +110,23 @@ impl<'a, S> Internals<S> for AlwaysFail<'a, S>
 ///
 /// # Examples
 ///
+/// Without a child:
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # use aspen::node::Node;
+/// # fn main() {
+/// let fail: Node<()>  = AlwaysFail!{};
+/// # }
+/// ```
+///
+/// With a child:
+///
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b) = (12, 13);
-/// let fail = AlwaysFail!{};
 /// let fail_child = AlwaysFail!{
-///     Condition!{ || a < b }
+///     Condition!{ |a: &u32| *a < 12 }
 /// };
 /// # }
 /// ```
@@ -160,7 +170,7 @@ macro_rules! AlwaysFail
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let mut node = AlwaysSucceed::new();
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 ///
 /// If the child is considered running, so is this node:
@@ -169,7 +179,7 @@ macro_rules! AlwaysFail
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let mut node = AlwaysSucceed::with_child(AlwaysRunning::new());
-/// assert_eq!(node.tick(), Status::Running);
+/// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 ///
 /// If the child is done running, its status is disregarded:
@@ -178,7 +188,7 @@ macro_rules! AlwaysFail
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let mut node = AlwaysSucceed::with_child(AlwaysFail::new());
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 pub struct AlwaysSucceed<'a, S>
 {
@@ -240,13 +250,23 @@ impl<'a, S> Internals<S> for AlwaysSucceed<'a, S>
 ///
 /// # Examples
 ///
+/// Without a child:
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # use aspen::node::Node;
+/// # fn main() {
+/// let succeed: Node<()>  = AlwaysSucceed!{};
+/// # }
+/// ```
+///
+/// With a child:
+///
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b) = (12, 13);
-/// let succeed = AlwaysSucceed!{};
 /// let succeed_child = AlwaysSucceed!{
-///     Condition!{ || a < b }
+///     Condition!{ |a: &u32| *a < 12 }
 /// };
 /// # }
 /// ```
@@ -285,7 +305,7 @@ macro_rules! AlwaysSucceed
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let mut node = AlwaysRunning::new();
-/// assert_eq!(node.tick(), Status::Running);
+/// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 pub struct AlwaysRunning;
 impl AlwaysRunning
@@ -321,8 +341,9 @@ impl<S> Internals<S> for AlwaysRunning
 ///
 /// ```
 /// # #[macro_use] extern crate aspen;
+/// # use aspen::node::Node;
 /// # fn main() {
-/// let running = AlwaysRunning!{};
+/// let running: Node<()> = AlwaysRunning!{};
 /// # }
 /// ```
 #[macro_export]
@@ -342,24 +363,24 @@ mod test
 	#[test]
 	fn always_fail()
 	{
-		assert_eq!(AlwaysFail::new().tick(), Status::Failed);
+		assert_eq!(AlwaysFail::new().tick(&mut ()), Status::Failed);
 	}
 
 	#[test]
 	fn always_fail_child()
 	{
 		let mut succeed = AlwaysFail::with_child(YesTick::new(Status::Succeeded));
-		let succeed_res = succeed.tick();
+		let succeed_res = succeed.tick(&mut ());
 		drop(succeed);
 		assert_eq!(succeed_res, Status::Failed);
 
 		let mut run = AlwaysFail::with_child(YesTick::new(Status::Running));
-		let run_res = run.tick();
+		let run_res = run.tick(&mut ());
 		drop(run);
 		assert_eq!(run_res, Status::Running);
 
 		let mut fail = AlwaysFail::with_child(YesTick::new(Status::Failed));
-		let fail_res = fail.tick();
+		let fail_res = fail.tick(&mut ());
 		drop(fail);
 		assert_eq!(fail_res, Status::Failed);
 	}
@@ -367,24 +388,24 @@ mod test
 	#[test]
 	fn always_succeed()
 	{
-		assert_eq!(AlwaysSucceed::new().tick(), Status::Succeeded);
+		assert_eq!(AlwaysSucceed::new().tick(&mut ()), Status::Succeeded);
 	}
 
 	#[test]
 	fn always_succeed_child()
 	{
 		let mut succeed = AlwaysSucceed::with_child(YesTick::new(Status::Succeeded));
-		let succeed_res = succeed.tick();
+		let succeed_res = succeed.tick(&mut ());
 		drop(succeed);
 		assert_eq!(succeed_res, Status::Succeeded);
 
 		let mut run = AlwaysSucceed::with_child(YesTick::new(Status::Running));
-		let run_res = run.tick();
+		let run_res = run.tick(&mut ());
 		drop(run);
 		assert_eq!(run_res, Status::Running);
 
 		let mut fail = AlwaysSucceed::with_child(YesTick::new(Status::Failed));
-		let fail_res = fail.tick();
+		let fail_res = fail.tick(&mut ());
 		drop(fail);
 		assert_eq!(fail_res, Status::Succeeded);
 	}
@@ -392,6 +413,6 @@ mod test
 	#[test]
 	fn always_running()
 	{
-		assert_eq!(AlwaysRunning::new().tick(), Status::Running);
+		assert_eq!(AlwaysRunning::new().tick(&mut ()), Status::Running);
 	}
 }

@@ -32,11 +32,11 @@ use status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
-/// const FIRST: u32 = 10;
-/// const SECOND: u32 = 100;
+/// const CHECK_VALUE: u32 = 100;
+/// let mut state = 10u32;
 ///
-/// let mut node = Condition::new(|| FIRST > SECOND );
-/// assert_eq!(node.tick(), Status::Failed);
+/// let mut node = Condition::new(|s| *s > CHECK_VALUE );
+/// assert_eq!(node.tick(&mut state), Status::Failed);
 /// ```
 pub struct Condition<'a, S>
 {
@@ -87,9 +87,9 @@ impl<'a, S> Internals<S> for Condition<'a, S>
 ///
 /// ```
 /// # #[macro_use] extern crate aspen;
+/// # fn test(_: &()) -> bool { false }
 /// # fn main() {
-/// # let (a, b) = (12, 13);
-/// let condition = Condition!{ || a < b };
+/// let condition = Condition!{ |s| test(s) };
 /// # }
 /// ```
 #[macro_export]
@@ -109,14 +109,14 @@ mod test
 	#[test]
 	fn failure()
 	{
-		let mut cond = Condition::new(|| false);
-		assert_eq!(cond.tick(), Status::Failed);
+		let mut cond = Condition::new(|_| false);
+		assert_eq!(cond.tick(&mut ()), Status::Failed);
 	}
 
 	#[test]
 	fn success()
 	{
-		let mut cond = Condition::new(|| true);
-		assert_eq!(cond.tick(), Status::Succeeded);
+		let mut cond = Condition::new(|_| true);
+		assert_eq!(cond.tick(&mut ()), Status::Succeeded);
 	}
 }

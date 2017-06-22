@@ -50,7 +50,7 @@ use ::Status;
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 ///
 /// A node that returns it is running:
@@ -63,7 +63,7 @@ use ::Status;
 ///     AlwaysRunning::new(),
 ///     AlwaysFail::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Running);
+/// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 ///
 /// A node that returns it failed:
@@ -76,7 +76,7 @@ use ::Status;
 ///     AlwaysSucceed::new(),
 ///     AlwaysFail::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
 pub struct ActiveSequence<'a, S>
 {
@@ -139,11 +139,10 @@ impl<'a, S> Internals<S> for ActiveSequence<'a, S>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let active_sequence = ActiveSequence!{
-///     Condition!{ || a < b },
-///     Condition!{ || c == d },
-///     Condition!{ || d < a }
+///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
+///     Condition!{ |&(_, b)| b == 9 },
+///     Condition!{ |&(a, b)| b < a }
 /// };
 /// # }
 /// ```
@@ -199,7 +198,7 @@ macro_rules! ActiveSequence
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 ///
 /// A node that returns it is running:
@@ -212,7 +211,7 @@ macro_rules! ActiveSequence
 ///     AlwaysRunning::new(),
 ///     AlwaysFail::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Running);
+/// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 ///
 /// A node that returns it failed:
@@ -225,7 +224,7 @@ macro_rules! ActiveSequence
 ///     AlwaysSucceed::new(),
 ///     AlwaysFail::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
 pub struct Sequence<'a, S>
 {
@@ -292,11 +291,10 @@ impl<'a, S> Internals<S> for Sequence<'a, S>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let selector = Selector!{
-///     Condition!{ || a < b },
-///     Condition!{ || c == d },
-///     Condition!{ || d < a }
+///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
+///     Condition!{ |&(_, b)| b == 9 },
+///     Condition!{ |&(a, b)| b < a }
 /// };
 /// # }
 /// ```
@@ -326,7 +324,7 @@ mod test
 		let mut seq = Sequence::new(children);
 
 		// Tick the sequence
-		let status = seq.tick();
+		let status = seq.tick(&mut ());
 
 		// Drop the sequence so the nodes can do their own checks
 		drop(seq);
@@ -346,7 +344,7 @@ mod test
 		let mut seq = Sequence::new(children);
 
 		// Tick the sequence
-		let status = seq.tick();
+		let status = seq.tick(&mut ());
 
 		// Drop the sequence so the nodes can do their own checks
 		drop(seq);
@@ -367,7 +365,7 @@ mod test
 		let mut seq = Sequence::new(children);
 
 		// Tick the sequence
-		let status = seq.tick();
+		let status = seq.tick(&mut ());
 
 		// Drop the sequence so the nodes can do their own checks
 		drop(seq);
@@ -388,7 +386,7 @@ mod test
 		let mut seq = ActiveSequence::new(children);
 
 		// Tick the sequence
-		let status = seq.tick();
+		let status = seq.tick(&mut ());
 
 		// Drop the sequence so the nodes can do their own checks
 		drop(seq);
@@ -408,7 +406,7 @@ mod test
 		let mut seq = ActiveSequence::new(children);
 
 		// Tick the sequence
-		let status = seq.tick();
+		let status = seq.tick(&mut ());
 
 		// Drop the sequence so the nodes can do their own checks
 		drop(seq);
@@ -429,7 +427,7 @@ mod test
 		let mut seq = ActiveSequence::new(children);
 
 		// Tick the sequence
-		let status = seq.tick();
+		let status = seq.tick(&mut ());
 
 		// Drop the sequence so the nodes can do their own checks
 		drop(seq);

@@ -15,7 +15,7 @@ impl NoTick
 }
 impl<S> Internals<S> for NoTick
 {
-	fn tick(&mut self, _: S) -> Status
+	fn tick(&mut self, _: &mut S) -> Status
 	{
 		panic!("This node should not have been ticked");
 	}
@@ -52,7 +52,7 @@ impl YesTick
 }
 impl<S> Internals<S> for YesTick
 {
-	fn tick(&mut self, _: S) -> Status
+	fn tick(&mut self, _: &mut S) -> Status
 	{
 		self.ticked = true;
 		self.status
@@ -127,7 +127,7 @@ impl CountedTick
 }
 impl<S> Internals<S> for CountedTick
 {
-	fn tick(&mut self, _: S) -> Status
+	fn tick(&mut self, _: &mut S) -> Status
 	{
 		if self.exact && self.count == self.limit {
 			panic!("Node was ticked too many times: {} actual, {} expected", self.count + 1, self.limit);

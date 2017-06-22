@@ -30,19 +30,16 @@ use status::Status;
 /// A child that will be repeated infinitely until it fails.
 ///
 /// ```
-/// # use std::cell::Cell;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
-/// let data = Cell::new(0);
-/// let child = Condition::new(|| data.get() < 10 );
+/// let child = Condition::new(|&d| d < 10 );
 /// let mut node = UntilFail::new(child);
 ///
-/// for _ in 0..10 {
-///     assert_eq!(node.tick(), Status::Running);
-///     data.set(data.get() + 1);
+/// for mut x in 0..10 {
+///     assert_eq!(node.tick(&mut x), Status::Running);
 /// }
 ///
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut 11), Status::Succeeded);
 /// ```
 ///
 /// An `UntilFail` node will fail if the child doesn't within the limit:
@@ -56,10 +53,10 @@ use status::Status;
 ///
 /// // Subtract one since our final assert counts as a try
 /// for _ in 0..(tries - 1) {
-///     assert_eq!(node.tick(), Status::Running);
+///     assert_eq!(node.tick(&mut ()), Status::Running);
 /// }
 ///
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
 pub struct UntilFail<'a, S>
 {
@@ -163,12 +160,11 @@ impl<'a, S> Internals<S> for UntilFail<'a, S>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let until_fail = UntilFail!{
-///     Condition!{ || a < b }
+///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
 /// let limited_until_fail = UntilFail!{ 12,
-///     Condition!{ || a < b }
+///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
 /// # }
 /// ```
@@ -212,19 +208,16 @@ macro_rules! UntilFail
 /// A child that will be repeated infinitely until it succeeds.
 ///
 /// ```
-/// # use std::cell::Cell;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
-/// let data = Cell::new(0);
-/// let child = Condition::new(|| data.get() == 10 );
+/// let child = Condition::new(|&d| d == 10 );
 /// let mut node = UntilSuccess::new(child);
 ///
-/// for _ in 0..10 {
-///     assert_eq!(node.tick(), Status::Running);
-///     data.set(data.get() + 1);
+/// for mut x in 0..10 {
+///     assert_eq!(node.tick(&mut x), Status::Running);
 /// }
 ///
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut 10), Status::Succeeded);
 /// ```
 ///
 /// An `UntilSuccess` node will fail if the child doesn't succeed within the limit:
@@ -238,10 +231,10 @@ macro_rules! UntilFail
 ///
 /// // Minus one since our final assert is a run
 /// for _ in 0..(runs - 1) {
-///     assert_eq!(node.tick(), Status::Running);
+///     assert_eq!(node.tick(&mut ()), Status::Running);
 /// }
 ///
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
 pub struct UntilSuccess<'a, S>
 {
@@ -345,12 +338,11 @@ impl<'a, S> Internals<S> for UntilSuccess<'a, S>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let until_success = UntilSuccess!{
-///     Condition!{ || a < b }
+///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
 /// let limited_until_success = UntilSuccess!{ 12,
-///     Condition!{ || a < b }
+///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
 /// # }
 /// ```
@@ -376,7 +368,7 @@ mod test
 	{
 		let child = CountedTick::new(Status::Failed, 1, true);
 		let mut node = UntilFail::new(child);
-		let status = node.tick();
+		let status = node.tick(&mut ());
 		drop(node);
 		assert_eq!(status, Status::Succeeded);
 	}
@@ -388,9 +380,9 @@ mod test
 		let child = CountedTick::new(Status::Succeeded, limit, true);
 		let mut node = UntilFail::with_limit(limit, child);
 		for _ in 0..(limit - 1) {
-			assert_eq!(node.tick(), Status::Running);
+			assert_eq!(node.tick(&mut ()), Status::Running);
 		}
-		let status = node.tick();
+		let status = node.tick(&mut ());
 		drop(node);
 		assert_eq!(status, Status::Failed);
 	}
@@ -400,7 +392,7 @@ mod test
 	{
 		let child = CountedTick::new(Status::Succeeded, 1, true);
 		let mut node = UntilSuccess::new(child);
-		let status = node.tick();
+		let status = node.tick(&mut ());
 		drop(node);
 		assert_eq!(status, Status::Succeeded);
 	}
@@ -412,9 +404,9 @@ mod test
 		let child = CountedTick::new(Status::Failed, limit, true);
 		let mut node = UntilSuccess::with_limit(limit, child);
 		for _ in 0..(limit - 1) {
-			assert_eq!(node.tick(), Status::Running);
+			assert_eq!(node.tick(&mut ()), Status::Running);
 		}
-		let status = node.tick();
+		let status = node.tick(&mut ());
 		drop(node);
 		assert_eq!(status, Status::Failed);
 	}

@@ -38,9 +38,9 @@ use status::Status;
 ///
 /// // Subtract one since there is a run in the assert
 /// for _ in 0..(run_limit - 1) {
-///     assert_eq!(node.tick(), Status::Running);
+///     assert_eq!(node.tick(&mut ()), Status::Running);
 /// }
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 pub struct Repeat<'a, S>
 {
@@ -137,12 +137,11 @@ impl<'a, S> Internals<S> for Repeat<'a, S>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let repeat = Repeat!{
-///     Condition!{ || a < b }
+///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
 /// let limited_repeat = Repeat!{ 12,
-///     Condition!{ || a < b }
+///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
 /// # }
 /// ```
@@ -171,9 +170,9 @@ mod test
 		let child = CountedTick::new(Status::Failed, limit, true);
 		let mut node = Repeat::with_limit(limit, child);
 		for _ in 0..(limit - 1) {
-			assert_eq!(node.tick(), Status::Running);
+			assert_eq!(node.tick(&mut ()), Status::Running);
 		}
-		let status = node.tick();
+		let status = node.tick(&mut ());
 		drop(node);
 		assert_eq!(status, Status::Succeeded);
 	}

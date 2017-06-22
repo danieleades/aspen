@@ -29,7 +29,7 @@ use status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
-/// fn invert(s: Status) -> Status
+/// fn invert(s: Status, _: &()) -> Status
 /// {
 ///     if s == Status::Succeeded { Status::Failed }
 ///     else if s == Status::Failed { Status::Succeeded }
@@ -38,7 +38,7 @@ use status::Status;
 ///
 /// let child = AlwaysSucceed::new();
 /// let mut node = Decorator::new(child, invert);
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
 pub struct Decorator<'a, S>
 {
@@ -116,7 +116,7 @@ impl<'a, S> Internals<S> for Decorator<'a, S>
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// let mut node = Invert::new(AlwaysFail::new());
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 pub struct Invert<'a, S>
 {
@@ -168,9 +168,8 @@ impl<'a, S> Internals<S> for Invert<'a, S>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let invert = Invert!{
-///     Condition!{ || a < b }
+///     Condition!{ |&a: &u32| a < 9 }
 /// };
 /// # }
 /// ```
@@ -188,7 +187,7 @@ mod test
 	use status::Status;
 	use std_nodes::*;
 
-	fn rotate(s: Status) -> Status
+	fn rotate(s: Status, _: &()) -> Status
 	{
 		match s {
 			Status::Initialized => Status::Running,
@@ -204,30 +203,30 @@ mod test
 		// Test the first rotation
 		let suc_child = YesTick::new(Status::Succeeded);
 		let mut suc_dec = Decorator::new(suc_child, rotate);
-		let suc_status = suc_dec.tick();
+		let suc_status = suc_dec.tick(&mut ());
 		drop(suc_dec);
-		assert_eq!(suc_status, rotate(Status::Succeeded));
+		assert_eq!(suc_status, rotate(Status::Succeeded, &()));
 
 		// Test the second rotation
 		let run_child = YesTick::new(Status::Running);
 		let mut run_dec = Decorator::new(run_child, rotate);
-		let run_status = run_dec.tick();
+		let run_status = run_dec.tick(&mut ());
 		drop(run_dec);
-		assert_eq!(run_status, rotate(Status::Running));
+		assert_eq!(run_status, rotate(Status::Running, &()));
 
 		// Test the final rotation
 		let fail_child = YesTick::new(Status::Failed);
 		let mut fail_dec = Decorator::new(fail_child, rotate);
-		let fail_status = fail_dec.tick();
+		let fail_status = fail_dec.tick(&mut ());
 		drop(fail_dec);
-		assert_eq!(fail_status, rotate(Status::Failed));
+		assert_eq!(fail_status, rotate(Status::Failed, &()));
 	}
 
 	#[test]
 	fn invert_success_to_failure()
 	{
 		let mut s2f = Invert::new(YesTick::new(Status::Failed));
-		let s2fs = s2f.tick();
+		let s2fs = s2f.tick(&mut ());
 		drop(s2f);
 		assert_eq!(s2fs, Status::Succeeded);
 	}
@@ -236,7 +235,7 @@ mod test
 	fn invert_failure_to_success()
 	{
 		let mut f2s = Invert::new(YesTick::new(Status::Succeeded));
-		let f2ss = f2s.tick();
+		let f2ss = f2s.tick(&mut ());
 		drop(f2s);
 		assert_eq!(f2ss, Status::Failed);
 	}
@@ -245,7 +244,7 @@ mod test
 	fn invert_running_as_running()
 	{
 		let mut r = Invert::new(YesTick::new(Status::Running));
-		let rs = r.tick();
+		let rs = r.tick(&mut ());
 		drop(r);
 		assert_eq!(rs, Status::Running);
 	}

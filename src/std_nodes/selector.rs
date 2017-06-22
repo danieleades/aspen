@@ -50,7 +50,7 @@ use ::Status;
 ///     AlwaysSucceed::new(),
 ///     AlwaysRunning::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 ///
 /// A node that returns that it is running:
@@ -63,7 +63,7 @@ use ::Status;
 ///     AlwaysRunning::new(),
 ///     AlwaysSucceed::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Running);
+/// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 ///
 /// A node that returns that it fails:
@@ -76,7 +76,7 @@ use ::Status;
 ///     AlwaysFail::new(),
 ///     AlwaysFail::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
 pub struct ActiveSelector<'a, S>
 {
@@ -142,11 +142,10 @@ impl<'a, S> Internals<S> for ActiveSelector<'a, S>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let active_selector = ActiveSelector!{
-///     Condition!{ || a < b },
-///     Condition!{ || c == d },
-///     Condition!{ || d < a }
+///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
+///     Condition!{ |&(_, b)| b == 9 },
+///     Condition!{ |&(a, b)| a < b }
 /// };
 /// # }
 /// ```
@@ -201,7 +200,7 @@ macro_rules! ActiveSelector
 ///     AlwaysSucceed::new(),
 ///     AlwaysRunning::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 ///
 /// A node that returns that it is running:
@@ -214,7 +213,7 @@ macro_rules! ActiveSelector
 ///     AlwaysRunning::new(),
 ///     AlwaysSucceed::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Running);
+/// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 ///
 /// A node that returns that it fails:
@@ -227,7 +226,7 @@ macro_rules! ActiveSelector
 ///     AlwaysFail::new(),
 ///     AlwaysFail::new()
 /// ]);
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
 pub struct Selector<'a, S>
 {
@@ -300,11 +299,10 @@ impl<'a, S> Internals<S> for Selector<'a, S>
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let selector = Selector!{
-///     Condition!{ || a < b },
-///     Condition!{ || c == d },
-///     Condition!{ || d < a }
+///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
+///     Condition!{ |&(_, b)| b == 9 },
+///     Condition!{ |&(a, b)| b < a }
 /// };
 /// # }
 /// ```
@@ -334,7 +332,7 @@ mod test
 		let mut sel = Selector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick();
+		let status = sel.tick(&mut ());
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);
@@ -355,7 +353,7 @@ mod test
 		let mut sel = Selector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick();
+		let status = sel.tick(&mut ());
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);
@@ -375,7 +373,7 @@ mod test
 		let mut sel = Selector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick();
+		let status = sel.tick(&mut ());
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);
@@ -396,7 +394,7 @@ mod test
 		let mut sel = ActiveSelector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick();
+		let status = sel.tick(&mut ());
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);
@@ -417,7 +415,7 @@ mod test
 		let mut sel = ActiveSelector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick();
+		let status = sel.tick(&mut ());
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);
@@ -437,7 +435,7 @@ mod test
 		let mut sel = ActiveSelector::new(children);
 
 		// Tick the seluence
-		let status = sel.tick();
+		let status = sel.tick(&mut ());
 
 		// Drop the selector so the nodes can do their own checks
 		drop(sel);

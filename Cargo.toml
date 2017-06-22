@@ -11,3 +11,6 @@ documentation = "https://docs.rs/aspen"
 repository = "https://gitlab.com/neachdainn/aspen.git"
 
 readme = "README.adoc"
+
+[dependencies]
+log = "0.3.8"

@@ -55,7 +55,7 @@ use status::Status;
 ///     AlwaysFail::new()
 /// ]);
 ///
-/// assert_eq!(node.tick(), Status::Succeeded);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 ///
 /// A node that could either succeed or fail, so it is still running:
@@ -72,7 +72,7 @@ use status::Status;
 ///     AlwaysFail::new()
 /// ]);
 ///
-/// assert_eq!(node.tick(), Status::Running);
+/// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 ///
 /// A node that could not possibly succeed, so it fails:
@@ -89,7 +89,7 @@ use status::Status;
 ///     AlwaysFail::new()
 /// ]);
 ///
-/// assert_eq!(node.tick(), Status::Failed);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
 pub struct Parallel<'a, S>
 {
@@ -181,9 +181,9 @@ impl<'a, S> Internals<S> for Parallel<'a, S>
 /// # fn main() {
 /// # let (a, b, c, d) = (12, 13, 11, 10);
 /// let parallel = Parallel!{ 3,
-///     Condition!{ || a < b },
-///     Condition!{ || c == d },
-///     Condition!{ || d < a }
+///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
+///     Condition!{ |&(_, b)| b == 9 },
+///     Condition!{ |&(a, b)| a < b }
 /// };
 /// # }
 /// ```
@@ -211,7 +211,7 @@ mod test
 		                    YesTick::new(Status::Failed),
 		                    YesTick::new(Status::Failed)];
 		let mut parallel = Parallel::new(2, children);
-		let status = parallel.tick();
+		let status = parallel.tick(&mut ());
 		drop(parallel);
 		assert_eq!(status, Status::Succeeded);
 	}
@@ -226,7 +226,7 @@ mod test
 		                    YesTick::new(Status::Failed),
 		                    YesTick::new(Status::Failed)];
 		let mut parallel = Parallel::new(5, children);
-		let status = parallel.tick();
+		let status = parallel.tick(&mut ());
 		drop(parallel);
 		assert_eq!(status, Status::Failed);
 	}
@@ -241,7 +241,7 @@ mod test
 		                    YesTick::new(Status::Failed),
 		                    YesTick::new(Status::Failed)];
 		let mut parallel = Parallel::new(3, children);
-		let status = parallel.tick();
+		let status = parallel.tick(&mut ());
 		drop(parallel);
 		assert_eq!(status, Status::Running);
 	}

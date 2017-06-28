@@ -86,7 +86,7 @@ pub struct ActiveSelector<'a, S>
 impl<'a, S> ActiveSelector<'a, S>
 	where S: 'a
 {
-	/// Creates a new Selector node from a vector of Nodes.
+	/// Creates a new ActiveSelector node from a vector of Nodes.
 	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
 	{
 		let internals = ActiveSelector { children: children };

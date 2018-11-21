@@ -10,4 +10,4 @@ documentation = "https://docs.rs/aspen"
 readme = "README.adoc"
 
 [dependencies]
-log = "0.3.8"
+log = "0.4.6"

@@ -196,10 +196,11 @@ macro_rules! Parallel
 }
 
 #[cfg(test)]
-mod test
+mod tests
 {
 	use crate::status::Status;
 	use crate::std_nodes::*;
+	use crate::node::Tickable;
 
 	#[test]
 	fn success()

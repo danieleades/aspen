@@ -283,6 +283,7 @@ mod test
 	use std::thread;
 	use crate::status::Status;
 	use crate::std_nodes::*;
+	use crate::node::Tickable;
 
 	#[test]
 	fn failure()

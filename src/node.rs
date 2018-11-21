@@ -1,7 +1,7 @@
 //! Behavior tree nodes and internal node logic.
 
-use std::fmt;
 use crate::status::Status;
+use std::fmt;
 
 /// Represents a generic node.
 ///
@@ -12,8 +12,7 @@ use crate::status::Status;
 ///
 /// This class is largely just a wrapper around an `Tickable` object. This is
 /// to enforce some runtime behavior.
-pub struct Node<'a, S>
-{
+pub struct Node<'a, S> {
 	/// The status from the last time this node was ticked.
 	status: Status,
 
@@ -25,13 +24,13 @@ pub struct Node<'a, S>
 	/// If present, it will be used instead of the type name.
 	name: Option<String>,
 }
-impl<'a, S> Node<'a, S>
-{
+impl<'a, S> Node<'a, S> {
 	/// Creates a new `Node` with the given `Tickable`.
 	///
 	/// The internals are used to govern the tick logic of the node.
 	pub fn new<I>(internals: I) -> Node<'a, S>
-		where I: Tickable<S> + 'a
+	where
+		I: Tickable<S> + 'a,
 	{
 		Node {
 			status: Status::Initialized,
@@ -40,13 +39,48 @@ impl<'a, S> Node<'a, S>
 		}
 	}
 
+	/// Gets the current status of the node.
+	///
+	/// This value will match the return value of the last call to `Node::tick`.
+	pub fn status(&self) -> Status {
+		self.status
+	}
+
+	/// Returns the name of this node.
+	///
+	/// Unless this node was renamed via the `named` method, this will be the
+	/// type name of the underlying `Tickable` object.
+	pub fn name(&self) -> &str {
+		if let Some(ref name) = self.name {
+			name
+		} else {
+			(*self.internals).type_name()
+		}
+	}
+
+	/// Sets the name for this particular node.
+	pub fn named<T: Into<Option<String>>>(mut self, name: T) -> Node<'a, S> {
+		// We consume the node and return it to fit better into the current
+		// pattern of making trees. By using a reference, named nodes would not
+		// be able to be made inline. This also makes the macros look much nicer.
+		let new_name = name.into();
+		if let Some(ref s) = new_name {
+			trace!("Renaming node from {} to {}", self.name(), s);
+		} else {
+			trace!("Removing name from {}", self.name());
+		}
+		self.name = new_name;
+		self
+	}
+}
+
+impl<'a, S> Tickable<S> for Node<'a, S> {
 	/// Ticks the node a single time.
 	///
 	/// If the node is currently considered to have run to completion, this
 	/// will call `Node::reset` on the node before calling the internal tick
 	/// logic.
-	pub fn tick(&mut self, world: &mut S) -> Status
-	{
+	fn tick(&mut self, world: &mut S) -> Status {
 		// Reset the node if it's already completed
 		if self.status.is_done() {
 			self.reset();
@@ -63,8 +97,7 @@ impl<'a, S> Node<'a, S>
 	/// This returns the node to a state that is identical to when it was first
 	/// created. If the node state is still `Initialized`, then the internal
 	/// reset method will not be called.
-	pub fn reset(&mut self)
-	{
+	fn reset(&mut self) {
 		if self.status != Status::Initialized {
 			trace!("Resetting node {} ({:?})", self.name(), self.status());
 			self.status = Status::Initialized;
@@ -72,55 +105,21 @@ impl<'a, S> Node<'a, S>
 		}
 	}
 
-	/// Gets the current status of the node.
-	///
-	/// This value will match the return value of the last call to `Node::tick`.
-	pub fn status(&self) -> Status
-	{
-		self.status
-	}
-
 	/// Returns a vector containing references to all of this node's children.
 	///
 	/// This is likely the most unstable part of Aspen, use with caution.
-	pub fn children(&self) -> Vec<&Node<S>>
-	{
+	fn children(&self) -> Vec<&Node<S>> {
 		(*self.internals).children()
 	}
 
-	/// Returns the name of this node.
-	///
-	/// Unless this node was renamed via the `named` method, this will be the
-	/// type name of the underlying `Tickable` object.
-	pub fn name(&self) -> &str
-	{
-		if let Some(ref name) = self.name {
-			name
-		} else { (*self.internals).type_name() }
-	}
-
-	/// Sets the name for this particular node.
-	pub fn named<T: Into<Option<String>>>(mut self, name: T) -> Node<'a, S>
-	{
-
-		// We consume the node and return it to fit better into the current
-		// pattern of making trees. By using a reference, named nodes would not
-		// be able to be made inline. This also makes the macros look much nicer.
-		let new_name = name.into();
-		if let Some(ref s) = new_name {
-			trace!("Renaming node from {} to {}", self.name(), s);
-		}
-		else {
-			trace!("Removing name from {}", self.name());
-		}
-		self.name = new_name;
-		self
+	///Returns the type of the node as a string literal
+	fn type_name(&self) -> &str {
+		self.internals.type_name()
 	}
 }
-impl<'a, S> fmt::Display for Node<'a, S>
-{
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
-	{
+
+impl<'a, S> fmt::Display for Node<'a, S> {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		write!(f, "{}:( status = {:?}", self.name(), self.status())?;
 		for child in self.children() {
 			write!(f, ", {}", child)?;
@@ -133,8 +132,7 @@ impl<'a, S> fmt::Display for Node<'a, S>
 ///
 /// This is the object that controls the tick behavior of the `Node`, with
 /// `Node` just being a wrapper to enforce some runtime behavior.
-pub trait Tickable<S>
-{
+pub trait Tickable<S> {
 	/// Ticks the internal state of the node a single time.
 	///
 	/// Node internals should not automatically reset themselves. If a node has
@@ -157,8 +155,7 @@ pub trait Tickable<S>
 	/// leaf node.
 	///
 	/// This is likely the most unstable part of Aspen, use with caution.
-	fn children(&self) -> Vec<&Node<S>>
-	{
+	fn children(&self) -> Vec<&Node<S>> {
 		Vec::new()
 	}
 
@@ -167,13 +164,5 @@ pub trait Tickable<S>
 	/// In general, this should be the name of the node type.
 	/// The type_name should be fixed for all instances of a
 	/// node type
-	fn type_name(&self) -> &'static str;
-
-	/// Optionally return a nickname as a string literal.
-	/// 
-	/// Implementors may use this method to add a nickname
-	/// to a node.
-	fn name(&self) -> Option<&str> {
-		None
-	}
+	fn type_name(&self) -> &str;
 }

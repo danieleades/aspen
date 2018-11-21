@@ -2,7 +2,7 @@ use std::time::{Instant, Duration};
 use std::thread;
 use std::fmt;
 
-use crate::node::Node;
+use crate::node::{Node, Tickable};
 use crate::status::Status;
 
 /// Main behavior tree struct.

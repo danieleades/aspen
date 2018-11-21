@@ -307,10 +307,11 @@ macro_rules! Sequence
 }
 
 #[cfg(test)]
-mod test
+mod tests
 {
 	use crate::Status;
 	use crate::std_nodes::*;
+	use crate::node::Tickable;
 
 	#[test]
 	fn check_running()

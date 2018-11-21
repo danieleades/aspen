@@ -355,10 +355,11 @@ macro_rules! AlwaysRunning
 }
 
 #[cfg(test)]
-mod test
+mod tests
 {
 	use crate::status::Status;
 	use crate::std_nodes::*;
+	use crate::node::Tickable;
 
 	#[test]
 	fn always_fail()

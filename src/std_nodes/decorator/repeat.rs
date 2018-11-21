@@ -157,10 +157,11 @@ macro_rules! Repeat
 }
 
 #[cfg(test)]
-mod test
+mod tests
 {
 	use crate::status::Status;
 	use crate::std_nodes::*;
+	use crate::node::Tickable;
 
 	#[test]
 	fn repeat_finite()

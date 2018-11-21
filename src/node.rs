@@ -164,8 +164,16 @@ pub trait Tickable<S>
 
 	/// Returns the type of the node as a string literal.
 	///
-	/// In general, this should be the name of the node type. However, there
-	/// are plans to add a "name" property to the `Node` struct, at which point
-	/// this function will be depricated.
+	/// In general, this should be the name of the node type.
+	/// The type_name should be fixed for all instances of a
+	/// node type
 	fn type_name(&self) -> &'static str;
+
+	/// Optionally return a nickname as a string literal.
+	/// 
+	/// Implementors may use this method to add a nickname
+	/// to a node.
+	fn name(&self) -> Option<&str> {
+		None
+	}
 }

@@ -1,5 +1,5 @@
-use node::{Node, Internals};
-use status::Status;
+use crate::node::{Node, Internals};
+use crate::status::Status;
 
 /// A node that repeats its child until the child fails.
 ///
@@ -360,8 +360,8 @@ macro_rules! UntilSuccess
 #[cfg(test)]
 mod test
 {
-	use status::Status;
-	use std_nodes::*;
+	use crate::status::Status;
+	use crate::std_nodes::*;
 
 	#[test]
 	fn until_fail_infinite()

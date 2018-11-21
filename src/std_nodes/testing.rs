@@ -1,7 +1,7 @@
 //! Standard nodes used for debugging purposes.
 use std::ops::Drop;
-use node::{Node, Internals};
-use status::Status;
+use crate::node::{Node, Internals};
+use crate::status::Status;
 
 /// Implements a node that will panic upon being ticked.
 pub struct NoTick;

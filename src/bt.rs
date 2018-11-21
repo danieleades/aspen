@@ -2,8 +2,8 @@ use std::time::{Instant, Duration};
 use std::thread;
 use std::fmt;
 
-use node::Node;
-use status::Status;
+use crate::node::Node;
+use crate::status::Status;
 
 /// Main behavior tree struct.
 pub struct BehaviorTree<'a, S>

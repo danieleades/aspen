@@ -1,5 +1,5 @@
-use node::{Node, Internals};
-use status::Status;
+use crate::node::{Node, Internals};
+use crate::status::Status;
 
 /// A node whose status is determined by running a function on its child's status.
 ///
@@ -184,8 +184,8 @@ macro_rules! Invert
 #[cfg(test)]
 mod test
 {
-	use status::Status;
-	use std_nodes::*;
+	use crate::status::Status;
+	use crate::std_nodes::*;
 
 	fn rotate(s: Status, _: &()) -> Status
 	{

@@ -1,7 +1,7 @@
 //! Behavior tree nodes and internal node logic.
 
 use std::fmt;
-use status::Status;
+use crate::status::Status;
 
 /// Represents a generic node.
 ///

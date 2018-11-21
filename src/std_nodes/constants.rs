@@ -1,6 +1,6 @@
 //! Nodes that have a constant behavior.
-use node::{Node, Internals};
-use status::Status;
+use crate::node::{Node, Internals};
+use crate::status::Status;
 
 /// Implements a node that always returns that it has failed.
 ///
@@ -357,8 +357,8 @@ macro_rules! AlwaysRunning
 #[cfg(test)]
 mod test
 {
-	use status::Status;
-	use std_nodes::*;
+	use crate::status::Status;
+	use crate::std_nodes::*;
 
 	#[test]
 	fn always_fail()

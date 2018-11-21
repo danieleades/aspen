@@ -1,6 +1,6 @@
 //! Nodes that have children and tick them in a sequential order as long as they fail.
-use node::{Node, Internals};
-use ::Status;
+use crate::node::{Node, Internals};
+use crate::Status;
 
 /// A node that ticks its children sequentially as long as they fail.
 ///
@@ -317,8 +317,8 @@ macro_rules! Selector
 #[cfg(test)]
 mod test
 {
-	use ::Status;
-	use std_nodes::*;
+	use crate::Status;
+	use crate::std_nodes::*;
 
 	#[test]
 	fn check_running()

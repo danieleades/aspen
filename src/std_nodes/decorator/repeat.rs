@@ -1,5 +1,5 @@
-use node::{Node, Internals};
-use status::Status;
+use crate::node::{Node, Internals};
+use crate::status::Status;
 
 /// A node that will repeat its child a specific number of times, possibly infinite.
 ///
@@ -159,8 +159,8 @@ macro_rules! Repeat
 #[cfg(test)]
 mod test
 {
-	use status::Status;
-	use std_nodes::*;
+	use crate::status::Status;
+	use crate::std_nodes::*;
 
 	#[test]
 	fn repeat_finite()

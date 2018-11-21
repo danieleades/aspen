@@ -3,8 +3,8 @@ use std::thread;
 use std::sync::Arc;
 use std::sync::mpsc;
 use std::sync::mpsc::TryRecvError;
-use node::{Node, Internals};
-use status::Status;
+use crate::node::{Node, Internals};
+use crate::status::Status;
 
 /// A node that manages the execution of tasks in a separate thread.
 ///
@@ -281,8 +281,8 @@ mod test
 	use std::sync::{mpsc, Mutex};
 	use std::time;
 	use std::thread;
-	use status::Status;
-	use std_nodes::*;
+	use crate::status::Status;
+	use crate::std_nodes::*;
 
 	#[test]
 	fn failure()

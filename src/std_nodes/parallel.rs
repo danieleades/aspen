@@ -1,6 +1,6 @@
 //! Nodes that tick their children in parallel
-use node::{Node, Internals};
-use status::Status;
+use crate::node::{Node, Internals};
+use crate::status::Status;
 
 /// A node that handles "concurrent" behavior.
 ///
@@ -198,8 +198,8 @@ macro_rules! Parallel
 #[cfg(test)]
 mod test
 {
-	use status::Status;
-	use std_nodes::*;
+	use crate::status::Status;
+	use crate::std_nodes::*;
 
 	#[test]
 	fn success()

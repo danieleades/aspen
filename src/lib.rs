@@ -15,11 +15,11 @@
 extern crate log;
 
 mod bt;
-pub use bt::BehaviorTree;
+pub use crate::bt::BehaviorTree;
 
 pub mod node;
 
 mod status;
-pub use status::Status;
+pub use crate::status::Status;
 
 pub mod std_nodes;

@@ -3,7 +3,7 @@ use std::thread;
 use std::sync::Arc;
 use std::sync::mpsc;
 use std::sync::mpsc::TryRecvError;
-use crate::node::{Node, Internals};
+use crate::node::{Node, Tickable};
 use crate::status::Status;
 
 /// A node that manages the execution of tasks in a separate thread.
@@ -101,7 +101,7 @@ impl<S> Action<S>
 		self.rx = Some(rx);
 	}
 }
-impl<S> Internals<S> for Action<S>
+impl<S> Tickable<S> for Action<S>
 	where S: Clone + Send + Sync + 'static
 {
 	/// Ticks the Action node a single time.
@@ -236,7 +236,7 @@ impl<'a, S> InlineAction<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Internals<S> for InlineAction<'a, S>
+impl<'a, S> Tickable<S> for InlineAction<'a, S>
 {
 	fn tick(&mut self, world: &mut S) -> Status
 	{

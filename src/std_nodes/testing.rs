@@ -1,6 +1,6 @@
 //! Standard nodes used for debugging purposes.
 use std::ops::Drop;
-use crate::node::{Node, Internals};
+use crate::node::{Node, Tickable};
 use crate::status::Status;
 
 /// Implements a node that will panic upon being ticked.
@@ -13,7 +13,7 @@ impl NoTick
 		Node::new(NoTick { })
 	}
 }
-impl<S> Internals<S> for NoTick
+impl<S> Tickable<S> for NoTick
 {
 	fn tick(&mut self, _: &mut S) -> Status
 	{
@@ -50,7 +50,7 @@ impl YesTick
 		Node::new(internals)
 	}
 }
-impl<S> Internals<S> for YesTick
+impl<S> Tickable<S> for YesTick
 {
 	fn tick(&mut self, _: &mut S) -> Status
 	{
@@ -125,7 +125,7 @@ impl CountedTick
 		Node::new(internals)
 	}
 }
-impl<S> Internals<S> for CountedTick
+impl<S> Tickable<S> for CountedTick
 {
 	fn tick(&mut self, _: &mut S) -> Status
 	{

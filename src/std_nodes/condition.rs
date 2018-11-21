@@ -1,5 +1,5 @@
 //! Nodes which query the state of the world.
-use crate::node::{Node, Internals};
+use crate::node::{Node, Tickable};
 use crate::status::Status;
 
 /// A node whose status is determined by a function.
@@ -57,7 +57,7 @@ impl<'a, S> Condition<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Internals<S> for Condition<'a, S>
+impl<'a, S> Tickable<S> for Condition<'a, S>
 {
 	fn tick(&mut self, world: &mut S) -> Status
 	{

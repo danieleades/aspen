@@ -1,4 +1,4 @@
-use crate::node::{Node, Internals};
+use crate::node::{Node, Tickable};
 use crate::status::Status;
 
 /// A node whose status is determined by running a function on its child's status.
@@ -60,7 +60,7 @@ impl<'a, S> Decorator<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Internals<S> for Decorator<'a, S>
+impl<'a, S> Tickable<S> for Decorator<'a, S>
 {
 	fn tick(&mut self, world: &mut S) -> Status
 	{
@@ -132,7 +132,7 @@ impl<'a, S> Invert<'a, S>
 		Node::new(Invert { child: child })
 	}
 }
-impl<'a, S> Internals<S> for Invert<'a, S>
+impl<'a, S> Tickable<S> for Invert<'a, S>
 {
 	fn tick(&mut self, world: &mut S) -> Status
 	{

@@ -1,5 +1,5 @@
 //! Nodes that have children and tick them in a sequential order as long as they succeed.
-use crate::node::{Node, Internals};
+use crate::node::{Node, Tickable};
 use crate::Status;
 
 /// A node that will tick its children in order as long as they succeed.
@@ -93,7 +93,7 @@ impl<'a, S> ActiveSequence<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Internals<S> for ActiveSequence<'a, S>
+impl<'a, S> Tickable<S> for ActiveSequence<'a, S>
 {
 	fn tick(&mut self, world: &mut S) -> Status
 	{
@@ -245,7 +245,7 @@ impl<'a, S> Sequence<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Internals<S> for Sequence<'a, S>
+impl<'a, S> Tickable<S> for Sequence<'a, S>
 {
 	fn tick(&mut self, world: &mut S) -> Status
 	{

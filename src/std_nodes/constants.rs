@@ -1,5 +1,5 @@
 //! Nodes that have a constant behavior.
-use crate::node::{Node, Internals};
+use crate::node::{Node, Tickable};
 use crate::status::Status;
 
 /// Implements a node that always returns that it has failed.
@@ -70,7 +70,7 @@ impl<'a, S> AlwaysFail<'a, S>
 		Node::new(AlwaysFail { child: Some(child) })
 	}
 }
-impl<'a, S> Internals<S> for AlwaysFail<'a, S>
+impl<'a, S> Tickable<S> for AlwaysFail<'a, S>
 {
 	fn tick(&mut self, world: &mut S) -> Status
 	{
@@ -210,7 +210,7 @@ impl<'a, S> AlwaysSucceed<'a, S>
 		Node::new(AlwaysSucceed { child: Some(child) })
 	}
 }
-impl<'a, S> Internals<S> for AlwaysSucceed<'a, S>
+impl<'a, S> Tickable<S> for AlwaysSucceed<'a, S>
 {
 	fn tick(&mut self, world: &mut S) -> Status
 	{
@@ -316,7 +316,7 @@ impl AlwaysRunning
 		Node::new(AlwaysRunning { })
 	}
 }
-impl<S> Internals<S> for AlwaysRunning
+impl<S> Tickable<S> for AlwaysRunning
 {
 	fn tick(&mut self, _: &mut S) -> Status
 	{

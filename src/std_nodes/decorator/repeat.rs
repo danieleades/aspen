@@ -1,4 +1,4 @@
-use crate::node::{Node, Internals};
+use crate::node::{Node, Tickable};
 use crate::status::Status;
 
 /// A node that will repeat its child a specific number of times, possibly infinite.
@@ -81,7 +81,7 @@ impl<'a, S> Repeat<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Internals<S> for Repeat<'a, S>
+impl<'a, S> Tickable<S> for Repeat<'a, S>
 {
 	fn tick(&mut self, world: &mut S) -> Status
 	{

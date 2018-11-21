@@ -5,12 +5,12 @@ use crate::status::Status;
 
 /// Represents a generic node.
 ///
-/// The logic of the node is controlled by the supplied `Internals` object.
+/// The logic of the node is controlled by the supplied `Tickable` object.
 /// Nodes are considered to have been run to completion when they return either
 /// `Status::Succeeded` or `Status::Failed` when ticked. If they are ticked after
 /// completion, they will be reset before the tick logic is executed.
 ///
-/// This class is largely just a wrapper around an `Internals` object. This is
+/// This class is largely just a wrapper around an `Tickable` object. This is
 /// to enforce some runtime behavior.
 pub struct Node<'a, S>
 {
@@ -18,7 +18,7 @@ pub struct Node<'a, S>
 	status: Status,
 
 	/// The internal logic for this node.
-	internals: Box<Internals<S> + 'a>,
+	internals: Box<Tickable<S> + 'a>,
 
 	/// The name for this node.
 	///
@@ -27,11 +27,11 @@ pub struct Node<'a, S>
 }
 impl<'a, S> Node<'a, S>
 {
-	/// Creates a new `Node` with the given `Internals`.
+	/// Creates a new `Node` with the given `Tickable`.
 	///
 	/// The internals are used to govern the tick logic of the node.
 	pub fn new<I>(internals: I) -> Node<'a, S>
-		where I: Internals<S> + 'a
+		where I: Tickable<S> + 'a
 	{
 		Node {
 			status: Status::Initialized,
@@ -91,7 +91,7 @@ impl<'a, S> Node<'a, S>
 	/// Returns the name of this node.
 	///
 	/// Unless this node was renamed via the `named` method, this will be the
-	/// type name of the underlying `Internals` object.
+	/// type name of the underlying `Tickable` object.
 	pub fn name(&self) -> &str
 	{
 		if let Some(ref name) = self.name {
@@ -133,7 +133,7 @@ impl<'a, S> fmt::Display for Node<'a, S>
 ///
 /// This is the object that controls the tick behavior of the `Node`, with
 /// `Node` just being a wrapper to enforce some runtime behavior.
-pub trait Internals<S>
+pub trait Tickable<S>
 {
 	/// Ticks the internal state of the node a single time.
 	///
@@ -141,7 +141,7 @@ pub trait Internals<S>
 	/// been run to completion, the `Node` that holds this object will call
 	/// `reset` before ticking the node.
 	///
-	/// In other words, the `Internals` will only ever be ticked when the node
+	/// In other words, the `Tickable` will only ever be ticked when the node
 	/// state is either `Status::Running` or `Status::Initialized`.
 	fn tick(&mut self, world: &mut S) -> Status;
 

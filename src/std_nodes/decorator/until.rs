@@ -1,4 +1,4 @@
-use crate::node::{Node, Internals};
+use crate::node::{Node, Tickable};
 use crate::status::Status;
 
 /// A node that repeats its child until the child fails.
@@ -97,7 +97,7 @@ impl<'a, S> UntilFail<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Internals<S> for UntilFail<'a, S>
+impl<'a, S> Tickable<S> for UntilFail<'a, S>
 {
 	fn tick(&mut self, world: &mut S) -> Status
 	{
@@ -275,7 +275,7 @@ impl<'a, S> UntilSuccess<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Internals<S> for UntilSuccess<'a, S>
+impl<'a, S> Tickable<S> for UntilSuccess<'a, S>
 {
 	fn tick(&mut self, world: &mut S) -> Status
 	{

@@ -1,5 +1,5 @@
 //! Nodes that tick their children in parallel
-use crate::node::{Node, Internals};
+use crate::node::{Node, Tickable};
 use crate::status::Status;
 
 /// A node that handles "concurrent" behavior.
@@ -112,7 +112,7 @@ impl<'a, S> Parallel<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Internals<S> for Parallel<'a, S>
+impl<'a, S> Tickable<S> for Parallel<'a, S>
 {
 	fn tick(&mut self, world: &mut S) -> Status
 	{

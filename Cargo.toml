@@ -8,6 +8,7 @@ keywords = ["behavior", "tree", "fsm", "state", "ai"]
 documentation = "https://docs.rs/aspen"
 repository = "https://github.com/danieleades/aspen"
 readme = "README.adoc"
+edition = "2018"
 
 [dependencies]
 log = "0.4.6"

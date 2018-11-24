@@ -53,29 +53,29 @@ use crate::status::Status;
 /// let mut node = AlwaysFail::with_child(AlwaysSucceed::new());
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct AlwaysFail<'a, S>
+pub struct AlwaysFail<'a, W>
 {
 	/// Optional child node.
-	child: Option<Node<'a, S>>,
+	child: Option<Node<'a, W>>,
 }
-impl<'a, S> AlwaysFail<'a, S>
-	where S: 'a
+impl<'a, W> AlwaysFail<'a, W>
+	where W: 'a
 {
 	/// Construct a new AlwaysFail node.
-	pub fn new() -> Node<'a, S>
+	pub fn new() -> Node<'a, W>
 	{
 		Node::new(AlwaysFail { child: None })
 	}
 
 	/// Construct a new AlwaysFail node that has a child.
-	pub fn with_child(child: Node<'a, S>) -> Node<'a, S>
+	pub fn with_child(child: Node<'a, W>) -> Node<'a, W>
 	{
 		Node::new(AlwaysFail { child: Some(child) })
 	}
 }
-impl<'a, S> Tickable<S> for AlwaysFail<'a, S>
+impl<'a, W> Tickable<W> for AlwaysFail<'a, W>
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		if let Some(ref mut child) = self.child {
 			if !child.tick(world).is_done() {
@@ -93,7 +93,7 @@ impl<'a, S> Tickable<S> for AlwaysFail<'a, S>
 		}
 	}
 
-	fn children(&self) -> Vec<&Node<S>>
+	fn children(&self) -> Vec<&Node<W>>
 	{
 		if let Some(ref child) = self.child {
 			vec![child]
@@ -196,29 +196,29 @@ macro_rules! AlwaysFail
 /// let mut node = AlwaysSucceed::with_child(AlwaysFail::new());
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
-pub struct AlwaysSucceed<'a, S>
+pub struct AlwaysSucceed<'a, W>
 {
 	/// Optional child node.
-	child: Option<Node<'a, S>>,
+	child: Option<Node<'a, W>>,
 }
-impl<'a, S> AlwaysSucceed<'a, S>
-	where S: 'a
+impl<'a, W> AlwaysSucceed<'a, W>
+	where W: 'a
 {
 	/// Construct a new AlwaysSucceed node.
-	pub fn new() -> Node<'a, S>
+	pub fn new() -> Node<'a, W>
 	{
 		Node::new(AlwaysSucceed { child: None })
 	}
 
 	/// Construct a new AlwaysSucceed node with a child.
-	pub fn with_child(child: Node<'a, S>) -> Node<'a, S>
+	pub fn with_child(child: Node<'a, W>) -> Node<'a, W>
 	{
 		Node::new(AlwaysSucceed { child: Some(child) })
 	}
 }
-impl<'a, S> Tickable<S> for AlwaysSucceed<'a, S>
+impl<'a, W> Tickable<W> for AlwaysSucceed<'a, W>
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		if let Some(ref mut child) = self.child {
 			if !child.tick(world).is_done() {
@@ -229,7 +229,7 @@ impl<'a, S> Tickable<S> for AlwaysSucceed<'a, S>
 		Status::Succeeded
 	}
 
-	fn children(&self) -> Vec<&Node<S>>
+	fn children(&self) -> Vec<&Node<W>>
 	{
 		if let Some(ref child) = self.child {
 			vec![child]
@@ -318,14 +318,14 @@ pub struct AlwaysRunning;
 impl AlwaysRunning
 {
 	/// Construct a new AlwaysRunning node.
-	pub fn new<S>() -> Node<'static, S>
+	pub fn new<W>() -> Node<'static, W>
 	{
 		Node::new(AlwaysRunning { })
 	}
 }
-impl<S> Tickable<S> for AlwaysRunning
+impl<W> Tickable<W> for AlwaysRunning
 {
-	fn tick(&mut self, _: &mut S) -> Status
+	fn tick(&mut self, _: &mut W) -> Status
 	{
 		Status::Running
 	}

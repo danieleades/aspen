@@ -81,24 +81,24 @@ use crate::Status;
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct ActiveSelector<'a, S>
+pub struct ActiveSelector<'a, W>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node<'a, S>>,
+	children: Vec<Node<'a, W>>,
 }
-impl<'a, S> ActiveSelector<'a, S>
-	where S: 'a
+impl<'a, W> ActiveSelector<'a, W>
+	where W: 'a
 {
 	/// Creates a new ActiveSelector node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
+	pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W>
 	{
 		let internals = ActiveSelector { children: children };
 		Node::new(internals)
 	}
 }
-impl<'a, S> Tickable<S> for ActiveSelector<'a, S>
+impl<'a, W> Tickable<W> for ActiveSelector<'a, W>
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		// Tick the children in order
 		let mut ret_status = Status::Failed;
@@ -126,7 +126,7 @@ impl<'a, S> Tickable<S> for ActiveSelector<'a, S>
 		}
 	}
 
-	fn children(&self) -> Vec<&Node<S>>
+	fn children(&self) -> Vec<&Node<W>>
 	{
 		self.children.iter().collect()
 	}
@@ -234,10 +234,10 @@ macro_rules! ActiveSelector
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct Selector<'a, S>
+pub struct Selector<'a, W>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node<'a, S>>,
+	children: Vec<Node<'a, W>>,
 
 	/// The next child to be ticked.
 	///
@@ -245,11 +245,11 @@ pub struct Selector<'a, S>
 	/// iterator version that I could come up with.
 	next_child: usize,
 }
-impl<'a, S> Selector<'a, S>
-	where S: Clone + 'a
+impl<'a, W> Selector<'a, W>
+	where W: Clone + 'a
 {
 	/// Creates a new Selector node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
+	pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W>
 	{
 		let internals = Selector {
 			children: children,
@@ -258,10 +258,10 @@ impl<'a, S> Selector<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Tickable<S> for Selector<'a, S>
-	where S: Clone
+impl<'a, W> Tickable<W> for Selector<'a, W>
+	where W: Clone
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		// Tick the children as long as they keep failing
 		let mut ret_status = Status::Failed;
@@ -286,7 +286,7 @@ impl<'a, S> Tickable<S> for Selector<'a, S>
 		self.next_child = 0;
 	}
 
-	fn children(&self) -> Vec<&Node<S>>
+	fn children(&self) -> Vec<&Node<W>>
 	{
 		self.children.iter().collect()
 	}

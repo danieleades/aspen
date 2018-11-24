@@ -60,10 +60,10 @@ use crate::status::Status;
 ///
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct UntilFail<'a, S>
+pub struct UntilFail<'a, W>
 {
 	/// Child node.
-	child: Node<'a, S>,
+	child: Node<'a, W>,
 
 	/// Optional number of times to do the reset.
 	attempt_limit: Option<u32>,
@@ -71,11 +71,11 @@ pub struct UntilFail<'a, S>
 	/// Number of times the child has been reset.
 	attempts: u32,
 }
-impl<'a, S> UntilFail<'a, S>
-	where S: 'a
+impl<'a, W> UntilFail<'a, W>
+	where W: 'a
 {
 	/// Creates a new `UntilFail` node that will keep trying indefinitely.
-	pub fn new(child: Node<'a, S>) -> Node<'a, S>
+	pub fn new(child: Node<'a, W>) -> Node<'a, W>
 	{
 		let internals = UntilFail {
 			child: child,
@@ -89,7 +89,7 @@ impl<'a, S> UntilFail<'a, S>
 	///
 	/// The limit is the number of times the node will run, not the number of
 	/// times it will be reset. A limit of zero means instant failure.
-	pub fn with_limit(limit: u32, child: Node<'a, S>) -> Node<'a, S>
+	pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W>
 	{
 		let internals = UntilFail {
 			child: child,
@@ -99,9 +99,9 @@ impl<'a, S> UntilFail<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Tickable<S> for UntilFail<'a, S>
+impl<'a, W> Tickable<W> for UntilFail<'a, W>
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		// Take care of the infinite version so we don't have to worry
 		if self.attempt_limit.is_none() {
@@ -143,7 +143,7 @@ impl<'a, S> Tickable<S> for UntilFail<'a, S>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Vec<&Node<S>>
+	fn children(&self) -> Vec<&Node<W>>
 	{
 		vec![&self.child]
 	}
@@ -240,10 +240,10 @@ macro_rules! UntilFail
 ///
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct UntilSuccess<'a, S>
+pub struct UntilSuccess<'a, W>
 {
 	/// Child node.
-	child: Node<'a, S>,
+	child: Node<'a, W>,
 
 	/// Optional number of times to do the reset.
 	attempt_limit: Option<u32>,
@@ -251,11 +251,11 @@ pub struct UntilSuccess<'a, S>
 	/// Number of times the child has been reset.
 	attempts: u32,
 }
-impl<'a, S> UntilSuccess<'a, S>
-	where S: 'a
+impl<'a, W> UntilSuccess<'a, W>
+	where W: 'a
 {
 	/// Creates a new `UntilSuccess` node that will keep trying indefinitely.
-	pub fn new(child: Node<'a, S>) -> Node<'a, S>
+	pub fn new(child: Node<'a, W>) -> Node<'a, W>
 	{
 		let internals = UntilSuccess {
 			child: child,
@@ -269,7 +269,7 @@ impl<'a, S> UntilSuccess<'a, S>
 	///
 	/// `limit` is the number of times the node can be *reset*, not the number
 	/// of times it can be run. A limit of one means the node can be run twice.
-	pub fn with_limit(limit: u32, child: Node<'a, S>) -> Node<'a, S>
+	pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W>
 	{
 		let internals = UntilSuccess {
 			child: child,
@@ -279,9 +279,9 @@ impl<'a, S> UntilSuccess<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Tickable<S> for UntilSuccess<'a, S>
+impl<'a, W> Tickable<W> for UntilSuccess<'a, W>
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		// Take care of the infinite version so we don't have to worry
 		if self.attempt_limit.is_none() {
@@ -323,7 +323,7 @@ impl<'a, S> Tickable<S> for UntilSuccess<'a, S>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Vec<&Node<S>>
+	fn children(&self) -> Vec<&Node<W>>
 	{
 		vec![&self.child]
 	}

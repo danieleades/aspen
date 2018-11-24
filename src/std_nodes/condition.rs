@@ -39,28 +39,28 @@ use crate::status::Status;
 /// let mut node = Condition::new(|s| *s > CHECK_VALUE );
 /// assert_eq!(node.tick(&mut state), Status::Failed);
 /// ```
-pub struct Condition<'a, S>
+pub struct Condition<'a, W>
 {
 	/// Function that is performed to determine the node's status
 	///
 	/// A return value of `true` means success and a return value of `false`
 	/// means failure.
-	func: Box<Fn(&S) -> bool + 'a>,
+	func: Box<Fn(&W) -> bool + 'a>,
 }
-impl<'a, S> Condition<'a, S>
-	where S: 'a
+impl<'a, W> Condition<'a, W>
+	where W: 'a
 {
 	/// Constructs a new Condition node that will run the given function.
-	pub fn new<F>(func: F) -> Node<'a, S>
-		where F: Fn(&S) -> bool + 'a
+	pub fn new<F>(func: F) -> Node<'a, W>
+		where F: Fn(&W) -> bool + 'a
 	{
 		let internals = Condition { func: Box::new(func) };
 		Node::new(internals)
 	}
 }
-impl<'a, S> Tickable<S> for Condition<'a, S>
+impl<'a, W> Tickable<W> for Condition<'a, W>
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		// Otherwise, run the function
 		if (*self.func)(world) {

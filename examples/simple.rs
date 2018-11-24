@@ -68,7 +68,7 @@ fn do_sub(state: &mut Arc<Mutex<WorldState>>) -> Status
 }
 
 // Display the tree after each tick
-fn hook<S>(tree: &BehaviorTree<S>)
+fn hook<W>(tree: &BehaviorTree<W>)
 {
 	println!("{}", tree);
 }

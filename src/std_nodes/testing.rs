@@ -8,14 +8,14 @@ pub struct NoTick;
 impl NoTick
 {
 	/// Construct a new `NoTick` node.
-	pub fn new<S>() -> Node<'static, S>
+	pub fn new<W>() -> Node<'static, W>
 	{
 		Node::new(NoTick { })
 	}
 }
-impl<S> Tickable<S> for NoTick
+impl<W> Tickable<W> for NoTick
 {
-	fn tick(&mut self, _: &mut S) -> Status
+	fn tick(&mut self, _: &mut W) -> Status
 	{
 		panic!("This node should not have been ticked");
 	}
@@ -44,15 +44,15 @@ pub struct YesTick
 impl YesTick
 {
 	/// Create a new `YesTick` that always has the given status
-	pub fn new<S>(status: Status) -> Node<'static, S>
+	pub fn new<W>(status: Status) -> Node<'static, W>
 	{
 		let internals = YesTick { status: status, ticked: false };
 		Node::new(internals)
 	}
 }
-impl<S> Tickable<S> for YesTick
+impl<W> Tickable<W> for YesTick
 {
-	fn tick(&mut self, _: &mut S) -> Status
+	fn tick(&mut self, _: &mut W) -> Status
 	{
 		self.ticked = true;
 		self.status
@@ -100,7 +100,7 @@ pub struct CountedTick
 impl CountedTick
 {
 	/// Creates a new `CountedTick` that always has the given status.
-	pub fn new<S>(status: Status, count: u32, exact: bool) -> Node<'static, S>
+	pub fn new<W>(status: Status, count: u32, exact: bool) -> Node<'static, W>
 	{
 		let internals = CountedTick {
 			status: status,
@@ -113,7 +113,7 @@ impl CountedTick
 	}
 
 	/// Creates a new `CountedTick` that will reset the count upon node reset
-	pub fn resetable<S>(status: Status, count: u32, exact: bool) -> Node<'static, S>
+	pub fn resetable<W>(status: Status, count: u32, exact: bool) -> Node<'static, W>
 	{
 		let internals = CountedTick {
 			status: status,
@@ -125,9 +125,9 @@ impl CountedTick
 		Node::new(internals)
 	}
 }
-impl<S> Tickable<S> for CountedTick
+impl<W> Tickable<W> for CountedTick
 {
-	fn tick(&mut self, _: &mut S) -> Status
+	fn tick(&mut self, _: &mut W) -> Status
 	{
 		if self.exact && self.count == self.limit {
 			panic!("Node was ticked too many times: {} actual, {} expected", self.count + 1, self.limit);

@@ -41,29 +41,29 @@ use crate::status::Status;
 /// let mut node = Decorator::new(child, invert);
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct Decorator<'a, S>
+pub struct Decorator<'a, W>
 {
 	/// Function that is performed on the child's status.
-	func: Box<Fn(Status, &S) -> Status + 'a>,
+	func: Box<Fn(Status, &W) -> Status + 'a>,
 
 	/// Child node.
-	child: Node<'a, S>,
+	child: Node<'a, W>,
 }
-impl<'a, S> Decorator<'a, S>
-	where S: 'a
+impl<'a, W> Decorator<'a, W>
+	where W: 'a
 {
 	/// Creates a new Decorator node with the supplied child node and function
 	/// to be run on the child's status.
-	pub fn new<F>(child: Node<'a, S>, func: F) -> Node<'a, S>
-		where F: Fn(Status, &S) -> Status + 'a
+	pub fn new<F>(child: Node<'a, W>, func: F) -> Node<'a, W>
+		where F: Fn(Status, &W) -> Status + 'a
 	{
 		let internals = Decorator { func: Box::new(func), child: child };
 		Node::new(internals)
 	}
 }
-impl<'a, S> Tickable<S> for Decorator<'a, S>
+impl<'a, W> Tickable<W> for Decorator<'a, W>
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		// If the child has already run, this shouldn't change results since it will
 		// just return its last status
@@ -76,7 +76,7 @@ impl<'a, S> Tickable<S> for Decorator<'a, S>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Vec<&Node<S>>
+	fn children(&self) -> Vec<&Node<W>>
 	{
 		vec![&self.child]
 	}
@@ -120,23 +120,23 @@ impl<'a, S> Tickable<S> for Decorator<'a, S>
 /// let mut node = Invert::new(AlwaysFail::new());
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
-pub struct Invert<'a, S>
+pub struct Invert<'a, W>
 {
 	/// Child node.
-	child: Node<'a, S>,
+	child: Node<'a, W>,
 }
-impl<'a, S> Invert<'a, S>
-	where S: 'a
+impl<'a, W> Invert<'a, W>
+	where W: 'a
 {
 	/// Creates a new `Invert` node.
-	pub fn new(child: Node<'a, S>) -> Node<'a, S>
+	pub fn new(child: Node<'a, W>) -> Node<'a, W>
 	{
 		Node::new(Invert { child: child })
 	}
 }
-impl<'a, S> Tickable<S> for Invert<'a, S>
+impl<'a, W> Tickable<W> for Invert<'a, W>
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		match self.child.tick(world) {
 			Status::Succeeded => Status::Failed,
@@ -151,7 +151,7 @@ impl<'a, S> Tickable<S> for Invert<'a, S>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Vec<&Node<S>>
+	fn children(&self) -> Vec<&Node<W>>
 	{
 		vec![&self.child]
 	}

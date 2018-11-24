@@ -12,25 +12,25 @@ use std::fmt;
 ///
 /// This class is largely just a wrapper around an `Tickable` object. This is
 /// to enforce some runtime behavior.
-pub struct Node<'a, S> {
+pub struct Node<'a, W> {
 	/// The status from the last time this node was ticked.
 	status: Status,
 
 	/// The internal logic for this node.
-	internals: Box<Tickable<S> + 'a>,
+	internals: Box<Tickable<W> + 'a>,
 
 	/// The name for this node.
 	///
 	/// If present, it will be used instead of the type name.
 	name: Option<String>,
 }
-impl<'a, S> Node<'a, S> {
+impl<'a, W> Node<'a, W> {
 	/// Creates a new `Node` with the given `Tickable`.
 	///
 	/// The internals are used to govern the tick logic of the node.
-	pub fn new<I>(internals: I) -> Node<'a, S>
+	pub fn new<I>(internals: I) -> Node<'a, W>
 	where
-		I: Tickable<S> + 'a,
+		I: Tickable<W> + 'a,
 	{
 		Node {
 			status: Status::Initialized,
@@ -59,7 +59,7 @@ impl<'a, S> Node<'a, S> {
 	}
 
 	/// Sets the name for this particular node.
-	pub fn named<T: Into<Option<String>>>(mut self, name: T) -> Node<'a, S> {
+	pub fn named<T: Into<Option<String>>>(mut self, name: T) -> Node<'a, W> {
 		// We consume the node and return it to fit better into the current
 		// pattern of making trees. By using a reference, named nodes would not
 		// be able to be made inline. This also makes the macros look much nicer.
@@ -74,13 +74,13 @@ impl<'a, S> Node<'a, S> {
 	}
 }
 
-impl<'a, S> Tickable<S> for Node<'a, S> {
+impl<'a, W> Tickable<W> for Node<'a, W> {
 	/// Ticks the node a single time.
 	///
 	/// If the node is currently considered to have run to completion, this
 	/// will call `Node::reset` on the node before calling the internal tick
 	/// logic.
-	fn tick(&mut self, world: &mut S) -> Status {
+	fn tick(&mut self, world: &mut W) -> Status {
 		// Reset the node if it's already completed
 		if self.status.is_done() {
 			self.reset();
@@ -108,7 +108,7 @@ impl<'a, S> Tickable<S> for Node<'a, S> {
 	/// Returns a vector containing references to all of this node's children.
 	///
 	/// This is likely the most unstable part of Aspen, use with caution.
-	fn children(&self) -> Vec<&Node<S>> {
+	fn children(&self) -> Vec<&Node<W>> {
 		(*self.internals).children()
 	}
 
@@ -120,12 +120,12 @@ impl<'a, S> Tickable<S> for Node<'a, S> {
 	/// Returns a concrete Node.
 	/// 
 	/// (Node.into_node() does precisely nothing)
-	fn into_node<'b>(self) -> Node<'b, S> where Self: Sized + 'b {
+	fn into_node<'b>(self) -> Node<'b, W> where Self: Sized + 'b {
 		self
 	}
 }
 
-impl<'a, S> fmt::Display for Node<'a, S> {
+impl<'a, W> fmt::Display for Node<'a, W> {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		write!(f, "{}:( status = {:?}", self.name(), self.status())?;
 		for child in self.children() {
@@ -139,7 +139,7 @@ impl<'a, S> fmt::Display for Node<'a, S> {
 ///
 /// This is the object that controls the tick behavior of the `Node`, with
 /// `Node` just being a wrapper to enforce some runtime behavior.
-pub trait Tickable<S> {
+pub trait Tickable<W> {
 	/// Ticks the internal state of the node a single time.
 	///
 	/// Node internals should not automatically reset themselves. If a node has
@@ -148,7 +148,7 @@ pub trait Tickable<S> {
 	///
 	/// In other words, the `Tickable` will only ever be ticked when the node
 	/// state is either `Status::Running` or `Status::Initialized`.
-	fn tick(&mut self, world: &mut S) -> Status;
+	fn tick(&mut self, world: &mut W) -> Status;
 
 	/// Resets the internal state of the node.
 	///
@@ -162,7 +162,7 @@ pub trait Tickable<S> {
 	/// leaf node.
 	///
 	/// This is likely the most unstable part of Aspen, use with caution.
-	fn children(&self) -> Vec<&Node<S>> {
+	fn children(&self) -> Vec<&Node<W>> {
 		Vec::new()
 	}
 
@@ -177,7 +177,7 @@ pub trait Tickable<S> {
 	/// 
 	/// This method is used to allow child nodes methods to
 	/// accept any struct that implements Tickable.
-	fn into_node<'b>(self) -> Node<'b, S> where Self: Sized + 'b {
+	fn into_node<'b>(self) -> Node<'b, W> where Self: Sized + 'b {
 		Node::new(self)
 	}
 }

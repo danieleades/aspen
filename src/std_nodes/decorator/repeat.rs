@@ -43,10 +43,10 @@ use crate::status::Status;
 /// }
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
-pub struct Repeat<'a, S>
+pub struct Repeat<'a, W>
 {
 	/// Child node.
-	child: Node<'a, S>,
+	child: Node<'a, W>,
 
 	/// Optional number of times to do the reset.
 	attempt_limit: Option<u32>,
@@ -54,11 +54,11 @@ pub struct Repeat<'a, S>
 	/// Number of times the child has been reset.
 	attempts: u32,
 }
-impl<'a, S> Repeat<'a, S>
-	where S: 'a
+impl<'a, W> Repeat<'a, W>
+	where W: 'a
 {
 	/// Creates a new Repeat node that will repeat forever.
-	pub fn new(child: Node<'a, S>) -> Node<'a, S>
+	pub fn new(child: Node<'a, W>) -> Node<'a, W>
 	{
 		let internals = Repeat {
 			child: child,
@@ -72,7 +72,7 @@ impl<'a, S> Repeat<'a, S>
 	///
 	/// The limit specifies the number of times this node can be run. A limit
 	/// of zero means that the node will instantly succeed.
-	pub fn with_limit(limit: u32, child: Node<'a, S>) -> Node<'a, S>
+	pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W>
 	{
 		let internals = Repeat {
 			child: child,
@@ -82,9 +82,9 @@ impl<'a, S> Repeat<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Tickable<S> for Repeat<'a, S>
+impl<'a, W> Tickable<W> for Repeat<'a, W>
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		// Take care of the infinite version so we don't have to worry
 		if self.attempt_limit.is_none() {
@@ -119,7 +119,7 @@ impl<'a, S> Tickable<S> for Repeat<'a, S>
 		self.child.reset();
 	}
 
-	fn children(&self) -> Vec<&Node<S>>
+	fn children(&self) -> Vec<&Node<W>>
 	{
 		vec![&self.child]
 	}

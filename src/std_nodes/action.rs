@@ -61,21 +61,21 @@ use crate::status::Status;
 /// assert_eq!(action.status(), Status::Succeeded);
 /// assert_eq!(result.load(Ordering::SeqCst), 90);
 /// ```
-pub struct Action<S>
-	where S: Clone + Send + Sync + 'static
+pub struct Action<W>
+	where W: Clone + Send + Sync + 'static
 {
 	/// The task which is to be run.
-	func: Arc<Fn(S) -> Status + Send + Sync>,
+	func: Arc<Fn(W) -> Status + Send + Sync>,
 
 	/// Channel on which the task will communicate.
 	rx: Option<mpsc::Receiver<Status>>,
 }
-impl<S> Action<S>
-	where S: Clone + Send + Sync + 'static
+impl<W> Action<W>
+	where W: Clone + Send + Sync + 'static
 {
 	/// Creates a new Action node that will execute the given task.
-	pub fn new<F>(task: F) -> Node<'static, S>
-		where F: Fn(S) -> Status + Send + Sync + 'static
+	pub fn new<F>(task: F) -> Node<'static, W>
+		where F: Fn(W) -> Status + Send + Sync + 'static
 	{
 		let internals = Action {
 			func: Arc::new(task),
@@ -86,7 +86,7 @@ impl<S> Action<S>
 	}
 
 	/// Launches a new worker thread to run the task.
-	fn start_thread(&mut self, world: &S)
+	fn start_thread(&mut self, world: &W)
 	{
 		// Create our new channels
 		let (tx, rx) = mpsc::sync_channel(0);
@@ -102,15 +102,15 @@ impl<S> Action<S>
 		self.rx = Some(rx);
 	}
 }
-impl<S> Tickable<S> for Action<S>
-	where S: Clone + Send + Sync + 'static
+impl<W> Tickable<W> for Action<W>
+	where W: Clone + Send + Sync + 'static
 {
 	/// Ticks the Action node a single time.
 	///
 	/// The first time being ticked after being reset (or initialized), it will
 	/// clone `world` and use the clone as the argument for the task function,
 	/// which will be run in a separate thread. Usually, this should be an `Arc`.
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		let (status, reset) = if let Some(ref mut rx) = self.rx {
 			match rx.try_recv() {
@@ -219,17 +219,17 @@ macro_rules! Action
 /// assert_eq!(action.tick(&mut result), Status::Succeeded);
 /// assert_eq!(result, 90);
 /// ```
-pub struct InlineAction<'a, S>
+pub struct InlineAction<'a, W>
 {
 	/// The task which is to be run.
-	func: Box<FnMut(&mut S) -> Status + 'a>,
+	func: Box<FnMut(&mut W) -> Status + 'a>,
 }
-impl<'a, S> InlineAction<'a, S>
-	where S: 'a
+impl<'a, W> InlineAction<'a, W>
+	where W: 'a
 {
 	/// Creates a new `ShortAction` node that will execute the given task.
-	pub fn new<F>(task: F) -> Node<'a, S>
-		where F: FnMut(&mut S) -> Status + 'a
+	pub fn new<F>(task: F) -> Node<'a, W>
+		where F: FnMut(&mut W) -> Status + 'a
 	{
 		let internals = InlineAction {
 			func: Box::new(task),
@@ -238,9 +238,9 @@ impl<'a, S> InlineAction<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Tickable<S> for InlineAction<'a, S>
+impl<'a, W> Tickable<W> for InlineAction<'a, W>
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		(*self.func)(world)
 	}

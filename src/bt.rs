@@ -6,21 +6,21 @@ use crate::node::{Node, Tickable};
 use crate::status::Status;
 
 /// Main behavior tree struct.
-pub struct BehaviorTree<'a, S>
+pub struct BehaviorTree<'a, W>
 {
 	/// Root node of the behavior tree.
-	root: Node<'a, S>
+	root: Node<'a, W>
 }
-impl<'a, S> BehaviorTree<'a, S>
+impl<'a, W> BehaviorTree<'a, W>
 {
 	/// Create a new behavior tree with the supplied `Node` as the root.
-	pub fn new(root: Node<'a, S>) -> BehaviorTree<'a, S>
+	pub fn new(root: Node<'a, W>) -> BehaviorTree<'a, W>
 	{
 		BehaviorTree { root: root }
 	}
 
 	/// Returns a reference to the root node.
-	pub fn root(&self) -> &Node<'a, S>
+	pub fn root(&self) -> &Node<'a, W>
 	{
 		&self.root
 	}
@@ -30,7 +30,7 @@ impl<'a, S> BehaviorTree<'a, S>
 	/// If the tree has already been completed, ticking it again will reset it.
 	/// When the tree is reset, it will return an `Initialized` status a single
 	/// time.
-	pub fn tick(&mut self, world: &mut S) -> Status
+	pub fn tick(&mut self, world: &mut W) -> Status
 	{
 		if self.root.status().is_done() {
 			debug!("Tree reset via ticking");
@@ -57,8 +57,8 @@ impl<'a, S> BehaviorTree<'a, S>
 	///
 	/// NOTE: The only time this will return `Status::Running` is if the frequency is zero
 	/// and the behavior tree is running after the first tick.
-	pub fn run<F>(&mut self, freq: f64, world: &mut S, mut hook: Option<F>) -> Status
-		where F: FnMut(&BehaviorTree<'a, S>)
+	pub fn run<F>(&mut self, freq: f64, world: &mut W, mut hook: Option<F>) -> Status
+		where F: FnMut(&BehaviorTree<'a, W>)
 	{
 		// Deal with the "special" case of a zero frequency
 		if freq == 0.0f64 {
@@ -109,7 +109,7 @@ impl<'a, S> BehaviorTree<'a, S>
 		return status;
 	}
 }
-impl<'a, S> fmt::Display for BehaviorTree<'a, S>
+impl<'a, W> fmt::Display for BehaviorTree<'a, W>
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{

@@ -81,24 +81,24 @@ use crate::Status;
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct ActiveSequence<'a, S>
+pub struct ActiveSequence<'a, W>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node<'a, S>>,
+	children: Vec<Node<'a, W>>,
 }
-impl<'a, S> ActiveSequence<'a, S>
-	where S: 'a
+impl<'a, W> ActiveSequence<'a, W>
+	where W: 'a
 {
 	/// Creates a new `ActiveSequence` node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
+	pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W>
 	{
 		let internals = ActiveSequence { children: children };
 		Node::new(internals)
 	}
 }
-impl<'a, S> Tickable<S> for ActiveSequence<'a, S>
+impl<'a, W> Tickable<W> for ActiveSequence<'a, W>
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		// Tick all of our children as long as they succeed
 		let mut ret_status = Status::Succeeded;
@@ -123,7 +123,7 @@ impl<'a, S> Tickable<S> for ActiveSequence<'a, S>
 		}
 	}
 
-	fn children(&self) -> Vec<&Node<S>>
+	fn children(&self) -> Vec<&Node<W>>
 	{
 		self.children.iter().collect()
 	}
@@ -232,17 +232,17 @@ macro_rules! ActiveSequence
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct Sequence<'a, S>
+pub struct Sequence<'a, W>
 {
 	/// Vector containing the children of this node.
-	children: Vec<Node<'a, S>>,
+	children: Vec<Node<'a, W>>,
 	next_child: usize,
 }
-impl<'a, S> Sequence<'a, S>
-	where S: 'a
+impl<'a, W> Sequence<'a, W>
+	where W: 'a
 {
 	/// Creates a new `Sequence` node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a, S>>) -> Node<'a, S>
+	pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W>
 	{
 		let internals = Sequence {
 			children: children,
@@ -251,9 +251,9 @@ impl<'a, S> Sequence<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Tickable<S> for Sequence<'a, S>
+impl<'a, W> Tickable<W> for Sequence<'a, W>
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		// Tick the children as long as they keep failing
 		let mut ret_status = Status::Succeeded;
@@ -278,7 +278,7 @@ impl<'a, S> Tickable<S> for Sequence<'a, S>
 		self.next_child = 0;
 	}
 
-	fn children(&self) -> Vec<&Node<S>>
+	fn children(&self) -> Vec<&Node<W>>
 	{
 		self.children.iter().collect()
 	}

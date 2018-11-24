@@ -94,19 +94,19 @@ use crate::status::Status;
 ///
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct Parallel<'a, S>
+pub struct Parallel<'a, W>
 {
 	/// Child nodes.
-	children: Vec<Node<'a, S>>,
+	children: Vec<Node<'a, W>>,
 
 	/// Number of child nodes required to succeed.
 	required_successes: usize,
 }
-impl<'a, S> Parallel<'a, S>
-	where S: 'a
+impl<'a, W> Parallel<'a, W>
+	where W: 'a
 {
 	/// Creates a `Parallel` node with the given children an required number of successes.
-	pub fn new(required_successes: usize, children: Vec<Node<'a, S>>) -> Node<'a, S>
+	pub fn new(required_successes: usize, children: Vec<Node<'a, W>>) -> Node<'a, W>
 	{
 		let internals = Parallel {
 			children: children,
@@ -115,9 +115,9 @@ impl<'a, S> Parallel<'a, S>
 		Node::new(internals)
 	}
 }
-impl<'a, S> Tickable<S> for Parallel<'a, S>
+impl<'a, W> Tickable<W> for Parallel<'a, W>
 {
-	fn tick(&mut self, world: &mut S) -> Status
+	fn tick(&mut self, world: &mut W) -> Status
 	{
 		let mut successes = 0;
 		let mut failures = 0;
@@ -163,7 +163,7 @@ impl<'a, S> Tickable<S> for Parallel<'a, S>
 		}
 	}
 
-	fn children(&self) -> Vec<&Node<S>>
+	fn children(&self) -> Vec<&Node<W>>
 	{
 		self.children.iter().collect()
 	}

@@ -46,11 +46,11 @@ use crate::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
-/// let mut node = ActiveSequence::new(vec![
-///     AlwaysSucceed::new(),
-///     AlwaysSucceed::new(),
-///     AlwaysSucceed::new()
-/// ]);
+/// let mut node = ActiveSequence::new()
+/// 	.with_child(AlwaysSucceed::new())
+/// 	.with_child(AlwaysSucceed::new())
+/// 	.with_child(AlwaysSucceed::new());
+///
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
 ///
@@ -60,11 +60,11 @@ use crate::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
-/// let mut node = ActiveSequence::new(vec![
-///     AlwaysSucceed::new(),
-///     AlwaysRunning::new(),
-///     AlwaysFail::new()
-/// ]);
+/// let mut node = ActiveSequence::new()
+///     .with_child(AlwaysSucceed::new())
+///     .with_child(AlwaysRunning::new())
+///     .with_child(AlwaysFail::new());
+/// 
 /// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 ///
@@ -74,39 +74,50 @@ use crate::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
-/// let mut node = ActiveSequence::new(vec![
-///     AlwaysSucceed::new(),
-///     AlwaysSucceed::new(),
-///     AlwaysFail::new()
-/// ]);
+/// let mut node = ActiveSequence::new()
+///     .with_child(AlwaysSucceed::new())
+///     .with_child(AlwaysSucceed::new())
+///     .with_child(AlwaysFail::new());
+/// 
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct ActiveSequence<'a, W>
-{
+pub struct ActiveSequence<'a, W> {
 	/// Vector containing the children of this node.
 	children: Vec<Node<'a, W>>,
 }
 impl<'a, W> ActiveSequence<'a, W>
-	where W: 'a
+where
+	W: 'a,
 {
 	/// Creates a new `ActiveSequence` node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W>
+	pub fn new() -> Self {
+		ActiveSequence { children: Vec::new() }
+	}
+
+	pub fn with_child<T>(mut self, child: T) -> Self
+	where
+		T: Tickable<W> + 'a,
 	{
-		let internals = ActiveSequence { children: children };
-		Node::new(internals)
+		self.children.push(child.into_node());
+		self
+	}
+
+	pub fn with_children<T>(mut self, children: Vec<T>) -> Self
+	where
+		T: Tickable<W> + 'a,
+	{
+		self.children = children.into_iter().map(|x| x.into_node()).collect();
+		self
 	}
 }
-impl<'a, W> Tickable<W> for ActiveSequence<'a, W>
-{
-	fn tick(&mut self, world: &mut W) -> Status
-	{
+impl<'a, W> Tickable<W> for ActiveSequence<'a, W> {
+	fn tick(&mut self, world: &mut W) -> Status {
 		// Tick all of our children as long as they succeed
 		let mut ret_status = Status::Succeeded;
 		for child in self.children.iter_mut() {
 			if ret_status == Status::Succeeded {
 				ret_status = child.tick(world);
-			}
-			else {
+			} else {
 				child.reset();
 			}
 		}
@@ -115,22 +126,19 @@ impl<'a, W> Tickable<W> for ActiveSequence<'a, W>
 		ret_status
 	}
 
-	fn reset(&mut self)
-	{
+	fn reset(&mut self) {
 		// Reset all of our children
 		for child in self.children.iter_mut() {
 			child.reset();
 		}
 	}
 
-	fn children(&self) -> Vec<&Node<W>>
-	{
+	fn children(&self) -> Vec<&Node<W>> {
 		self.children.iter().collect()
 	}
 
 	/// Returns the string "ActiveSequence".
-	fn type_name(&self) -> &'static str
-	{
+	fn type_name(&self) -> &'static str {
 		"ActiveSequence"
 	}
 }
@@ -153,7 +161,7 @@ impl<'a, W> Tickable<W> for ActiveSequence<'a, W>
 macro_rules! ActiveSequence
 {
 	( $( $e:expr ),* ) => {
-		$crate::std_nodes::ActiveSequence::new(vec![$( $e ),*])
+		$crate::std_nodes::ActiveSequence::new().with_children(vec![$( $e ),*])
 	};
 }
 
@@ -232,29 +240,26 @@ macro_rules! ActiveSequence
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct Sequence<'a, W>
-{
+pub struct Sequence<'a, W> {
 	/// Vector containing the children of this node.
 	children: Vec<Node<'a, W>>,
 	next_child: usize,
 }
 impl<'a, W> Sequence<'a, W>
-	where W: 'a
+where
+	W: 'a,
 {
 	/// Creates a new `Sequence` node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W>
-	{
+	pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W> {
 		let internals = Sequence {
 			children: children,
-			next_child: 0
+			next_child: 0,
 		};
 		Node::new(internals)
 	}
 }
-impl<'a, W> Tickable<W> for Sequence<'a, W>
-{
-	fn tick(&mut self, world: &mut W) -> Status
-	{
+impl<'a, W> Tickable<W> for Sequence<'a, W> {
+	fn tick(&mut self, world: &mut W) -> Status {
 		// Tick the children as long as they keep failing
 		let mut ret_status = Status::Succeeded;
 		while self.next_child < self.children.len() && ret_status == Status::Succeeded {
@@ -268,8 +273,7 @@ impl<'a, W> Tickable<W> for Sequence<'a, W>
 		return ret_status;
 	}
 
-	fn reset(&mut self)
-	{
+	fn reset(&mut self) {
 		// Reset all of our children
 		for child in self.children.iter_mut() {
 			child.reset();
@@ -278,14 +282,12 @@ impl<'a, W> Tickable<W> for Sequence<'a, W>
 		self.next_child = 0;
 	}
 
-	fn children(&self) -> Vec<&Node<W>>
-	{
+	fn children(&self) -> Vec<&Node<W>> {
 		self.children.iter().collect()
 	}
 
 	/// Returns the string "Sequence".
-	fn type_name(&self) -> &'static str
-	{
+	fn type_name(&self) -> &'static str {
 		"Sequence"
 	}
 }
@@ -313,19 +315,19 @@ macro_rules! Sequence
 }
 
 #[cfg(test)]
-mod tests
-{
-	use crate::Status;
-	use crate::std_nodes::*;
+mod tests {
 	use crate::node::Tickable;
+	use crate::std_nodes::*;
+	use crate::Status;
 
 	#[test]
-	fn check_running()
-	{
+	fn check_running() {
 		// Set up the nodes
-		let children = vec![YesTick::new(Status::Succeeded),
-		                    YesTick::new(Status::Running),
-		                    NoTick::new()];
+		let children = vec![
+			YesTick::new(Status::Succeeded),
+			YesTick::new(Status::Running),
+			NoTick::new(),
+		];
 
 		// Add them to a sequence node
 		let mut seq = Sequence::new(children);
@@ -341,11 +343,12 @@ mod tests
 	}
 
 	#[test]
-	fn check_success()
-	{
+	fn check_success() {
 		// Set up the nodes
-		let children = vec![YesTick::new(Status::Succeeded),
-		                    YesTick::new(Status::Succeeded)];
+		let children = vec![
+			YesTick::new(Status::Succeeded),
+			YesTick::new(Status::Succeeded),
+		];
 
 		// Add them to a sequence node
 		let mut seq = Sequence::new(children);
@@ -361,12 +364,13 @@ mod tests
 	}
 
 	#[test]
-	fn check_fail()
-	{
+	fn check_fail() {
 		// Set up the nodes
-		let children = vec![YesTick::new(Status::Succeeded),
-		                    YesTick::new(Status::Failed),
-		                    NoTick::new()];
+		let children = vec![
+			YesTick::new(Status::Succeeded),
+			YesTick::new(Status::Failed),
+			NoTick::new(),
+		];
 
 		// Add them to a sequence node
 		let mut seq = Sequence::new(children);
@@ -382,15 +386,16 @@ mod tests
 	}
 
 	#[test]
-	fn check_active_running()
-	{
+	fn check_active_running() {
 		// Set up the nodes
-		let children = vec![YesTick::new(Status::Succeeded),
-		                    YesTick::new(Status::Running),
-		                    NoTick::new()];
+		let children = vec![
+			YesTick::new(Status::Succeeded),
+			YesTick::new(Status::Running),
+			NoTick::new(),
+		];
 
 		// Add them to a sequence node
-		let mut seq = ActiveSequence::new(children);
+		let mut seq = ActiveSequence::new().with_children(children);
 
 		// Tick the sequence
 		let status = seq.tick(&mut ());
@@ -403,14 +408,15 @@ mod tests
 	}
 
 	#[test]
-	fn check_active_success()
-	{
+	fn check_active_success() {
 		// Set up the nodes
-		let children = vec![YesTick::new(Status::Succeeded),
-		                    YesTick::new(Status::Succeeded)];
+		let children = vec![
+			YesTick::new(Status::Succeeded),
+			YesTick::new(Status::Succeeded),
+		];
 
 		// Add them to a sequence node
-		let mut seq = ActiveSequence::new(children);
+		let mut seq = ActiveSequence::new().with_children(children);
 
 		// Tick the sequence
 		let status = seq.tick(&mut ());
@@ -423,15 +429,16 @@ mod tests
 	}
 
 	#[test]
-	fn check_active_fail()
-	{
+	fn check_active_fail() {
 		// Set up the nodes
-		let children = vec![YesTick::new(Status::Succeeded),
-		                    YesTick::new(Status::Failed),
-		                    NoTick::new()];
+		let children = vec![
+			YesTick::new(Status::Succeeded),
+			YesTick::new(Status::Failed),
+			NoTick::new(),
+		];
 
 		// Add them to a sequence node
-		let mut seq = ActiveSequence::new(children);
+		let mut seq = ActiveSequence::new().with_children(children);
 
 		// Tick the sequence
 		let status = seq.tick(&mut ());

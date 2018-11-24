@@ -1,7 +1,7 @@
 
 https://docs.rs/aspen[Documentation]
 
-*This project is a fork of the excellent 'https://gitlab.com/neachdainn/aspen[Aspen]' library.*
+*This project is a fork of the excellent https://gitlab.com/neachdainn/aspen[Aspen] library.*
 The original library is unmaintained.
 
 = Aspen: Behavior Trees in Rust =

@@ -1,9 +1,8 @@
-image::https://gitlab.com/neachdainn/aspen/badges/master/build.svg[Build Status]
 
 https://docs.rs/aspen[Documentation]
 
-*This project is unmaintained.*
-Please contact me if you would like to utilize the name "Aspen" on Crates.io.
+*This project is a fork of the excellent 'https://gitlab.com/neachdainn/aspen[Aspen]' library.*
+The original library is unmaintained.
 
 = Aspen: Behavior Trees in Rust =
 

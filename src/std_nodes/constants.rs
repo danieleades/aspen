@@ -29,6 +29,7 @@ use crate::status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = AlwaysFail::new();
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
@@ -38,6 +39,7 @@ use crate::status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = AlwaysFail::with_child(AlwaysRunning::new());
 /// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
@@ -47,6 +49,7 @@ use crate::status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = AlwaysFail::with_child(AlwaysSucceed::new());
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
@@ -169,6 +172,7 @@ macro_rules! AlwaysFail
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = AlwaysSucceed::new();
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
@@ -178,6 +182,7 @@ macro_rules! AlwaysFail
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = AlwaysSucceed::with_child(AlwaysRunning::new());
 /// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
@@ -187,6 +192,7 @@ macro_rules! AlwaysFail
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = AlwaysSucceed::with_child(AlwaysFail::new());
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
@@ -304,6 +310,7 @@ macro_rules! AlwaysSucceed
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = AlwaysRunning::new();
 /// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```

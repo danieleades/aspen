@@ -32,6 +32,7 @@ use crate::status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let child = Condition::new(|&d| d < 10 );
 /// let mut node = UntilFail::new(child);
 ///
@@ -47,6 +48,7 @@ use crate::status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let tries = 10;
 /// let child = AlwaysSucceed::new();
 /// let mut node = UntilFail::with_limit(tries, child);
@@ -210,6 +212,7 @@ macro_rules! UntilFail
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let child = Condition::new(|&d| d == 10 );
 /// let mut node = UntilSuccess::new(child);
 ///
@@ -225,6 +228,7 @@ macro_rules! UntilFail
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let runs = 10;
 /// let child = AlwaysFail::new();
 /// let mut node = UntilSuccess::with_limit(runs, child);

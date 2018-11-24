@@ -112,13 +112,16 @@ impl<'a, S> Tickable<S> for Node<'a, S> {
 		(*self.internals).children()
 	}
 
-	///Returns the type of the node as a string literal
+	/// Returns the type of the node as a string literal
 	fn type_name(&self) -> &str {
 		self.internals.type_name()
 	}
 
+	/// Returns a concrete Node.
+	/// 
+	/// (Node.into_node() does precisely nothing)
 	fn into_node<'b>(self) -> Node<'b, S> where Self: Sized + 'b {
-		Node::new(self)
+		self
 	}
 }
 

@@ -46,6 +46,7 @@ use crate::status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let threshold = 3;
 /// let mut node = Parallel::new(threshold, vec![
 ///     AlwaysSucceed::new(),
@@ -63,6 +64,7 @@ use crate::status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let threshold = 3;
 /// let mut node = Parallel::new(threshold, vec![
 ///     AlwaysSucceed::new(),
@@ -80,6 +82,7 @@ use crate::status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let threshold = 4;
 /// let mut node = Parallel::new(threshold, vec![
 ///     AlwaysSucceed::new(),

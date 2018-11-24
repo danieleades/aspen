@@ -32,6 +32,7 @@ use crate::status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// const CHECK_VALUE: u32 = 100;
 /// let mut state = 10u32;
 ///

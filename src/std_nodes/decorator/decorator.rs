@@ -29,6 +29,7 @@ use crate::status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// fn invert(s: Status, _: &()) -> Status
 /// {
 ///     if s == Status::Succeeded { Status::Failed }
@@ -115,6 +116,7 @@ impl<'a, S> Tickable<S> for Decorator<'a, S>
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = Invert::new(AlwaysFail::new());
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```

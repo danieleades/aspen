@@ -44,6 +44,7 @@ use crate::status::Status;
 /// # use std::sync::Arc;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// const  FIRST:  usize = 10;
 /// const  SECOND: usize = 100;
 /// let mut result = Arc::new(AtomicUsize::default());
@@ -203,6 +204,7 @@ macro_rules! Action
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let first = 10u32;
 /// let second = 100u32;
 /// let mut result = 0u32;

@@ -45,6 +45,7 @@ use crate::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = ActiveSequence::new(vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),
@@ -58,6 +59,7 @@ use crate::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = ActiveSequence::new(vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysRunning::new(),
@@ -71,6 +73,7 @@ use crate::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = ActiveSequence::new(vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),
@@ -193,6 +196,7 @@ macro_rules! ActiveSequence
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = Sequence::new(vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),
@@ -206,6 +210,7 @@ macro_rules! ActiveSequence
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = Sequence::new(vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysRunning::new(),
@@ -219,6 +224,7 @@ macro_rules! ActiveSequence
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let mut node = Sequence::new(vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),

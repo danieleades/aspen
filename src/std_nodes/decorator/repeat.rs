@@ -32,6 +32,7 @@ use crate::status::Status;
 /// ```
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
+/// # use aspen::node::Tickable;
 /// let run_limit = 5;
 /// let child = AlwaysFail::new();
 /// let mut node = Repeat::with_limit(run_limit, child);

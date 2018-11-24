@@ -1,10 +1,10 @@
 //! Nodes that cause the execution of tasks.
-use std::thread;
-use std::sync::Arc;
-use std::sync::mpsc;
-use std::sync::mpsc::TryRecvError;
 use crate::node::{Node, Tickable};
 use crate::status::Status;
+use std::sync::mpsc;
+use std::sync::mpsc::TryRecvError;
+use std::sync::Arc;
+use std::thread;
 
 /// A node that manages the execution of tasks in a separate thread.
 ///
@@ -62,97 +62,97 @@ use crate::status::Status;
 /// assert_eq!(result.load(Ordering::SeqCst), 90);
 /// ```
 pub struct Action<W>
-	where W: Clone + Send + Sync + 'static
+where
+    W: Clone + Send + Sync + 'static,
 {
-	/// The task which is to be run.
-	func: Arc<Fn(W) -> Status + Send + Sync>,
+    /// The task which is to be run.
+    func: Arc<Fn(W) -> Status + Send + Sync>,
 
-	/// Channel on which the task will communicate.
-	rx: Option<mpsc::Receiver<Status>>,
+    /// Channel on which the task will communicate.
+    rx: Option<mpsc::Receiver<Status>>,
 }
 impl<W> Action<W>
-	where W: Clone + Send + Sync + 'static
+where
+    W: Clone + Send + Sync + 'static,
 {
-	/// Creates a new Action node that will execute the given task.
-	pub fn new<F>(task: F) -> Node<'static, W>
-		where F: Fn(W) -> Status + Send + Sync + 'static
-	{
-		let internals = Action {
-			func: Arc::new(task),
-			rx: None,
-		};
+    /// Creates a new Action node that will execute the given task.
+    pub fn new<F>(task: F) -> Node<'static, W>
+    where
+        F: Fn(W) -> Status + Send + Sync + 'static,
+    {
+        let internals = Action {
+            func: Arc::new(task),
+            rx: None,
+        };
 
-		Node::new(internals)
-	}
+        Node::new(internals)
+    }
 
-	/// Launches a new worker thread to run the task.
-	fn start_thread(&mut self, world: &W)
-	{
-		// Create our new channels
-		let (tx, rx) = mpsc::sync_channel(0);
+    /// Launches a new worker thread to run the task.
+    fn start_thread(&mut self, world: &W) {
+        // Create our new channels
+        let (tx, rx) = mpsc::sync_channel(0);
 
-		// Then clone the function so we can move it
-		let func_clone = self.func.clone();
+        // Then clone the function so we can move it
+        let func_clone = self.func.clone();
 
-		// Finally, boot up the thread
-		let world_clone = world.clone();
-		thread::spawn(move || tx.send((func_clone)(world_clone)).unwrap() );
+        // Finally, boot up the thread
+        let world_clone = world.clone();
+        thread::spawn(move || tx.send((func_clone)(world_clone)).unwrap());
 
-		// Store the rx for later use
-		self.rx = Some(rx);
-	}
+        // Store the rx for later use
+        self.rx = Some(rx);
+    }
 }
 impl<W> Tickable<W> for Action<W>
-	where W: Clone + Send + Sync + 'static
+where
+    W: Clone + Send + Sync + 'static,
 {
-	/// Ticks the Action node a single time.
-	///
-	/// The first time being ticked after being reset (or initialized), it will
-	/// clone `world` and use the clone as the argument for the task function,
-	/// which will be run in a separate thread. Usually, this should be an `Arc`.
-	fn tick(&mut self, world: &mut W) -> Status
-	{
-		let (status, reset) = if let Some(ref mut rx) = self.rx {
-			match rx.try_recv() {
-				Ok(Status::Running)      => (Status::Running, true),
-				Ok(Status::Initialized)  => (Status::Initialized, true),
-				Ok(s)                    => (s, false),
-				Err(TryRecvError::Empty) => (Status::Running, false),
-				Err(e) => panic!("Thread died before finishing {}", e),
-			}
-		} else {
-			self.start_thread(world);
-			(Status::Running, false)
-		};
+    /// Ticks the Action node a single time.
+    ///
+    /// The first time being ticked after being reset (or initialized), it will
+    /// clone `world` and use the clone as the argument for the task function,
+    /// which will be run in a separate thread. Usually, this should be an `Arc`.
+    fn tick(&mut self, world: &mut W) -> Status {
+        let (status, reset) = if let Some(ref mut rx) = self.rx {
+            match rx.try_recv() {
+                Ok(Status::Running) => (Status::Running, true),
+                Ok(Status::Initialized) => (Status::Initialized, true),
+                Ok(s) => (s, false),
+                Err(TryRecvError::Empty) => (Status::Running, false),
+                Err(e) => panic!("Thread died before finishing {}", e),
+            }
+        } else {
+            self.start_thread(world);
+            (Status::Running, false)
+        };
 
-		if reset {
-			self.rx.take();
-		}
+        if reset {
+            self.rx.take();
+        }
 
-		status
-	}
+        status
+    }
 
-	/// Resets the internal state of this node.
-	///
-	/// If there is a task currently running, this will block until the task is
-	/// completed.
-	fn reset(&mut self)
-	{
-		// I debated what to do here for a while. I could see someone wanting to detach
-		// the thread due to time constraints, but it seems to me that it would be better
-		// to avoid potential bugs that come from a node only looking like its been
-		// fully reset.
-		if let Some(ref mut rx) = self.rx {
-			rx.recv().unwrap();
-		}
-		self.rx = None;
-	}
+    /// Resets the internal state of this node.
+    ///
+    /// If there is a task currently running, this will block until the task is
+    /// completed.
+    fn reset(&mut self) {
+        // I debated what to do here for a while. I could see someone wanting to detach
+        // the thread due to time constraints, but it seems to me that it would be better
+        // to avoid potential bugs that come from a node only looking like its been
+        // fully reset.
+        if let Some(ref mut rx) = self.rx {
+            rx.recv().unwrap();
+        }
+        self.rx = None;
+    }
 
-	/// Returns the constant string "Action"
-	fn type_name(&self) -> &'static str
-	{
-		"Action"
-	}
+    /// Returns the constant string "Action"
+    fn type_name(&self) -> &'static str {
+        "Action"
+    }
 }
 
 /// Convenience macro for creating Action nodes.
@@ -167,11 +167,10 @@ impl<W> Tickable<W> for Action<W>
 /// # }
 /// ```
 #[macro_export]
-macro_rules! Action
-{
-	( $e:expr ) => {
-		$crate::std_nodes::Action::new($e)
-	}
+macro_rules! Action {
+    ( $e:expr ) => {
+        $crate::std_nodes::Action::new($e)
+    };
 }
 
 /// A node that manages the execution of tasks within the ticking thread.
@@ -219,42 +218,39 @@ macro_rules! Action
 /// assert_eq!(action.tick(&mut result), Status::Succeeded);
 /// assert_eq!(result, 90);
 /// ```
-pub struct InlineAction<'a, W>
-{
-	/// The task which is to be run.
-	func: Box<FnMut(&mut W) -> Status + 'a>,
+pub struct InlineAction<'a, W> {
+    /// The task which is to be run.
+    func: Box<FnMut(&mut W) -> Status + 'a>,
 }
 impl<'a, W> InlineAction<'a, W>
-	where W: 'a
+where
+    W: 'a,
 {
-	/// Creates a new `ShortAction` node that will execute the given task.
-	pub fn new<F>(task: F) -> Node<'a, W>
-		where F: FnMut(&mut W) -> Status + 'a
-	{
-		let internals = InlineAction {
-			func: Box::new(task),
-		};
+    /// Creates a new `ShortAction` node that will execute the given task.
+    pub fn new<F>(task: F) -> Node<'a, W>
+    where
+        F: FnMut(&mut W) -> Status + 'a,
+    {
+        let internals = InlineAction {
+            func: Box::new(task),
+        };
 
-		Node::new(internals)
-	}
+        Node::new(internals)
+    }
 }
-impl<'a, W> Tickable<W> for InlineAction<'a, W>
-{
-	fn tick(&mut self, world: &mut W) -> Status
-	{
-		(*self.func)(world)
-	}
+impl<'a, W> Tickable<W> for InlineAction<'a, W> {
+    fn tick(&mut self, world: &mut W) -> Status {
+        (*self.func)(world)
+    }
 
-	fn reset(&mut self)
-	{
-		// No-op
-	}
+    fn reset(&mut self) {
+        // No-op
+    }
 
-	/// Returns the constant string "InlineAction"
-	fn type_name(&self) -> &'static str
-	{
-		"InlineAction"
-	}
+    /// Returns the constant string "InlineAction"
+    fn type_name(&self) -> &'static str {
+        "InlineAction"
+    }
 }
 
 /// Convenience macro for creating InlineAction nodes.
@@ -270,90 +266,92 @@ impl<'a, W> Tickable<W> for InlineAction<'a, W>
 /// # }
 /// ```
 #[macro_export]
-macro_rules! InlineAction
-{
-	( $e:expr ) => {
-		$crate::std_nodes::InlineAction::new($e)
-	}
+macro_rules! InlineAction {
+    ( $e:expr ) => {
+        $crate::std_nodes::InlineAction::new($e)
+    };
 }
 
 #[cfg(test)]
-mod test
-{
-	use std::sync::{mpsc, Mutex};
-	use std::time;
-	use std::thread;
-	use crate::status::Status;
-	use crate::std_nodes::*;
-	use crate::node::Tickable;
+mod test {
+    use crate::node::Tickable;
+    use crate::status::Status;
+    use crate::std_nodes::*;
+    use std::sync::{mpsc, Mutex};
+    use std::thread;
+    use std::time;
 
-	#[test]
-	fn failure()
-	{
-		let (tx, rx) = mpsc::sync_channel(0);
-		let mrx = Mutex::new(rx);
+    #[test]
+    fn failure() {
+        let (tx, rx) = mpsc::sync_channel(0);
+        let mrx = Mutex::new(rx);
 
-		let mut action = Action::new(move |_| {
-			// Block until the message is sent, then return its value
-			mrx.lock().unwrap().recv().unwrap()
-		});
+        let mut action = Action::new(move |_| {
+            // Block until the message is sent, then return its value
+            mrx.lock().unwrap().recv().unwrap()
+        });
 
-		for _ in 0..5 {
-			assert_eq!(action.tick(&mut ()), Status::Running);
-			thread::sleep(time::Duration::from_millis(100));
-		}
+        for _ in 0..5 {
+            assert_eq!(action.tick(&mut ()), Status::Running);
+            thread::sleep(time::Duration::from_millis(100));
+        }
 
-		tx.send(Status::Failed).unwrap();
+        tx.send(Status::Failed).unwrap();
 
-		let mut status = Status::Running;
-		while status == Status::Running {
-			status = action.tick(&mut ());
-		}
+        let mut status = Status::Running;
+        while status == Status::Running {
+            status = action.tick(&mut ());
+        }
 
-		assert_eq!(status, Status::Failed);
-	}
+        assert_eq!(status, Status::Failed);
+    }
 
-	#[test]
-	fn success()
-	{
-		let (tx, rx) = mpsc::sync_channel(0);
-		let mrx = Mutex::new(rx);
+    #[test]
+    fn success() {
+        let (tx, rx) = mpsc::sync_channel(0);
+        let mrx = Mutex::new(rx);
 
-		let mut action = Action::new(move |_| {
-			// Block until the message is sent, then return its value
-			mrx.lock().unwrap().recv().unwrap()
-		});
+        let mut action = Action::new(move |_| {
+            // Block until the message is sent, then return its value
+            mrx.lock().unwrap().recv().unwrap()
+        });
 
-		for _ in 0..5 {
-			assert_eq!(action.tick(&mut ()), Status::Running);
-			thread::sleep(time::Duration::from_millis(100));
-		}
+        for _ in 0..5 {
+            assert_eq!(action.tick(&mut ()), Status::Running);
+            thread::sleep(time::Duration::from_millis(100));
+        }
 
-		tx.send(Status::Succeeded).unwrap();
+        tx.send(Status::Succeeded).unwrap();
 
-		let mut status = Status::Running;
-		while status == Status::Running {
-			status = action.tick(&mut ());
-		}
+        let mut status = Status::Running;
+        while status == Status::Running {
+            status = action.tick(&mut ());
+        }
 
-		assert_eq!(status, Status::Succeeded);
-	}
+        assert_eq!(status, Status::Succeeded);
+    }
 
-	#[test]
-	fn inline_failure()
-	{
-		assert_eq!(InlineAction::new(|_| Status::Failed).tick(&mut ()), Status::Failed);
-	}
+    #[test]
+    fn inline_failure() {
+        assert_eq!(
+            InlineAction::new(|_| Status::Failed).tick(&mut ()),
+            Status::Failed
+        );
+    }
 
-	#[test]
-	fn inline_success()
-	{
-		assert_eq!(InlineAction::new(|_| Status::Succeeded).tick(&mut ()), Status::Succeeded);
-	}
+    #[test]
+    fn inline_success() {
+        assert_eq!(
+            InlineAction::new(|_| Status::Succeeded).tick(&mut ()),
+            Status::Succeeded
+        );
+    }
 
-	#[test]
-	fn inline_running()
-	{
-		assert_eq!(InlineAction::new(|_| Status::Running).tick(&mut ()), Status::Running);
-	}
+    #[test]
+    fn inline_running() {
+        assert_eq!(
+            InlineAction::new(|_| Status::Running).tick(&mut ()),
+            Status::Running
+        );
+    }
 }

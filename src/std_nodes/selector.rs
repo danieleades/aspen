@@ -81,61 +81,54 @@ use crate::Status;
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct ActiveSelector<'a, W>
-{
-	/// Vector containing the children of this node.
-	children: Vec<Node<'a, W>>,
+pub struct ActiveSelector<'a, W> {
+    /// Vector containing the children of this node.
+    children: Vec<Node<'a, W>>,
 }
 impl<'a, W> ActiveSelector<'a, W>
-	where W: 'a
+where
+    W: 'a,
 {
-	/// Creates a new ActiveSelector node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W>
-	{
-		let internals = ActiveSelector { children: children };
-		Node::new(internals)
-	}
+    /// Creates a new ActiveSelector node from a vector of Nodes.
+    pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W> {
+        let internals = ActiveSelector { children: children };
+        Node::new(internals)
+    }
 }
-impl<'a, W> Tickable<W> for ActiveSelector<'a, W>
-{
-	fn tick(&mut self, world: &mut W) -> Status
-	{
-		// Tick the children in order
-		let mut ret_status = Status::Failed;
-		for child in self.children.iter_mut() {
-			// What we want to do is tick our children until we find one that
-			// is either running or successful. If we find either of those, all
-			// children after that node need to be reset
-			if ret_status != Status::Failed {
-				child.reset()
-			}
-			else {
-				ret_status = child.tick(world);
-			}
-		}
+impl<'a, W> Tickable<W> for ActiveSelector<'a, W> {
+    fn tick(&mut self, world: &mut W) -> Status {
+        // Tick the children in order
+        let mut ret_status = Status::Failed;
+        for child in self.children.iter_mut() {
+            // What we want to do is tick our children until we find one that
+            // is either running or successful. If we find either of those, all
+            // children after that node need to be reset
+            if ret_status != Status::Failed {
+                child.reset()
+            } else {
+                ret_status = child.tick(world);
+            }
+        }
 
-		// Return the status that we found
-		ret_status
-	}
+        // Return the status that we found
+        ret_status
+    }
 
-	fn reset(&mut self)
-	{
-		// Reset all of our children
-		for child in self.children.iter_mut() {
-			child.reset();
-		}
-	}
+    fn reset(&mut self) {
+        // Reset all of our children
+        for child in self.children.iter_mut() {
+            child.reset();
+        }
+    }
 
-	fn children(&self) -> Vec<&Node<W>>
-	{
-		self.children.iter().collect()
-	}
+    fn children(&self) -> Vec<&Node<W>> {
+        self.children.iter().collect()
+    }
 
-	/// Returns the string "ActiveSelector".
-	fn type_name(&self) -> &'static str
-	{
-		"ActiveSelector"
-	}
+    /// Returns the string "ActiveSelector".
+    fn type_name(&self) -> &'static str {
+        "ActiveSelector"
+    }
 }
 
 /// Convenience macro for creating ActiveSelector nodes.
@@ -234,68 +227,64 @@ macro_rules! ActiveSelector
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct Selector<'a, W>
-{
-	/// Vector containing the children of this node.
-	children: Vec<Node<'a, W>>,
+pub struct Selector<'a, W> {
+    /// Vector containing the children of this node.
+    children: Vec<Node<'a, W>>,
 
-	/// The next child to be ticked.
-	///
-	/// While it feels less Rusty, doing an index seemed cleaner than any
-	/// iterator version that I could come up with.
-	next_child: usize,
+    /// The next child to be ticked.
+    ///
+    /// While it feels less Rusty, doing an index seemed cleaner than any
+    /// iterator version that I could come up with.
+    next_child: usize,
 }
 impl<'a, W> Selector<'a, W>
-	where W: Clone + 'a
+where
+    W: Clone + 'a,
 {
-	/// Creates a new Selector node from a vector of Nodes.
-	pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W>
-	{
-		let internals = Selector {
-			children: children,
-			next_child: 0,
-		};
-		Node::new(internals)
-	}
+    /// Creates a new Selector node from a vector of Nodes.
+    pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W> {
+        let internals = Selector {
+            children: children,
+            next_child: 0,
+        };
+        Node::new(internals)
+    }
 }
 impl<'a, W> Tickable<W> for Selector<'a, W>
-	where W: Clone
+where
+    W: Clone,
 {
-	fn tick(&mut self, world: &mut W) -> Status
-	{
-		// Tick the children as long as they keep failing
-		let mut ret_status = Status::Failed;
-		while self.next_child < self.children.len() && ret_status == Status::Failed {
-			ret_status = self.children[self.next_child].tick(world);
+    fn tick(&mut self, world: &mut W) -> Status {
+        // Tick the children as long as they keep failing
+        let mut ret_status = Status::Failed;
+        while self.next_child < self.children.len() && ret_status == Status::Failed {
+            ret_status = self.children[self.next_child].tick(world);
 
-			if ret_status.is_done() {
-				self.next_child += 1;
-			}
-		}
+            if ret_status.is_done() {
+                self.next_child += 1;
+            }
+        }
 
-		return ret_status;
-	}
+        return ret_status;
+    }
 
-	fn reset(&mut self)
-	{
-		// Reset all of our children
-		for child in self.children.iter_mut() {
-			child.reset();
-		}
+    fn reset(&mut self) {
+        // Reset all of our children
+        for child in self.children.iter_mut() {
+            child.reset();
+        }
 
-		self.next_child = 0;
-	}
+        self.next_child = 0;
+    }
 
-	fn children(&self) -> Vec<&Node<W>>
-	{
-		self.children.iter().collect()
-	}
+    fn children(&self) -> Vec<&Node<W>> {
+        self.children.iter().collect()
+    }
 
-	/// Returns the string "Selector".
-	fn type_name(&self) -> &'static str
-	{
-		"Selector"
-	}
+    /// Returns the string "Selector".
+    fn type_name(&self) -> &'static str {
+        "Selector"
+    }
 }
 
 /// Convenience macro for creating Selector nodes.
@@ -321,133 +310,132 @@ macro_rules! Selector
 }
 
 #[cfg(test)]
-mod tests
-{
-	use crate::Status;
-	use crate::std_nodes::*;
-	use crate::node::Tickable;
+mod tests {
+    use crate::node::Tickable;
+    use crate::std_nodes::*;
+    use crate::Status;
 
-	#[test]
-	fn check_running()
-	{
-		// Set up the nodes
-		let children = vec![YesTick::new(Status::Failed),
-		                    YesTick::new(Status::Running),
-		                    NoTick::new()];
+    #[test]
+    fn check_running() {
+        // Set up the nodes
+        let children = vec![
+            YesTick::new(Status::Failed),
+            YesTick::new(Status::Running),
+            NoTick::new(),
+        ];
 
-		// Add them to a seluence node
-		let mut sel = Selector::new(children);
+        // Add them to a seluence node
+        let mut sel = Selector::new(children);
 
-		// Tick the seluence
-		let status = sel.tick(&mut ());
+        // Tick the seluence
+        let status = sel.tick(&mut ());
 
-		// Drop the selector so the nodes can do their own checks
-		drop(sel);
+        // Drop the selector so the nodes can do their own checks
+        drop(sel);
 
-		// Make sure we got the expected value
-		assert_eq!(status, Status::Running);
-	}
+        // Make sure we got the expected value
+        assert_eq!(status, Status::Running);
+    }
 
-	#[test]
-	fn check_success()
-	{
-		// Set up the nodes
-		let children = vec![YesTick::new(Status::Failed),
-		                    YesTick::new(Status::Succeeded),
-		                    NoTick::new()];
+    #[test]
+    fn check_success() {
+        // Set up the nodes
+        let children = vec![
+            YesTick::new(Status::Failed),
+            YesTick::new(Status::Succeeded),
+            NoTick::new(),
+        ];
 
-		// Add them to a seluence node
-		let mut sel = Selector::new(children);
+        // Add them to a seluence node
+        let mut sel = Selector::new(children);
 
-		// Tick the seluence
-		let status = sel.tick(&mut ());
+        // Tick the seluence
+        let status = sel.tick(&mut ());
 
-		// Drop the selector so the nodes can do their own checks
-		drop(sel);
+        // Drop the selector so the nodes can do their own checks
+        drop(sel);
 
-		// Make sure we got the expected value
-		assert_eq!(status, Status::Succeeded);
-	}
+        // Make sure we got the expected value
+        assert_eq!(status, Status::Succeeded);
+    }
 
-	#[test]
-	fn check_fail()
-	{
-		// Set up the nodes
-		let children = vec![YesTick::new(Status::Failed),
-		                    YesTick::new(Status::Failed)];
+    #[test]
+    fn check_fail() {
+        // Set up the nodes
+        let children = vec![YesTick::new(Status::Failed), YesTick::new(Status::Failed)];
 
-		// Add them to a selector node
-		let mut sel = Selector::new(children);
+        // Add them to a selector node
+        let mut sel = Selector::new(children);
 
-		// Tick the seluence
-		let status = sel.tick(&mut ());
+        // Tick the seluence
+        let status = sel.tick(&mut ());
 
-		// Drop the selector so the nodes can do their own checks
-		drop(sel);
+        // Drop the selector so the nodes can do their own checks
+        drop(sel);
 
-		// Make sure we got the expected value
-		assert_eq!(status, Status::Failed);
-	}
+        // Make sure we got the expected value
+        assert_eq!(status, Status::Failed);
+    }
 
-	#[test]
-	fn check_active_running()
-	{
-		// Set up the nodes
-		let children = vec![YesTick::new(Status::Failed),
-		                    YesTick::new(Status::Running),
-		                    NoTick::new()];
+    #[test]
+    fn check_active_running() {
+        // Set up the nodes
+        let children = vec![
+            YesTick::new(Status::Failed),
+            YesTick::new(Status::Running),
+            NoTick::new(),
+        ];
 
-		// Add them to a seluence node
-		let mut sel = ActiveSelector::new(children);
+        // Add them to a seluence node
+        let mut sel = ActiveSelector::new(children);
 
-		// Tick the seluence
-		let status = sel.tick(&mut ());
+        // Tick the seluence
+        let status = sel.tick(&mut ());
 
-		// Drop the selector so the nodes can do their own checks
-		drop(sel);
+        // Drop the selector so the nodes can do their own checks
+        drop(sel);
 
-		// Make sure we got the expected value
-		assert_eq!(status, Status::Running);
-	}
+        // Make sure we got the expected value
+        assert_eq!(status, Status::Running);
+    }
 
-	#[test]
-	fn check_active_success()
-	{
-		// Set up the nodes
-		let children = vec![YesTick::new(Status::Failed),
-		                    YesTick::new(Status::Succeeded),
-		                    NoTick::new()];
+    #[test]
+    fn check_active_success() {
+        // Set up the nodes
+        let children = vec![
+            YesTick::new(Status::Failed),
+            YesTick::new(Status::Succeeded),
+            NoTick::new(),
+        ];
 
-		// Add them to a seluence node
-		let mut sel = ActiveSelector::new(children);
+        // Add them to a seluence node
+        let mut sel = ActiveSelector::new(children);
 
-		// Tick the seluence
-		let status = sel.tick(&mut ());
+        // Tick the seluence
+        let status = sel.tick(&mut ());
 
-		// Drop the selector so the nodes can do their own checks
-		drop(sel);
+        // Drop the selector so the nodes can do their own checks
+        drop(sel);
 
-		// Make sure we got the expected value
-		assert_eq!(status, Status::Succeeded);
-	}
+        // Make sure we got the expected value
+        assert_eq!(status, Status::Succeeded);
+    }
 
-	#[test]
-	fn check_active_fail()
-	{
-		// Set up the nodes
-		let children = vec![YesTick::new(Status::Failed),
-		                    YesTick::new(Status::Failed)];
+    #[test]
+    fn check_active_fail() {
+        // Set up the nodes
+        let children = vec![YesTick::new(Status::Failed), YesTick::new(Status::Failed)];
 
-		// Add them to a selector node
-		let mut sel = ActiveSelector::new(children);
+        // Add them to a selector node
+        let mut sel = ActiveSelector::new(children);
 
-		// Tick the seluence
-		let status = sel.tick(&mut ());
+        // Tick the seluence
+        let status = sel.tick(&mut ());
 
-		// Drop the selector so the nodes can do their own checks
-		drop(sel);
+        // Drop the selector so the nodes can do their own checks
+        drop(sel);
 
-		// Make sure we got the expected value
-		assert_eq!(status, Status::Failed);
-	}
+        // Make sure we got the expected value
+        assert_eq!(status, Status::Failed);
+    }
 }

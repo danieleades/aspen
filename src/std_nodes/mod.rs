@@ -13,10 +13,10 @@ pub use self::parallel::Parallel;
 
 mod decorator;
 pub use self::decorator::Decorator;
+pub use self::decorator::Invert;
 pub use self::decorator::Repeat;
 pub use self::decorator::UntilFail;
 pub use self::decorator::UntilSuccess;
-pub use self::decorator::Invert;
 
 mod action;
 pub use self::action::Action;
@@ -27,11 +27,14 @@ pub use self::condition::Condition;
 
 mod constants;
 pub use self::constants::AlwaysFail;
-pub use self::constants::AlwaysSucceed;
 pub use self::constants::AlwaysRunning;
+pub use self::constants::AlwaysSucceed;
 
-
-#[cfg(test)] mod testing;
-#[cfg(test)] pub use self::testing::NoTick;
-#[cfg(test)] pub use self::testing::YesTick;
-#[cfg(test)] pub use self::testing::CountedTick;
+#[cfg(test)]
+mod testing;
+#[cfg(test)]
+pub use self::testing::CountedTick;
+#[cfg(test)]
+pub use self::testing::NoTick;
+#[cfg(test)]
+pub use self::testing::YesTick;

@@ -94,85 +94,80 @@ use crate::status::Status;
 ///
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct Parallel<'a, W>
-{
-	/// Child nodes.
-	children: Vec<Node<'a, W>>,
+pub struct Parallel<'a, W> {
+    /// Child nodes.
+    children: Vec<Node<'a, W>>,
 
-	/// Number of child nodes required to succeed.
-	required_successes: usize,
+    /// Number of child nodes required to succeed.
+    required_successes: usize,
 }
 impl<'a, W> Parallel<'a, W>
-	where W: 'a
+where
+    W: 'a,
 {
-	/// Creates a `Parallel` node with the given children an required number of successes.
-	pub fn new(required_successes: usize, children: Vec<Node<'a, W>>) -> Node<'a, W>
-	{
-		let internals = Parallel {
-			children: children,
-			required_successes: required_successes,
-		};
-		Node::new(internals)
-	}
+    /// Creates a `Parallel` node with the given children an required number of successes.
+    pub fn new(required_successes: usize, children: Vec<Node<'a, W>>) -> Node<'a, W> {
+        let internals = Parallel {
+            children: children,
+            required_successes: required_successes,
+        };
+        Node::new(internals)
+    }
 }
-impl<'a, W> Tickable<W> for Parallel<'a, W>
-{
-	fn tick(&mut self, world: &mut W) -> Status
-	{
-		let mut successes = 0;
-		let mut failures = 0;
+impl<'a, W> Tickable<W> for Parallel<'a, W> {
+    fn tick(&mut self, world: &mut W) -> Status {
+        let mut successes = 0;
+        let mut failures = 0;
 
-		// Go through all the children to determine success or failure
-		for child in self.children.iter_mut() {
-			// Check if this child has already completed
-			let child_status = if child.status().is_done() {
-				// It has, so we don't want to tick it again and accidentally
-				// restart it
-				child.status()
-			} else { child.tick(world) };
+        // Go through all the children to determine success or failure
+        for child in self.children.iter_mut() {
+            // Check if this child has already completed
+            let child_status = if child.status().is_done() {
+                // It has, so we don't want to tick it again and accidentally
+                // restart it
+                child.status()
+            } else {
+                child.tick(world)
+            };
 
-			if child_status == Status::Succeeded {
-				successes += 1;
-			}
-			else if child_status == Status::Failed {
-				failures += 1;
-			}
-		}
+            if child_status == Status::Succeeded {
+                successes += 1;
+            } else if child_status == Status::Failed {
+                failures += 1;
+            }
+        }
 
-		// Return a result based on the children
-		if successes >= self.required_successes {
-			// Enough children succeeded
-			Status::Succeeded
-		} else if failures + self.required_successes > self.children.len() {
-			// Too many children failed - it is impossible to succeed. I
-			// suspect the overflow condition to be significantly less likely
-			// than the underflow, which is why I've written the condition this
-			// way.
-			Status::Failed
-		} else {
-			// Status is still undetermined
-			Status::Running
-		}
-	}
+        // Return a result based on the children
+        if successes >= self.required_successes {
+            // Enough children succeeded
+            Status::Succeeded
+        } else if failures + self.required_successes > self.children.len() {
+            // Too many children failed - it is impossible to succeed. I
+            // suspect the overflow condition to be significantly less likely
+            // than the underflow, which is why I've written the condition this
+            // way.
+            Status::Failed
+        } else {
+            // Status is still undetermined
+            Status::Running
+        }
+    }
 
-	fn reset(&mut self)
-	{
-		// Reset all of our children
-		for child in self.children.iter_mut() {
-			child.reset();
-		}
-	}
+    fn reset(&mut self) {
+        // Reset all of our children
+        for child in self.children.iter_mut() {
+            child.reset();
+        }
+    }
 
-	fn children(&self) -> Vec<&Node<W>>
-	{
-		self.children.iter().collect()
-	}
+    fn children(&self) -> Vec<&Node<W>> {
+        self.children.iter().collect()
+    }
 
-	/// Returns the string "Parallel".
-	fn type_name(&self) -> &'static str
-	{
-		"Parallel"
-	}
+    /// Returns the string "Parallel".
+    fn type_name(&self) -> &'static str {
+        "Parallel"
+    }
 }
 
 /// Convenience macro for creating Parallel nodes.
@@ -199,54 +194,56 @@ macro_rules! Parallel
 }
 
 #[cfg(test)]
-mod tests
-{
-	use crate::status::Status;
-	use crate::std_nodes::*;
-	use crate::node::Tickable;
+mod tests {
+    use crate::node::Tickable;
+    use crate::status::Status;
+    use crate::std_nodes::*;
 
-	#[test]
-	fn success()
-	{
-		let children = vec![YesTick::new(Status::Succeeded),
-		                    YesTick::new(Status::Succeeded),
-		                    YesTick::new(Status::Running),
-		                    YesTick::new(Status::Running),
-		                    YesTick::new(Status::Failed),
-		                    YesTick::new(Status::Failed)];
-		let mut parallel = Parallel::new(2, children);
-		let status = parallel.tick(&mut ());
-		drop(parallel);
-		assert_eq!(status, Status::Succeeded);
-	}
+    #[test]
+    fn success() {
+        let children = vec![
+            YesTick::new(Status::Succeeded),
+            YesTick::new(Status::Succeeded),
+            YesTick::new(Status::Running),
+            YesTick::new(Status::Running),
+            YesTick::new(Status::Failed),
+            YesTick::new(Status::Failed),
+        ];
+        let mut parallel = Parallel::new(2, children);
+        let status = parallel.tick(&mut ());
+        drop(parallel);
+        assert_eq!(status, Status::Succeeded);
+    }
 
-	#[test]
-	fn failure()
-	{
-		let children = vec![YesTick::new(Status::Succeeded),
-		                    YesTick::new(Status::Succeeded),
-		                    YesTick::new(Status::Running),
-		                    YesTick::new(Status::Running),
-		                    YesTick::new(Status::Failed),
-		                    YesTick::new(Status::Failed)];
-		let mut parallel = Parallel::new(5, children);
-		let status = parallel.tick(&mut ());
-		drop(parallel);
-		assert_eq!(status, Status::Failed);
-	}
+    #[test]
+    fn failure() {
+        let children = vec![
+            YesTick::new(Status::Succeeded),
+            YesTick::new(Status::Succeeded),
+            YesTick::new(Status::Running),
+            YesTick::new(Status::Running),
+            YesTick::new(Status::Failed),
+            YesTick::new(Status::Failed),
+        ];
+        let mut parallel = Parallel::new(5, children);
+        let status = parallel.tick(&mut ());
+        drop(parallel);
+        assert_eq!(status, Status::Failed);
+    }
 
-	#[test]
-	fn running()
-	{
-		let children = vec![YesTick::new(Status::Succeeded),
-		                    YesTick::new(Status::Succeeded),
-		                    YesTick::new(Status::Running),
-		                    YesTick::new(Status::Running),
-		                    YesTick::new(Status::Failed),
-		                    YesTick::new(Status::Failed)];
-		let mut parallel = Parallel::new(3, children);
-		let status = parallel.tick(&mut ());
-		drop(parallel);
-		assert_eq!(status, Status::Running);
-	}
+    #[test]
+    fn running() {
+        let children = vec![
+            YesTick::new(Status::Succeeded),
+            YesTick::new(Status::Succeeded),
+            YesTick::new(Status::Running),
+            YesTick::new(Status::Running),
+            YesTick::new(Status::Failed),
+            YesTick::new(Status::Failed),
+        ];
+        let mut parallel = Parallel::new(3, children);
+        let status = parallel.tick(&mut ());
+        drop(parallel);
+        assert_eq!(status, Status::Running);
+    }
 }

@@ -39,47 +39,46 @@ use crate::status::Status;
 /// let mut node = Condition::new(|s| *s > CHECK_VALUE );
 /// assert_eq!(node.tick(&mut state), Status::Failed);
 /// ```
-pub struct Condition<'a, W>
-{
-	/// Function that is performed to determine the node's status
-	///
-	/// A return value of `true` means success and a return value of `false`
-	/// means failure.
-	func: Box<Fn(&W) -> bool + 'a>,
+pub struct Condition<'a, W> {
+    /// Function that is performed to determine the node's status
+    ///
+    /// A return value of `true` means success and a return value of `false`
+    /// means failure.
+    func: Box<Fn(&W) -> bool + 'a>,
 }
 impl<'a, W> Condition<'a, W>
-	where W: 'a
+where
+    W: 'a,
 {
-	/// Constructs a new Condition node that will run the given function.
-	pub fn new<F>(func: F) -> Node<'a, W>
-		where F: Fn(&W) -> bool + 'a
-	{
-		let internals = Condition { func: Box::new(func) };
-		Node::new(internals)
-	}
+    /// Constructs a new Condition node that will run the given function.
+    pub fn new<F>(func: F) -> Node<'a, W>
+    where
+        F: Fn(&W) -> bool + 'a,
+    {
+        let internals = Condition {
+            func: Box::new(func),
+        };
+        Node::new(internals)
+    }
 }
-impl<'a, W> Tickable<W> for Condition<'a, W>
-{
-	fn tick(&mut self, world: &mut W) -> Status
-	{
-		// Otherwise, run the function
-		if (*self.func)(world) {
-			Status::Succeeded
-		} else {
-			Status::Failed
-		}
-	}
+impl<'a, W> Tickable<W> for Condition<'a, W> {
+    fn tick(&mut self, world: &mut W) -> Status {
+        // Otherwise, run the function
+        if (*self.func)(world) {
+            Status::Succeeded
+        } else {
+            Status::Failed
+        }
+    }
 
-	fn reset(&mut self)
-	{
-		// No-op
-	}
+    fn reset(&mut self) {
+        // No-op
+    }
 
-	/// Returns the string "Condition".
-	fn type_name(&self) -> &'static str
-	{
-		"Condition"
-	}
+    /// Returns the string "Condition".
+    fn type_name(&self) -> &'static str {
+        "Condition"
+    }
 }
 
 /// Convenience macro for creating Condition nodes.
@@ -94,31 +93,27 @@ impl<'a, W> Tickable<W> for Condition<'a, W>
 /// # }
 /// ```
 #[macro_export]
-macro_rules! Condition
-{
-	( $e:expr ) => {
-		$crate::std_nodes::Condition::new($e)
-	}
+macro_rules! Condition {
+    ( $e:expr ) => {
+        $crate::std_nodes::Condition::new($e)
+    };
 }
 
 #[cfg(test)]
-mod tests
-{
-	use crate::status::Status;
-	use crate::std_nodes::*;
-	use crate::node::Tickable;
+mod tests {
+    use crate::node::Tickable;
+    use crate::status::Status;
+    use crate::std_nodes::*;
 
-	#[test]
-	fn failure()
-	{
-		let mut cond = Condition::new(|_| false);
-		assert_eq!(cond.tick(&mut ()), Status::Failed);
-	}
+    #[test]
+    fn failure() {
+        let mut cond = Condition::new(|_| false);
+        assert_eq!(cond.tick(&mut ()), Status::Failed);
+    }
 
-	#[test]
-	fn success()
-	{
-		let mut cond = Condition::new(|_| true);
-		assert_eq!(cond.tick(&mut ()), Status::Succeeded);
-	}
+    #[test]
+    fn success() {
+        let mut cond = Condition::new(|_| true);
+        assert_eq!(cond.tick(&mut ()), Status::Succeeded);
+    }
 }

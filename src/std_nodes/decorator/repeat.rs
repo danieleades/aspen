@@ -43,92 +43,84 @@ use crate::status::Status;
 /// }
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
-pub struct Repeat<'a, W>
-{
-	/// Child node.
-	child: Node<'a, W>,
+pub struct Repeat<'a, W> {
+    /// Child node.
+    child: Node<'a, W>,
 
-	/// Optional number of times to do the reset.
-	attempt_limit: Option<u32>,
+    /// Optional number of times to do the reset.
+    attempt_limit: Option<u32>,
 
-	/// Number of times the child has been reset.
-	attempts: u32,
+    /// Number of times the child has been reset.
+    attempts: u32,
 }
 impl<'a, W> Repeat<'a, W>
-	where W: 'a
+where
+    W: 'a,
 {
-	/// Creates a new Repeat node that will repeat forever.
-	pub fn new(child: Node<'a, W>) -> Node<'a, W>
-	{
-		let internals = Repeat {
-			child: child,
-			attempt_limit: None,
-			attempts: 0,
-		};
-		Node::new(internals)
-	}
+    /// Creates a new Repeat node that will repeat forever.
+    pub fn new(child: Node<'a, W>) -> Node<'a, W> {
+        let internals = Repeat {
+            child: child,
+            attempt_limit: None,
+            attempts: 0,
+        };
+        Node::new(internals)
+    }
 
-	/// Creates a new Repeat node that will only repeat a limited number of times.
-	///
-	/// The limit specifies the number of times this node can be run. A limit
-	/// of zero means that the node will instantly succeed.
-	pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W>
-	{
-		let internals = Repeat {
-			child: child,
-			attempt_limit: Some(limit),
-			attempts: 0,
-		};
-		Node::new(internals)
-	}
+    /// Creates a new Repeat node that will only repeat a limited number of times.
+    ///
+    /// The limit specifies the number of times this node can be run. A limit
+    /// of zero means that the node will instantly succeed.
+    pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W> {
+        let internals = Repeat {
+            child: child,
+            attempt_limit: Some(limit),
+            attempts: 0,
+        };
+        Node::new(internals)
+    }
 }
-impl<'a, W> Tickable<W> for Repeat<'a, W>
-{
-	fn tick(&mut self, world: &mut W) -> Status
-	{
-		// Take care of the infinite version so we don't have to worry
-		if self.attempt_limit.is_none() {
-			self.child.tick(world);
-			return Status::Running;
-		}
+impl<'a, W> Tickable<W> for Repeat<'a, W> {
+    fn tick(&mut self, world: &mut W) -> Status {
+        // Take care of the infinite version so we don't have to worry
+        if self.attempt_limit.is_none() {
+            self.child.tick(world);
+            return Status::Running;
+        }
 
-		// We're using the finite version
-		let limit = self.attempt_limit.unwrap();
-		let child_status = self.child.tick(world);
+        // We're using the finite version
+        let limit = self.attempt_limit.unwrap();
+        let child_status = self.child.tick(world);
 
-		if child_status.is_done() {
-			self.attempts += 1;
-			if self.attempts < limit {
-				return Status::Running;
-			}
-			else {
-				return Status::Succeeded;
-			}
-		}
+        if child_status.is_done() {
+            self.attempts += 1;
+            if self.attempts < limit {
+                return Status::Running;
+            } else {
+                return Status::Succeeded;
+            }
+        }
 
-		// We're still running
-		Status::Running
-	}
+        // We're still running
+        Status::Running
+    }
 
-	fn reset(&mut self)
-	{
-		// Reset our attempt count
-		self.attempts = 0;
+    fn reset(&mut self) {
+        // Reset our attempt count
+        self.attempts = 0;
 
-		// Reset the child
-		self.child.reset();
-	}
+        // Reset the child
+        self.child.reset();
+    }
 
-	fn children(&self) -> Vec<&Node<W>>
-	{
-		vec![&self.child]
-	}
+    fn children(&self) -> Vec<&Node<W>> {
+        vec![&self.child]
+    }
 
-	/// Returns the string "Repeat".
-	fn type_name(&self) -> &'static str
-	{
-		"Repeat"
-	}
+    /// Returns the string "Repeat".
+    fn type_name(&self) -> &'static str {
+        "Repeat"
+    }
 }
 
 /// Convenience macro for creating Repeat nodes.
@@ -147,35 +139,32 @@ impl<'a, W> Tickable<W> for Repeat<'a, W>
 /// # }
 /// ```
 #[macro_export]
-macro_rules! Repeat
-{
-	( $e:expr ) => {
-		$crate::std_nodes::Repeat::new($e)
-	};
-	( $c:expr, $e:expr ) => {
-		$crate::std_nodes::Repeat::with_limit($c, $e)
-	}
+macro_rules! Repeat {
+    ( $e:expr ) => {
+        $crate::std_nodes::Repeat::new($e)
+    };
+    ( $c:expr, $e:expr ) => {
+        $crate::std_nodes::Repeat::with_limit($c, $e)
+    };
 }
 
 #[cfg(test)]
-mod tests
-{
-	use crate::status::Status;
-	use crate::std_nodes::*;
-	use crate::node::Tickable;
+mod tests {
+    use crate::node::Tickable;
+    use crate::status::Status;
+    use crate::std_nodes::*;
 
-	#[test]
-	fn repeat_finite()
-	{
-		// No good way to test the infinite one
-		let limit = 5;
-		let child = CountedTick::new(Status::Failed, limit, true);
-		let mut node = Repeat::with_limit(limit, child);
-		for _ in 0..(limit - 1) {
-			assert_eq!(node.tick(&mut ()), Status::Running);
-		}
-		let status = node.tick(&mut ());
-		drop(node);
-		assert_eq!(status, Status::Succeeded);
-	}
+    #[test]
+    fn repeat_finite() {
+        // No good way to test the infinite one
+        let limit = 5;
+        let child = CountedTick::new(Status::Failed, limit, true);
+        let mut node = Repeat::with_limit(limit, child);
+        for _ in 0..(limit - 1) {
+            assert_eq!(node.tick(&mut ()), Status::Running);
+        }
+        let status = node.tick(&mut ());
+        drop(node);
+        assert_eq!(status, Status::Succeeded);
+    }
 }

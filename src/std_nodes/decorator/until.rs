@@ -60,99 +60,93 @@ use crate::status::Status;
 ///
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct UntilFail<'a, W>
-{
-	/// Child node.
-	child: Node<'a, W>,
+pub struct UntilFail<'a, W> {
+    /// Child node.
+    child: Node<'a, W>,
 
-	/// Optional number of times to do the reset.
-	attempt_limit: Option<u32>,
+    /// Optional number of times to do the reset.
+    attempt_limit: Option<u32>,
 
-	/// Number of times the child has been reset.
-	attempts: u32,
+    /// Number of times the child has been reset.
+    attempts: u32,
 }
 impl<'a, W> UntilFail<'a, W>
-	where W: 'a
+where
+    W: 'a,
 {
-	/// Creates a new `UntilFail` node that will keep trying indefinitely.
-	pub fn new(child: Node<'a, W>) -> Node<'a, W>
-	{
-		let internals = UntilFail {
-			child: child,
-			attempt_limit: None,
-			attempts: 0,
-		};
-		Node::new(internals)
-	}
+    /// Creates a new `UntilFail` node that will keep trying indefinitely.
+    pub fn new(child: Node<'a, W>) -> Node<'a, W> {
+        let internals = UntilFail {
+            child: child,
+            attempt_limit: None,
+            attempts: 0,
+        };
+        Node::new(internals)
+    }
 
-	/// Creates a new `UntilFail` node that will only retry a specific number of times.
-	///
-	/// The limit is the number of times the node will run, not the number of
-	/// times it will be reset. A limit of zero means instant failure.
-	pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W>
-	{
-		let internals = UntilFail {
-			child: child,
-			attempt_limit: Some(limit),
-			attempts: 0,
-		};
-		Node::new(internals)
-	}
+    /// Creates a new `UntilFail` node that will only retry a specific number of times.
+    ///
+    /// The limit is the number of times the node will run, not the number of
+    /// times it will be reset. A limit of zero means instant failure.
+    pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W> {
+        let internals = UntilFail {
+            child: child,
+            attempt_limit: Some(limit),
+            attempts: 0,
+        };
+        Node::new(internals)
+    }
 }
-impl<'a, W> Tickable<W> for UntilFail<'a, W>
-{
-	fn tick(&mut self, world: &mut W) -> Status
-	{
-		// Take care of the infinite version so we don't have to worry
-		if self.attempt_limit.is_none() {
-			return if self.child.tick(world) == Status::Failed {
-				Status::Succeeded
-			} else { Status::Running };
-		}
+impl<'a, W> Tickable<W> for UntilFail<'a, W> {
+    fn tick(&mut self, world: &mut W) -> Status {
+        // Take care of the infinite version so we don't have to worry
+        if self.attempt_limit.is_none() {
+            return if self.child.tick(world) == Status::Failed {
+                Status::Succeeded
+            } else {
+                Status::Running
+            };
+        }
 
-		// We're using the finite version
-		let limit = self.attempt_limit.unwrap();
-		let child_status = self.child.tick(world);
+        // We're using the finite version
+        let limit = self.attempt_limit.unwrap();
+        let child_status = self.child.tick(world);
 
-		// It's either check this here or do it at both of the following
-		// returns. I'll take here.
-		if child_status == Status::Failed {
-			return Status::Succeeded;
-		}
+        // It's either check this here or do it at both of the following
+        // returns. I'll take here.
+        if child_status == Status::Failed {
+            return Status::Succeeded;
+        }
 
-		if child_status.is_done() {
-			self.attempts += 1;
-			if self.attempts < limit {
-				return Status::Running;
-			}
-			else {
-				return Status::Failed;
-			}
-		}
+        if child_status.is_done() {
+            self.attempts += 1;
+            if self.attempts < limit {
+                return Status::Running;
+            } else {
+                return Status::Failed;
+            }
+        }
 
-		// We're still running
-		Status::Running
-	}
+        // We're still running
+        Status::Running
+    }
 
-	fn reset(&mut self)
-	{
-		// Reset our own status
-		self.attempts = 0;
+    fn reset(&mut self) {
+        // Reset our own status
+        self.attempts = 0;
 
-		// Reset the child
-		self.child.reset();
-	}
+        // Reset the child
+        self.child.reset();
+    }
 
-	fn children(&self) -> Vec<&Node<W>>
-	{
-		vec![&self.child]
-	}
+    fn children(&self) -> Vec<&Node<W>> {
+        vec![&self.child]
+    }
 
-	/// Returns the string "UntilFail".
-	fn type_name(&self) -> &'static str
-	{
-		"UntilFail"
-	}
+    /// Returns the string "UntilFail".
+    fn type_name(&self) -> &'static str {
+        "UntilFail"
+    }
 }
 
 /// Convenience macro for creating UntilFail nodes.
@@ -171,14 +165,13 @@ impl<'a, W> Tickable<W> for UntilFail<'a, W>
 /// # }
 /// ```
 #[macro_export]
-macro_rules! UntilFail
-{
-	( $e:expr ) => {
-		$crate::std_nodes::UntilFail::new($e)
-	};
-	( $c:expr, $e:expr ) => {
-		$crate::std_nodes::UntilFail::with_limit($c, $e)
-	}
+macro_rules! UntilFail {
+    ( $e:expr ) => {
+        $crate::std_nodes::UntilFail::new($e)
+    };
+    ( $c:expr, $e:expr ) => {
+        $crate::std_nodes::UntilFail::with_limit($c, $e)
+    };
 }
 
 /// A node that repeats its child until the child succeeds.
@@ -240,99 +233,93 @@ macro_rules! UntilFail
 ///
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct UntilSuccess<'a, W>
-{
-	/// Child node.
-	child: Node<'a, W>,
+pub struct UntilSuccess<'a, W> {
+    /// Child node.
+    child: Node<'a, W>,
 
-	/// Optional number of times to do the reset.
-	attempt_limit: Option<u32>,
+    /// Optional number of times to do the reset.
+    attempt_limit: Option<u32>,
 
-	/// Number of times the child has been reset.
-	attempts: u32,
+    /// Number of times the child has been reset.
+    attempts: u32,
 }
 impl<'a, W> UntilSuccess<'a, W>
-	where W: 'a
+where
+    W: 'a,
 {
-	/// Creates a new `UntilSuccess` node that will keep trying indefinitely.
-	pub fn new(child: Node<'a, W>) -> Node<'a, W>
-	{
-		let internals = UntilSuccess {
-			child: child,
-			attempt_limit: None,
-			attempts: 0,
-		};
-		Node::new(internals)
-	}
+    /// Creates a new `UntilSuccess` node that will keep trying indefinitely.
+    pub fn new(child: Node<'a, W>) -> Node<'a, W> {
+        let internals = UntilSuccess {
+            child: child,
+            attempt_limit: None,
+            attempts: 0,
+        };
+        Node::new(internals)
+    }
 
-	/// Creates a new `UntilSuccess` node that will only retry a specific number of times.
-	///
-	/// `limit` is the number of times the node can be *reset*, not the number
-	/// of times it can be run. A limit of one means the node can be run twice.
-	pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W>
-	{
-		let internals = UntilSuccess {
-			child: child,
-			attempt_limit: Some(limit),
-			attempts: 0,
-		};
-		Node::new(internals)
-	}
+    /// Creates a new `UntilSuccess` node that will only retry a specific number of times.
+    ///
+    /// `limit` is the number of times the node can be *reset*, not the number
+    /// of times it can be run. A limit of one means the node can be run twice.
+    pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W> {
+        let internals = UntilSuccess {
+            child: child,
+            attempt_limit: Some(limit),
+            attempts: 0,
+        };
+        Node::new(internals)
+    }
 }
-impl<'a, W> Tickable<W> for UntilSuccess<'a, W>
-{
-	fn tick(&mut self, world: &mut W) -> Status
-	{
-		// Take care of the infinite version so we don't have to worry
-		if self.attempt_limit.is_none() {
-			return if self.child.tick(world) == Status::Succeeded {
-				Status::Succeeded
-			} else { Status::Running };
-		}
+impl<'a, W> Tickable<W> for UntilSuccess<'a, W> {
+    fn tick(&mut self, world: &mut W) -> Status {
+        // Take care of the infinite version so we don't have to worry
+        if self.attempt_limit.is_none() {
+            return if self.child.tick(world) == Status::Succeeded {
+                Status::Succeeded
+            } else {
+                Status::Running
+            };
+        }
 
-		// We're using the finite version
-		let limit = self.attempt_limit.unwrap();
-		let child_status = self.child.tick(world);
+        // We're using the finite version
+        let limit = self.attempt_limit.unwrap();
+        let child_status = self.child.tick(world);
 
-		// It's either check this here or do it at both of the following
-		// returns. I'll take here.
-		if child_status == Status::Succeeded {
-			return Status::Succeeded;
-		}
+        // It's either check this here or do it at both of the following
+        // returns. I'll take here.
+        if child_status == Status::Succeeded {
+            return Status::Succeeded;
+        }
 
-		if child_status.is_done() {
-			self.attempts += 1;
-			if self.attempts < limit {
-				return Status::Running;
-			}
-			else {
-				return Status::Failed;
-			}
-		}
+        if child_status.is_done() {
+            self.attempts += 1;
+            if self.attempts < limit {
+                return Status::Running;
+            } else {
+                return Status::Failed;
+            }
+        }
 
-		// We're still running
-		Status::Running
-	}
+        // We're still running
+        Status::Running
+    }
 
-	fn reset(&mut self)
-	{
-		// Reset our own status
-		self.attempts = 0;
+    fn reset(&mut self) {
+        // Reset our own status
+        self.attempts = 0;
 
-		// Reset the child
-		self.child.reset();
-	}
+        // Reset the child
+        self.child.reset();
+    }
 
-	fn children(&self) -> Vec<&Node<W>>
-	{
-		vec![&self.child]
-	}
+    fn children(&self) -> Vec<&Node<W>> {
+        vec![&self.child]
+    }
 
-	/// Returns the string "UntilSuccess".
-	fn type_name(&self) -> &'static str
-	{
-		"UntilSuccess"
-	}
+    /// Returns the string "UntilSuccess".
+    fn type_name(&self) -> &'static str {
+        "UntilSuccess"
+    }
 }
 
 /// Convenience macro for creating UntilSuccess nodes.
@@ -351,68 +338,62 @@ impl<'a, W> Tickable<W> for UntilSuccess<'a, W>
 /// # }
 /// ```
 #[macro_export]
-macro_rules! UntilSuccess
-{
-	( $e:expr ) => {
-		$crate::std_nodes::UntilSuccess::new($e)
-	};
-	( $c:expr, $e:expr ) => {
-		$crate::std_nodes::UntilSuccess::with_limit($c, $e)
-	}
+macro_rules! UntilSuccess {
+    ( $e:expr ) => {
+        $crate::std_nodes::UntilSuccess::new($e)
+    };
+    ( $c:expr, $e:expr ) => {
+        $crate::std_nodes::UntilSuccess::with_limit($c, $e)
+    };
 }
 
 #[cfg(test)]
-mod tests
-{
-	use crate::status::Status;
-	use crate::std_nodes::*;
-	use crate::node::Tickable;
+mod tests {
+    use crate::node::Tickable;
+    use crate::status::Status;
+    use crate::std_nodes::*;
 
-	#[test]
-	fn until_fail_infinite()
-	{
-		let child = CountedTick::new(Status::Failed, 1, true);
-		let mut node = UntilFail::new(child);
-		let status = node.tick(&mut ());
-		drop(node);
-		assert_eq!(status, Status::Succeeded);
-	}
+    #[test]
+    fn until_fail_infinite() {
+        let child = CountedTick::new(Status::Failed, 1, true);
+        let mut node = UntilFail::new(child);
+        let status = node.tick(&mut ());
+        drop(node);
+        assert_eq!(status, Status::Succeeded);
+    }
 
-	#[test]
-	fn until_fail_finite()
-	{
-		let limit = 5;
-		let child = CountedTick::new(Status::Succeeded, limit, true);
-		let mut node = UntilFail::with_limit(limit, child);
-		for _ in 0..(limit - 1) {
-			assert_eq!(node.tick(&mut ()), Status::Running);
-		}
-		let status = node.tick(&mut ());
-		drop(node);
-		assert_eq!(status, Status::Failed);
-	}
+    #[test]
+    fn until_fail_finite() {
+        let limit = 5;
+        let child = CountedTick::new(Status::Succeeded, limit, true);
+        let mut node = UntilFail::with_limit(limit, child);
+        for _ in 0..(limit - 1) {
+            assert_eq!(node.tick(&mut ()), Status::Running);
+        }
+        let status = node.tick(&mut ());
+        drop(node);
+        assert_eq!(status, Status::Failed);
+    }
 
-	#[test]
-	fn until_success_infinite()
-	{
-		let child = CountedTick::new(Status::Succeeded, 1, true);
-		let mut node = UntilSuccess::new(child);
-		let status = node.tick(&mut ());
-		drop(node);
-		assert_eq!(status, Status::Succeeded);
-	}
+    #[test]
+    fn until_success_infinite() {
+        let child = CountedTick::new(Status::Succeeded, 1, true);
+        let mut node = UntilSuccess::new(child);
+        let status = node.tick(&mut ());
+        drop(node);
+        assert_eq!(status, Status::Succeeded);
+    }
 
-	#[test]
-	fn until_success_finite()
-	{
-		let limit = 5;
-		let child = CountedTick::new(Status::Failed, limit, true);
-		let mut node = UntilSuccess::with_limit(limit, child);
-		for _ in 0..(limit - 1) {
-			assert_eq!(node.tick(&mut ()), Status::Running);
-		}
-		let status = node.tick(&mut ());
-		drop(node);
-		assert_eq!(status, Status::Failed);
-	}
+    #[test]
+    fn until_success_finite() {
+        let limit = 5;
+        let child = CountedTick::new(Status::Failed, limit, true);
+        let mut node = UntilSuccess::with_limit(limit, child);
+        for _ in 0..(limit - 1) {
+            assert_eq!(node.tick(&mut ()), Status::Running);
+        }
+        let status = node.tick(&mut ());
+        drop(node);
+        assert_eq!(status, Status::Failed);
+    }
 }

@@ -53,60 +53,53 @@ use crate::status::Status;
 /// let mut node = AlwaysFail::with_child(AlwaysSucceed::new());
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
-pub struct AlwaysFail<'a, W>
-{
-	/// Optional child node.
-	child: Option<Node<'a, W>>,
+pub struct AlwaysFail<'a, W> {
+    /// Optional child node.
+    child: Option<Node<'a, W>>,
 }
 impl<'a, W> AlwaysFail<'a, W>
-	where W: 'a
+where
+    W: 'a,
 {
-	/// Construct a new AlwaysFail node.
-	pub fn new() -> Node<'a, W>
-	{
-		Node::new(AlwaysFail { child: None })
-	}
+    /// Construct a new AlwaysFail node.
+    pub fn new() -> Node<'a, W> {
+        Node::new(AlwaysFail { child: None })
+    }
 
-	/// Construct a new AlwaysFail node that has a child.
-	pub fn with_child(child: Node<'a, W>) -> Node<'a, W>
-	{
-		Node::new(AlwaysFail { child: Some(child) })
-	}
+    /// Construct a new AlwaysFail node that has a child.
+    pub fn with_child(child: Node<'a, W>) -> Node<'a, W> {
+        Node::new(AlwaysFail { child: Some(child) })
+    }
 }
-impl<'a, W> Tickable<W> for AlwaysFail<'a, W>
-{
-	fn tick(&mut self, world: &mut W) -> Status
-	{
-		if let Some(ref mut child) = self.child {
-			if !child.tick(world).is_done() {
-				return Status::Running;
-			}
-		}
+impl<'a, W> Tickable<W> for AlwaysFail<'a, W> {
+    fn tick(&mut self, world: &mut W) -> Status {
+        if let Some(ref mut child) = self.child {
+            if !child.tick(world).is_done() {
+                return Status::Running;
+            }
+        }
 
-		Status::Failed
-	}
+        Status::Failed
+    }
 
-	fn reset(&mut self)
-	{
-		if let Some(ref mut child) = self.child {
-			child.reset();
-		}
-	}
+    fn reset(&mut self) {
+        if let Some(ref mut child) = self.child {
+            child.reset();
+        }
+    }
 
-	fn children(&self) -> Vec<&Node<W>>
-	{
-		if let Some(ref child) = self.child {
-			vec![child]
-		} else {
-			Vec::new()
-		}
-	}
+    fn children(&self) -> Vec<&Node<W>> {
+        if let Some(ref child) = self.child {
+            vec![child]
+        } else {
+            Vec::new()
+        }
+    }
 
-	/// Returns the string "AlwaysFail".
-	fn type_name(&self) -> &'static str
-	{
-		"AlwaysFail"
-	}
+    /// Returns the string "AlwaysFail".
+    fn type_name(&self) -> &'static str {
+        "AlwaysFail"
+    }
 }
 
 /// Convenience macro for creating AlwaysFail nodes.
@@ -134,14 +127,13 @@ impl<'a, W> Tickable<W> for AlwaysFail<'a, W>
 /// # }
 /// ```
 #[macro_export]
-macro_rules! AlwaysFail
-{
-	( $e:expr ) => {
-		$crate::std_nodes::AlwaysFail::with_child($e)
-	};
-	( ) => {
-		$crate::std_nodes::AlwaysFail::new()
-	}
+macro_rules! AlwaysFail {
+    ( $e:expr ) => {
+        $crate::std_nodes::AlwaysFail::with_child($e)
+    };
+    ( ) => {
+        $crate::std_nodes::AlwaysFail::new()
+    };
 }
 
 /// Implements a node that always returns that it has succeeded.
@@ -196,60 +188,53 @@ macro_rules! AlwaysFail
 /// let mut node = AlwaysSucceed::with_child(AlwaysFail::new());
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
-pub struct AlwaysSucceed<'a, W>
-{
-	/// Optional child node.
-	child: Option<Node<'a, W>>,
+pub struct AlwaysSucceed<'a, W> {
+    /// Optional child node.
+    child: Option<Node<'a, W>>,
 }
 impl<'a, W> AlwaysSucceed<'a, W>
-	where W: 'a
+where
+    W: 'a,
 {
-	/// Construct a new AlwaysSucceed node.
-	pub fn new() -> Node<'a, W>
-	{
-		Node::new(AlwaysSucceed { child: None })
-	}
+    /// Construct a new AlwaysSucceed node.
+    pub fn new() -> Node<'a, W> {
+        Node::new(AlwaysSucceed { child: None })
+    }
 
-	/// Construct a new AlwaysSucceed node with a child.
-	pub fn with_child(child: Node<'a, W>) -> Node<'a, W>
-	{
-		Node::new(AlwaysSucceed { child: Some(child) })
-	}
+    /// Construct a new AlwaysSucceed node with a child.
+    pub fn with_child(child: Node<'a, W>) -> Node<'a, W> {
+        Node::new(AlwaysSucceed { child: Some(child) })
+    }
 }
-impl<'a, W> Tickable<W> for AlwaysSucceed<'a, W>
-{
-	fn tick(&mut self, world: &mut W) -> Status
-	{
-		if let Some(ref mut child) = self.child {
-			if !child.tick(world).is_done() {
-				return Status::Running;
-			}
-		}
+impl<'a, W> Tickable<W> for AlwaysSucceed<'a, W> {
+    fn tick(&mut self, world: &mut W) -> Status {
+        if let Some(ref mut child) = self.child {
+            if !child.tick(world).is_done() {
+                return Status::Running;
+            }
+        }
 
-		Status::Succeeded
-	}
+        Status::Succeeded
+    }
 
-	fn children(&self) -> Vec<&Node<W>>
-	{
-		if let Some(ref child) = self.child {
-			vec![child]
-		} else {
-			Vec::new()
-		}
-	}
+    fn children(&self) -> Vec<&Node<W>> {
+        if let Some(ref child) = self.child {
+            vec![child]
+        } else {
+            Vec::new()
+        }
+    }
 
-	fn reset(&mut self)
-	{
-		if let Some(ref mut child) = self.child {
-			child.reset();
-		}
-	}
+    fn reset(&mut self) {
+        if let Some(ref mut child) = self.child {
+            child.reset();
+        }
+    }
 
-	/// Returns the string "AlwaysSucceed".
-	fn type_name(&self) -> &'static str
-	{
-		"AlwaysSucceed"
-	}
+    /// Returns the string "AlwaysSucceed".
+    fn type_name(&self) -> &'static str {
+        "AlwaysSucceed"
+    }
 }
 
 /// Convenience macro for creating AlwaysSucceed nodes.
@@ -277,14 +262,13 @@ impl<'a, W> Tickable<W> for AlwaysSucceed<'a, W>
 /// # }
 /// ```
 #[macro_export]
-macro_rules! AlwaysSucceed
-{
-	( $e:expr ) => {
-		$crate::std_nodes::AlwaysSucceed::with_child($e)
-	};
-	( ) => {
-		$crate::std_nodes::AlwaysSucceed::new()
-	}
+macro_rules! AlwaysSucceed {
+    ( $e:expr ) => {
+        $crate::std_nodes::AlwaysSucceed::with_child($e)
+    };
+    ( ) => {
+        $crate::std_nodes::AlwaysSucceed::new()
+    };
 }
 
 /// Implements a node that always returns that it is currently running.
@@ -315,31 +299,25 @@ macro_rules! AlwaysSucceed
 /// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
 pub struct AlwaysRunning;
-impl AlwaysRunning
-{
-	/// Construct a new AlwaysRunning node.
-	pub fn new<W>() -> Node<'static, W>
-	{
-		Node::new(AlwaysRunning { })
-	}
+impl AlwaysRunning {
+    /// Construct a new AlwaysRunning node.
+    pub fn new<W>() -> Node<'static, W> {
+        Node::new(AlwaysRunning {})
+    }
 }
-impl<W> Tickable<W> for AlwaysRunning
-{
-	fn tick(&mut self, _: &mut W) -> Status
-	{
-		Status::Running
-	}
+impl<W> Tickable<W> for AlwaysRunning {
+    fn tick(&mut self, _: &mut W) -> Status {
+        Status::Running
+    }
 
-	fn reset(&mut self)
-	{
-		// No-op
-	}
+    fn reset(&mut self) {
+        // No-op
+    }
 
-	/// Returns the string "AlwaysRunning".
-	fn type_name(&self) -> &'static str
-	{
-		"AlwaysRunning"
-	}
+    /// Returns the string "AlwaysRunning".
+    fn type_name(&self) -> &'static str {
+        "AlwaysRunning"
+    }
 }
 
 /// Convenience macro for creating AlwaysRunning nodes.
@@ -354,73 +332,66 @@ impl<W> Tickable<W> for AlwaysRunning
 /// # }
 /// ```
 #[macro_export]
-macro_rules! AlwaysRunning
-{
-	( ) => {
-		$crate::std_nodes::AlwaysRunning::new()
-	}
+macro_rules! AlwaysRunning {
+    ( ) => {
+        $crate::std_nodes::AlwaysRunning::new()
+    };
 }
 
 #[cfg(test)]
-mod tests
-{
-	use crate::status::Status;
-	use crate::std_nodes::*;
-	use crate::node::Tickable;
+mod tests {
+    use crate::node::Tickable;
+    use crate::status::Status;
+    use crate::std_nodes::*;
 
-	#[test]
-	fn always_fail()
-	{
-		assert_eq!(AlwaysFail::new().tick(&mut ()), Status::Failed);
-	}
+    #[test]
+    fn always_fail() {
+        assert_eq!(AlwaysFail::new().tick(&mut ()), Status::Failed);
+    }
 
-	#[test]
-	fn always_fail_child()
-	{
-		let mut succeed = AlwaysFail::with_child(YesTick::new(Status::Succeeded));
-		let succeed_res = succeed.tick(&mut ());
-		drop(succeed);
-		assert_eq!(succeed_res, Status::Failed);
+    #[test]
+    fn always_fail_child() {
+        let mut succeed = AlwaysFail::with_child(YesTick::new(Status::Succeeded));
+        let succeed_res = succeed.tick(&mut ());
+        drop(succeed);
+        assert_eq!(succeed_res, Status::Failed);
 
-		let mut run = AlwaysFail::with_child(YesTick::new(Status::Running));
-		let run_res = run.tick(&mut ());
-		drop(run);
-		assert_eq!(run_res, Status::Running);
+        let mut run = AlwaysFail::with_child(YesTick::new(Status::Running));
+        let run_res = run.tick(&mut ());
+        drop(run);
+        assert_eq!(run_res, Status::Running);
 
-		let mut fail = AlwaysFail::with_child(YesTick::new(Status::Failed));
-		let fail_res = fail.tick(&mut ());
-		drop(fail);
-		assert_eq!(fail_res, Status::Failed);
-	}
+        let mut fail = AlwaysFail::with_child(YesTick::new(Status::Failed));
+        let fail_res = fail.tick(&mut ());
+        drop(fail);
+        assert_eq!(fail_res, Status::Failed);
+    }
 
-	#[test]
-	fn always_succeed()
-	{
-		assert_eq!(AlwaysSucceed::new().tick(&mut ()), Status::Succeeded);
-	}
+    #[test]
+    fn always_succeed() {
+        assert_eq!(AlwaysSucceed::new().tick(&mut ()), Status::Succeeded);
+    }
 
-	#[test]
-	fn always_succeed_child()
-	{
-		let mut succeed = AlwaysSucceed::with_child(YesTick::new(Status::Succeeded));
-		let succeed_res = succeed.tick(&mut ());
-		drop(succeed);
-		assert_eq!(succeed_res, Status::Succeeded);
+    #[test]
+    fn always_succeed_child() {
+        let mut succeed = AlwaysSucceed::with_child(YesTick::new(Status::Succeeded));
+        let succeed_res = succeed.tick(&mut ());
+        drop(succeed);
+        assert_eq!(succeed_res, Status::Succeeded);
 
-		let mut run = AlwaysSucceed::with_child(YesTick::new(Status::Running));
-		let run_res = run.tick(&mut ());
-		drop(run);
-		assert_eq!(run_res, Status::Running);
+        let mut run = AlwaysSucceed::with_child(YesTick::new(Status::Running));
+        let run_res = run.tick(&mut ());
+        drop(run);
+        assert_eq!(run_res, Status::Running);
 
-		let mut fail = AlwaysSucceed::with_child(YesTick::new(Status::Failed));
-		let fail_res = fail.tick(&mut ());
-		drop(fail);
-		assert_eq!(fail_res, Status::Succeeded);
-	}
+        let mut fail = AlwaysSucceed::with_child(YesTick::new(Status::Failed));
+        let fail_res = fail.tick(&mut ());
+        drop(fail);
+        assert_eq!(fail_res, Status::Succeeded);
+    }
 
-	#[test]
-	fn always_running()
-	{
-		assert_eq!(AlwaysRunning::new().tick(&mut ()), Status::Running);
-	}
+    #[test]
+    fn always_running() {
+        assert_eq!(AlwaysRunning::new().tick(&mut ()), Status::Running);
+    }
 }

@@ -163,7 +163,7 @@ pub trait Tickable<W> {
 	///
 	/// This is likely the most unstable part of Aspen, use with caution.
 	fn children(&self) -> Vec<&Node<W>> {
-		Vec::new()
+		Vec::with_capacity(0)
 	}
 
 	/// Returns the type of the node as a string literal.

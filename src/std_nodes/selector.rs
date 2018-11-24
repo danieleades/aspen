@@ -46,152 +46,6 @@ use crate::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
-/// let mut node = ActiveSelector::new(vec![
-///     AlwaysFail::new(),
-///     AlwaysSucceed::new(),
-///     AlwaysRunning::new()
-/// ]);
-/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
-/// ```
-///
-/// A node that returns that it is running:
-///
-/// ```
-/// # use aspen::std_nodes::*;
-/// # use aspen::Status;
-/// # use aspen::node::Tickable;
-/// let mut node = ActiveSelector::new(vec![
-///     AlwaysFail::new(),
-///     AlwaysRunning::new(),
-///     AlwaysSucceed::new()
-/// ]);
-/// assert_eq!(node.tick(&mut ()), Status::Running);
-/// ```
-///
-/// A node that returns that it fails:
-///
-/// ```
-/// # use aspen::std_nodes::*;
-/// # use aspen::Status;
-/// # use aspen::node::Tickable;
-/// let mut node = ActiveSelector::new(vec![
-///     AlwaysFail::new(),
-///     AlwaysFail::new(),
-///     AlwaysFail::new()
-/// ]);
-/// assert_eq!(node.tick(&mut ()), Status::Failed);
-/// ```
-pub struct ActiveSelector<'a, W> {
-    /// Vector containing the children of this node.
-    children: Vec<Node<'a, W>>,
-}
-impl<'a, W> ActiveSelector<'a, W>
-where
-    W: 'a,
-{
-    /// Creates a new ActiveSelector node from a vector of Nodes.
-    pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W> {
-        let internals = ActiveSelector { children: children };
-        Node::new(internals)
-    }
-}
-impl<'a, W> Tickable<W> for ActiveSelector<'a, W> {
-    fn tick(&mut self, world: &mut W) -> Status {
-        // Tick the children in order
-        let mut ret_status = Status::Failed;
-        for child in self.children.iter_mut() {
-            // What we want to do is tick our children until we find one that
-            // is either running or successful. If we find either of those, all
-            // children after that node need to be reset
-            if ret_status != Status::Failed {
-                child.reset()
-            } else {
-                ret_status = child.tick(world);
-            }
-        }
-
-        // Return the status that we found
-        ret_status
-    }
-
-    fn reset(&mut self) {
-        // Reset all of our children
-        for child in self.children.iter_mut() {
-            child.reset();
-        }
-    }
-
-    fn children(&self) -> Vec<&Node<W>> {
-        self.children.iter().collect()
-    }
-
-    /// Returns the string "ActiveSelector".
-    fn type_name(&self) -> &'static str {
-        "ActiveSelector"
-    }
-}
-
-/// Convenience macro for creating ActiveSelector nodes.
-///
-/// # Examples
-///
-/// ```
-/// # #[macro_use] extern crate aspen;
-/// # fn main() {
-/// let active_selector = ActiveSelector!{
-///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
-///     Condition!{ |&(_, b)| b == 9 },
-///     Condition!{ |&(a, b)| a < b }
-/// };
-/// # }
-/// ```
-#[macro_export]
-macro_rules! ActiveSelector
-{
-	( $( $e:expr ),* ) => {
-		$crate::std_nodes::ActiveSelector::new(vec![$( $e ),*])
-	};
-}
-
-/// A node that ticks its children sequentially as long as they fail.
-///
-/// This node will tick all of its children in order until one of them returns
-/// either `Status::Running` or `Status::Success`. If none do, this node fails.
-///
-/// The difference between this node and an `ActiveSelector` is that this node
-/// will resume ticking at the last running node whereas the active version
-/// will always restart ticking from the beginning. That makes the active
-/// selector good for things that always need to be rechecked and this version
-/// good at completing actions. Once a node is ticked to completion, this
-/// normal selector will *not* revisit it.
-///
-/// This is equivalent to an "or" statement.
-///
-/// # State
-///
-/// **Initialized:** Before being ticked after being created or reset.
-///
-/// **Running:** A child node returned that it was running.
-///
-/// **Succeeded:** At least one of the children succeeded.
-///
-/// **Failed:** All of the children failed.
-///
-/// # Children
-///
-/// Any number of children. A child node will only be ticked if all the nodes
-/// to the left failed and this node has not yet completed.
-///
-/// All children nodes will be reset only when this node is reset.
-///
-/// # Examples
-///
-/// A node that returns success:
-///
-/// ```
-/// # use aspen::std_nodes::*;
-/// # use aspen::Status;
-/// # use aspen::node::Tickable;
 /// let mut node = Selector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysSucceed::new(),
@@ -230,6 +84,152 @@ macro_rules! ActiveSelector
 pub struct Selector<'a, W> {
     /// Vector containing the children of this node.
     children: Vec<Node<'a, W>>,
+}
+impl<'a, W> Selector<'a, W>
+where
+    W: 'a,
+{
+    /// Creates a new Selector node from a vector of Nodes.
+    pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W> {
+        let internals = Selector { children: children };
+        Node::new(internals)
+    }
+}
+impl<'a, W> Tickable<W> for Selector<'a, W> {
+    fn tick(&mut self, world: &mut W) -> Status {
+        // Tick the children in order
+        let mut ret_status = Status::Failed;
+        for child in self.children.iter_mut() {
+            // What we want to do is tick our children until we find one that
+            // is either running or successful. If we find either of those, all
+            // children after that node need to be reset
+            if ret_status != Status::Failed {
+                child.reset()
+            } else {
+                ret_status = child.tick(world);
+            }
+        }
+
+        // Return the status that we found
+        ret_status
+    }
+
+    fn reset(&mut self) {
+        // Reset all of our children
+        for child in self.children.iter_mut() {
+            child.reset();
+        }
+    }
+
+    fn children(&self) -> Vec<&Node<W>> {
+        self.children.iter().collect()
+    }
+
+    /// Returns the string "Selector".
+    fn type_name(&self) -> &'static str {
+        "Selector"
+    }
+}
+
+/// Convenience macro for creating Selector nodes.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate aspen;
+/// # fn main() {
+/// let active_selector = Selector!{
+///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
+///     Condition!{ |&(_, b)| b == 9 },
+///     Condition!{ |&(a, b)| a < b }
+/// };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! Selector
+{
+	( $( $e:expr ),* ) => {
+		$crate::std_nodes::Selector::new(vec![$( $e ),*])
+	};
+}
+
+/// A node that ticks its children sequentially as long as they fail.
+///
+/// This node will tick all of its children in order until one of them returns
+/// either `Status::Running` or `Status::Success`. If none do, this node fails.
+///
+/// The difference between this node and an `Selector` is that this node
+/// will resume ticking at the last running node whereas the active version
+/// will always restart ticking from the beginning. That makes the active
+/// selector good for things that always need to be rechecked and this version
+/// good at completing actions. Once a node is ticked to completion, this
+/// normal selector will *not* revisit it.
+///
+/// This is equivalent to an "or" statement.
+///
+/// # State
+///
+/// **Initialized:** Before being ticked after being created or reset.
+///
+/// **Running:** A child node returned that it was running.
+///
+/// **Succeeded:** At least one of the children succeeded.
+///
+/// **Failed:** All of the children failed.
+///
+/// # Children
+///
+/// Any number of children. A child node will only be ticked if all the nodes
+/// to the left failed and this node has not yet completed.
+///
+/// All children nodes will be reset only when this node is reset.
+///
+/// # Examples
+///
+/// A node that returns success:
+///
+/// ```
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
+/// # use aspen::node::Tickable;
+/// let mut node = StatefulSelector::new(vec![
+///     AlwaysFail::new(),
+///     AlwaysSucceed::new(),
+///     AlwaysRunning::new()
+/// ]);
+/// assert_eq!(node.tick(&mut ()), Status::Succeeded);
+/// ```
+///
+/// A node that returns that it is running:
+///
+/// ```
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
+/// # use aspen::node::Tickable;
+/// let mut node = StatefulSelector::new(vec![
+///     AlwaysFail::new(),
+///     AlwaysRunning::new(),
+///     AlwaysSucceed::new()
+/// ]);
+/// assert_eq!(node.tick(&mut ()), Status::Running);
+/// ```
+///
+/// A node that returns that it fails:
+///
+/// ```
+/// # use aspen::std_nodes::*;
+/// # use aspen::Status;
+/// # use aspen::node::Tickable;
+/// let mut node = StatefulSelector::new(vec![
+///     AlwaysFail::new(),
+///     AlwaysFail::new(),
+///     AlwaysFail::new()
+/// ]);
+/// assert_eq!(node.tick(&mut ()), Status::Failed);
+/// ```
+pub struct StatefulSelector<'a, W> {
+    /// Vector containing the children of this node.
+    children: Vec<Node<'a, W>>,
 
     /// The next child to be ticked.
     ///
@@ -237,20 +237,20 @@ pub struct Selector<'a, W> {
     /// iterator version that I could come up with.
     next_child: usize,
 }
-impl<'a, W> Selector<'a, W>
+impl<'a, W> StatefulSelector<'a, W>
 where
     W: Clone + 'a,
 {
-    /// Creates a new Selector node from a vector of Nodes.
+    /// Creates a new StatefulSelector node from a vector of Nodes.
     pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W> {
-        let internals = Selector {
+        let internals = StatefulSelector {
             children: children,
             next_child: 0,
         };
         Node::new(internals)
     }
 }
-impl<'a, W> Tickable<W> for Selector<'a, W>
+impl<'a, W> Tickable<W> for StatefulSelector<'a, W>
 where
     W: Clone,
 {
@@ -287,14 +287,14 @@ where
     }
 }
 
-/// Convenience macro for creating Selector nodes.
+/// Convenience macro for creating StatefulSelector nodes.
 ///
 /// # Examples
 ///
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// let selector = Selector!{
+/// let selector = StatefulSelector!{
 ///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
 ///     Condition!{ |&(_, b)| b == 9 },
 ///     Condition!{ |&(a, b)| b < a }
@@ -302,7 +302,7 @@ where
 /// # }
 /// ```
 #[macro_export]
-macro_rules! Selector
+macro_rules! StatefulSelector
 {
 	( $( $e:expr ),* ) => {
 		$crate::std_nodes::Selector::new(vec![$( $e ),*])
@@ -325,7 +325,7 @@ mod tests {
         ];
 
         // Add them to a seluence node
-        let mut sel = Selector::new(children);
+        let mut sel = StatefulSelector::new(children);
 
         // Tick the seluence
         let status = sel.tick(&mut ());
@@ -347,7 +347,7 @@ mod tests {
         ];
 
         // Add them to a seluence node
-        let mut sel = Selector::new(children);
+        let mut sel = StatefulSelector::new(children);
 
         // Tick the seluence
         let status = sel.tick(&mut ());
@@ -365,7 +365,7 @@ mod tests {
         let children = vec![YesTick::new(Status::Failed), YesTick::new(Status::Failed)];
 
         // Add them to a selector node
-        let mut sel = Selector::new(children);
+        let mut sel = StatefulSelector::new(children);
 
         // Tick the seluence
         let status = sel.tick(&mut ());
@@ -387,7 +387,7 @@ mod tests {
         ];
 
         // Add them to a seluence node
-        let mut sel = ActiveSelector::new(children);
+        let mut sel = Selector::new(children);
 
         // Tick the seluence
         let status = sel.tick(&mut ());
@@ -409,7 +409,7 @@ mod tests {
         ];
 
         // Add them to a seluence node
-        let mut sel = ActiveSelector::new(children);
+        let mut sel = Selector::new(children);
 
         // Tick the seluence
         let status = sel.tick(&mut ());
@@ -427,7 +427,7 @@ mod tests {
         let children = vec![YesTick::new(Status::Failed), YesTick::new(Status::Failed)];
 
         // Add them to a selector node
-        let mut sel = ActiveSelector::new(children);
+        let mut sel = Selector::new(children);
 
         // Tick the seluence
         let status = sel.tick(&mut ());

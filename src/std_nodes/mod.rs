@@ -5,7 +5,7 @@ pub use self::sequence::ActiveSequence;
 pub use self::sequence::Sequence;
 
 mod selector;
-pub use self::selector::ActiveSelector;
+pub use self::selector::StatefulSelector;
 pub use self::selector::Selector;
 
 mod parallel;

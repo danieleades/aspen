@@ -6,7 +6,7 @@ license = "MIT"
 description = "A behavior tree implementation in Rust"
 keywords = ["behavior", "tree", "fsm", "state", "ai"]
 documentation = "https://docs.rs/aspen"
-#repository = "https://gitlab.com/neachdainn/aspen.git"
+repository = "https://github.com/danieleades/aspen"
 readme = "README.adoc"
 
 [dependencies]

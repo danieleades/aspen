@@ -116,6 +116,10 @@ impl<'a, S> Tickable<S> for Node<'a, S> {
 	fn type_name(&self) -> &str {
 		self.internals.type_name()
 	}
+
+	fn into_node<'b>(self) -> Node<'b, S> where Self: Sized + 'b {
+		Node::new(self)
+	}
 }
 
 impl<'a, S> fmt::Display for Node<'a, S> {
@@ -165,4 +169,12 @@ pub trait Tickable<S> {
 	/// The type_name should be fixed for all instances of a
 	/// node type
 	fn type_name(&self) -> &str;
+
+	/// Consumes 'self' and returns a concrete Node struct.
+	/// 
+	/// This method is used to allow child nodes methods to
+	/// accept any struct that implements Tickable.
+	fn into_node<'b>(self) -> Node<'b, S> where Self: Sized + 'b {
+		Node::new(self)
+	}
 }

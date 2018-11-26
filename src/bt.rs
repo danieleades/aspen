@@ -27,12 +27,13 @@ impl<'a, W> BehaviorTree<'a, W> {
     /// When the tree is reset, it will return an `Initialized` status a single
     /// time.
     pub fn tick(&mut self, world: &mut W) -> Status {
-        if self.root.status().is_done() {
-            debug!("Tree reset via ticking");
-            self.root.reset();
-            Status::Initialized
-        } else {
-            self.root.tick(world)
+        match self.root.status() {
+            None | Some(Status::Running) => self.root.tick(world),
+            Some(Status::Failed) | Some(Status::Succeeded) => {
+                debug!("Tree reset via ticking");
+                self.root.reset();
+                self.root.tick(world)
+            }
         }
     }
 

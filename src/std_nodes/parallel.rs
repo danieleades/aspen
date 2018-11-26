@@ -122,17 +122,15 @@ impl<'a, W> Tickable<W> for Parallel<'a, W> {
         // Go through all the children to determine success or failure
         for child in self.children.iter_mut() {
             // Check if this child has already completed
-            let child_status = if child.status().is_done() {
-                // It has, so we don't want to tick it again and accidentally
-                // restart it
-                child.status()
-            } else {
-                child.tick(world)
+            let s = match child.status() {
+                Some(Status::Succeeded) => Status::Succeeded,
+                Some(Status::Failed) => Status::Failed,
+                _ => child.tick(world),
             };
 
-            if child_status == Status::Succeeded {
+            if s == Status::Succeeded {
                 successes += 1;
-            } else if child_status == Status::Failed {
+            } else if s == Status::Failed {
                 failures += 1;
             }
         }

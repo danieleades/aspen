@@ -14,7 +14,7 @@ use std::fmt;
 /// to enforce some runtime behavior.
 pub struct Node<'a, W> {
     /// The status from the last time this node was ticked.
-    status: Status,
+    status: Option<Status>,
 
     /// The internal logic for this node.
     internals: Box<Tickable<W> + 'a>,
@@ -33,7 +33,7 @@ impl<'a, W> Node<'a, W> {
         I: Tickable<W> + 'a,
     {
         Node {
-            status: Status::Initialized,
+            status: None,
             internals: Box::new(internals),
             name: None,
         }
@@ -42,7 +42,7 @@ impl<'a, W> Node<'a, W> {
     /// Gets the current status of the node.
     ///
     /// This value will match the return value of the last call to `Node::tick`.
-    pub fn status(&self) -> Status {
+    pub fn status(&self) -> Option<Status> {
         self.status
     }
 
@@ -76,20 +76,12 @@ impl<'a, W> Node<'a, W> {
 
 impl<'a, W> Tickable<W> for Node<'a, W> {
     /// Ticks the node a single time.
-    ///
-    /// If the node is currently considered to have run to completion, this
-    /// will call `Node::reset` on the node before calling the internal tick
-    /// logic.
     fn tick(&mut self, world: &mut W) -> Status {
-        // Reset the node if it's already completed
-        if self.status.is_done() {
-            self.reset();
-        }
-
+        
         // Tick the internals
         trace!("Ticking node {}", self.name());
-        self.status = (*self.internals).tick(world);
-        return self.status;
+        self.status = Some(self.internals.tick(world));
+        return self.status.unwrap();
     }
 
     /// Resets the node.
@@ -98,10 +90,10 @@ impl<'a, W> Tickable<W> for Node<'a, W> {
     /// created. If the node state is still `Initialized`, then the internal
     /// reset method will not be called.
     fn reset(&mut self) {
-        if self.status != Status::Initialized {
+        if self.status.is_some() {
             trace!("Resetting node {} ({:?})", self.name(), self.status());
-            self.status = Status::Initialized;
-            (*self.internals).reset();
+            self.status = None;
+            self.internals.reset();
         }
     }
 

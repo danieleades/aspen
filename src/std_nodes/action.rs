@@ -58,7 +58,7 @@ use std::thread;
 ///
 /// // Run the node until it completes
 /// while !action.tick(&mut result).is_done() { };
-/// assert_eq!(action.status(), Status::Succeeded);
+/// assert_eq!(action.status().unwrap(), Status::Succeeded);
 /// assert_eq!(result.load(Ordering::SeqCst), 90);
 /// ```
 pub struct Action<W>
@@ -117,7 +117,6 @@ where
         let (status, reset) = if let Some(ref mut rx) = self.rx {
             match rx.try_recv() {
                 Ok(Status::Running) => (Status::Running, true),
-                Ok(Status::Initialized) => (Status::Initialized, true),
                 Ok(s) => (s, false),
                 Err(TryRecvError::Empty) => (Status::Running, false),
                 Err(e) => panic!("Thread died before finishing {}", e),

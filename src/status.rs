@@ -1,9 +1,6 @@
 /// Represents the status of a given node in the behavior tree.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Status {
-    /// A `Node` with this status is one that has not been ticked since either
-    /// its creation or since it was last reset.
-    Initialized,
     /// Represents that a `Node` is currently executing its logic.
     Running,
     /// The status of a `Node` which as been ticked to completion and

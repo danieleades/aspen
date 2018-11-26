@@ -183,10 +183,9 @@ mod tests {
 
     fn rotate(s: Status, _: &()) -> Status {
         match s {
-            Status::Initialized => Status::Running,
             Status::Running => Status::Succeeded,
             Status::Succeeded => Status::Failed,
-            Status::Failed => Status::Initialized,
+            Status::Failed => Status::Running,
         }
     }
 

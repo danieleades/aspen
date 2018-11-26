@@ -12,8 +12,8 @@ pub struct BehaviorTree<'a, W> {
 }
 impl<'a, W> BehaviorTree<'a, W> {
     /// Create a new behavior tree with the supplied `Node` as the root.
-    pub fn new(root: Node<'a, W>) -> BehaviorTree<'a, W> {
-        BehaviorTree { root: root }
+    pub fn new<T>(root: T) -> BehaviorTree<'a, W> where T: Tickable<W> + 'a {
+        BehaviorTree { root: root.into_node() }
     }
 
     /// Returns a reference to the root node.

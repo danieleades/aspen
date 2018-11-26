@@ -85,14 +85,48 @@ pub struct Selector<'a, W> {
     /// Vector containing the children of this node.
     children: Vec<Node<'a, W>>,
 }
+
+impl<'a, W> Default for Selector<'a, W> {
+    fn default() -> Self {
+        Selector {
+            children: Vec::new(),
+        }
+    }
+}
+
 impl<'a, W> Selector<'a, W>
 where
     W: 'a,
 {
     /// Creates a new Selector node from a vector of Nodes.
-    pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W> {
-        let internals = Selector { children: children };
-        Node::new(internals)
+    pub fn new<T>(children: Vec<T>) -> Self
+    where
+        T: Tickable<W> + 'a,
+    {
+        Selector::default().with_children(children)
+    }
+
+    pub fn with_child<T>(mut self, child: T) -> Self
+    where
+        T: Tickable<W> + 'a,
+    {
+        self.children.push(child.into_node());
+        self
+    }
+
+    pub fn with_children<T>(mut self, children: Vec<T>) -> Self
+    where
+        T: Tickable<W> + 'a,
+    {
+        self.children = children.into_iter().map(|x| x.into_node()).collect();
+        self
+    }
+
+    pub fn node<T>(children: Vec<T>) -> Node<'a, W>
+    where
+        T: Tickable<W> + 'a,
+    {
+        Selector::new(children).into_node()
     }
 }
 impl<'a, W> Tickable<W> for Selector<'a, W> {

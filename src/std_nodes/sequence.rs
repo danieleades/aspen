@@ -21,7 +21,8 @@ use crate::Status;
 ///
 /// # State
 ///
-/// **Initialized:** Before being ticked after being created or reset.
+/// If the node has been instantiated or reset, and has not been ticked, the state is None.
+/// Otherwise, the states are-
 ///
 /// **Running:** The latest ticked child node return that it was running.
 ///
@@ -46,7 +47,7 @@ use crate::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
-/// let mut node = ActiveSequence::new()
+/// let mut node = ActiveSequence::default()
 /// 	.with_child(AlwaysSucceed::new())
 /// 	.with_child(AlwaysSucceed::new())
 /// 	.with_child(AlwaysSucceed::new());
@@ -60,7 +61,7 @@ use crate::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
-/// let mut node = ActiveSequence::new()
+/// let mut node = ActiveSequence::default()
 ///     .with_child(AlwaysSucceed::new())
 ///     .with_child(AlwaysRunning::new())
 ///     .with_child(AlwaysFail::new());
@@ -74,13 +75,14 @@ use crate::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
-/// let mut node = ActiveSequence::new()
+/// let mut node = ActiveSequence::default()
 ///     .with_child(AlwaysSucceed::new())
 ///     .with_child(AlwaysSucceed::new())
 ///     .with_child(AlwaysFail::new());
 ///
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
+#[derive(Default)]
 pub struct ActiveSequence<'a, W> {
     /// Vector containing the children of this node.
     children: Vec<Node<'a, W>>,
@@ -90,9 +92,12 @@ where
     W: 'a,
 {
     /// Creates a new `ActiveSequence` node from a vector of Nodes.
-    pub fn new() -> Self {
+    pub fn new<T>(children: Vec<T>) -> Self
+    where
+        T: Tickable<W> + 'a,
+    {
         ActiveSequence {
-            children: Vec::new(),
+            children: children.into_iter().map(|x| x.into_node()).collect(),
         }
     }
 
@@ -163,7 +168,7 @@ impl<'a, W> Tickable<W> for ActiveSequence<'a, W> {
 macro_rules! ActiveSequence
 {
 	( $( $e:expr ),* ) => {
-		$crate::std_nodes::ActiveSequence::new().with_children(vec![$( $e ),*])
+		$crate::std_nodes::ActiveSequence::new(vec![$( $e ),*])
 	};
 }
 
@@ -242,6 +247,7 @@ macro_rules! ActiveSequence
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
+#[derive(Default)]
 pub struct Sequence<'a, W> {
     /// Vector containing the children of this node.
     children: Vec<Node<'a, W>>,
@@ -252,12 +258,30 @@ where
     W: 'a,
 {
     /// Creates a new `Sequence` node from a vector of Nodes.
-    pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W> {
-        let internals = Sequence {
-            children: children,
+    pub fn new<T>(children: Vec<T>) -> Self
+    where
+        T: Tickable<W> + 'a,
+    {
+        Sequence {
+            children: children.into_iter().map(|x| x.into_node()).collect(),
             next_child: 0,
-        };
-        Node::new(internals)
+        }
+    }
+
+    pub fn with_child<T>(mut self, child: T) -> Self
+    where
+        T: Tickable<W> + 'a,
+    {
+        self.children.push(child.into_node());
+        self
+    }
+
+    pub fn with_children<T>(mut self, children: Vec<T>) -> Self
+    where
+        T: Tickable<W> + 'a,
+    {
+        self.children = children.into_iter().map(|x| x.into_node()).collect();
+        self
     }
 }
 impl<'a, W> Tickable<W> for Sequence<'a, W> {
@@ -397,7 +421,7 @@ mod tests {
         ];
 
         // Add them to a sequence node
-        let mut seq = ActiveSequence::new().with_children(children);
+        let mut seq = ActiveSequence::new(children);
 
         // Tick the sequence
         let status = seq.tick(&mut ());
@@ -418,7 +442,7 @@ mod tests {
         ];
 
         // Add them to a sequence node
-        let mut seq = ActiveSequence::new().with_children(children);
+        let mut seq = ActiveSequence::new(children);
 
         // Tick the sequence
         let status = seq.tick(&mut ());
@@ -440,7 +464,7 @@ mod tests {
         ];
 
         // Add them to a sequence node
-        let mut seq = ActiveSequence::new().with_children(children);
+        let mut seq = ActiveSequence::new(children);
 
         // Tick the sequence
         let status = seq.tick(&mut ());

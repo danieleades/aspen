@@ -178,4 +178,9 @@ pub trait Tickable<W> {
     {
         Node::new(self)
     }
+
+    #[cfg(feature = "utility")]
+    fn utility(&self, _world: &W) -> Option<f32> {
+        None
+    }
 }

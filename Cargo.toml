@@ -12,3 +12,7 @@ edition = "2018"
 
 [dependencies]
 log = "0.4.6"
+
+[features]
+default = ["utility"]
+utility = []

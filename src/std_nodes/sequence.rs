@@ -47,9 +47,9 @@ use crate::Status;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
 /// let mut node = ActiveSequence::new()
-/// 	.with_child(AlwaysSucceed::new())
-/// 	.with_child(AlwaysSucceed::new())
-/// 	.with_child(AlwaysSucceed::new());
+///     .with_child(AlwaysSucceed::new())
+///     .with_child(AlwaysSucceed::new())
+///     .with_child(AlwaysSucceed::new());
 ///
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
@@ -254,7 +254,7 @@ where
     /// Creates a new `Sequence` node from a vector of Nodes.
     pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W> {
         let internals = Sequence {
-            children: children,
+            children,
             next_child: 0,
         };
         Node::new(internals)

@@ -17,7 +17,7 @@ pub struct Node<'a, W> {
     status: Option<Status>,
 
     /// The internal logic for this node.
-    internals: Box<Tickable<W> + 'a>,
+    internals: Box<dyn Tickable<W> + 'a>,
 
     /// The name for this node.
     ///
@@ -63,7 +63,7 @@ impl<'a, W> Node<'a, W> {
         // We consume the node and return it to fit better into the current
         // pattern of making trees. By using a reference, named nodes would not
         // be able to be made inline. This also makes the macros look much nicer.
-        let new_name = name.map(|x| x.into());
+        let new_name = name.map(Into::into);
         if let Some(ref s) = new_name {
             trace!("Renaming node from {} to {}", self.name(), s);
         } else {
@@ -81,7 +81,7 @@ impl<'a, W> Tickable<W> for Node<'a, W> {
         // Tick the internals
         trace!("Ticking node {}", self.name());
         self.status = Some(self.internals.tick(world));
-        return self.status.unwrap();
+        self.status.unwrap()
     }
 
     /// Resets the node.
@@ -111,7 +111,7 @@ impl<'a, W> Tickable<W> for Node<'a, W> {
 
     /// Returns a concrete Node.
     ///
-    /// (Node.into_node() does precisely nothing)
+    /// ([`Node::into_node`] does precisely nothing)
     fn into_node<'b>(self) -> Node<'b, W>
     where
         Self: Sized + 'b,

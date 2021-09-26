@@ -60,7 +60,7 @@ where
     /// Creates a new Repeat node that will repeat forever.
     pub fn new(child: Node<'a, W>) -> Node<'a, W> {
         let internals = Repeat {
-            child: child,
+            child,
             attempt_limit: None,
             attempts: 0,
         };
@@ -73,7 +73,7 @@ where
     /// of zero means that the node will instantly succeed.
     pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W> {
         let internals = Repeat {
-            child: child,
+            child,
             attempt_limit: Some(limit),
             attempts: 0,
         };

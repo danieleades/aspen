@@ -60,7 +60,7 @@ where
     {
         let internals = Decorator {
             func: Box::new(func),
-            child: child,
+            child,
         };
         Node::new(internals)
     }
@@ -129,7 +129,7 @@ where
 {
     /// Creates a new `Invert` node.
     pub fn new(child: Node<'a, W>) -> Node<'a, W> {
-        Node::new(Invert { child: child })
+        Node::new(Invert { child })
     }
 }
 impl<'a, W> Tickable<W> for Invert<'a, W> {
@@ -137,7 +137,7 @@ impl<'a, W> Tickable<W> for Invert<'a, W> {
         match self.child.tick(world) {
             Status::Succeeded => Status::Failed,
             Status::Failed => Status::Succeeded,
-            s @ _ => s,
+            s => s,
         }
     }
 

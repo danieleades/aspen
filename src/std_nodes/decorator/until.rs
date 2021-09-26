@@ -77,7 +77,7 @@ where
     /// Creates a new `UntilFail` node that will keep trying indefinitely.
     pub fn new(child: Node<'a, W>) -> Node<'a, W> {
         let internals = UntilFail {
-            child: child,
+            child,
             attempt_limit: None,
             attempts: 0,
         };
@@ -90,7 +90,7 @@ where
     /// times it will be reset. A limit of zero means instant failure.
     pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W> {
         let internals = UntilFail {
-            child: child,
+            child,
             attempt_limit: Some(limit),
             attempts: 0,
         };
@@ -250,7 +250,7 @@ where
     /// Creates a new `UntilSuccess` node that will keep trying indefinitely.
     pub fn new(child: Node<'a, W>) -> Node<'a, W> {
         let internals = UntilSuccess {
-            child: child,
+            child,
             attempt_limit: None,
             attempts: 0,
         };
@@ -263,7 +263,7 @@ where
     /// of times it can be run. A limit of one means the node can be run twice.
     pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W> {
         let internals = UntilSuccess {
-            child: child,
+            child,
             attempt_limit: Some(limit),
             attempts: 0,
         };

@@ -91,7 +91,7 @@ where
 {
     /// Creates a new Selector node from a vector of Nodes.
     pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W> {
-        let internals = Selector { children: children };
+        let internals = Selector { children };
         Node::new(internals)
     }
 }
@@ -244,7 +244,7 @@ where
     /// Creates a new StatefulSelector node from a vector of Nodes.
     pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W> {
         let internals = StatefulSelector {
-            children: children,
+            children,
             next_child: 0,
         };
         Node::new(internals)

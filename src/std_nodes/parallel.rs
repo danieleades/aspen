@@ -108,8 +108,8 @@ where
     /// Creates a `Parallel` node with the given children an required number of successes.
     pub fn new(required_successes: usize, children: Vec<Node<'a, W>>) -> Node<'a, W> {
         let internals = Parallel {
-            children: children,
-            required_successes: required_successes,
+            children,
+            required_successes,
         };
         Node::new(internals)
     }

@@ -13,7 +13,7 @@ pub struct BehaviorTree<'a, W> {
 impl<'a, W> BehaviorTree<'a, W> {
     /// Create a new behavior tree with the supplied `Node` as the root.
     pub fn new(root: Node<'a, W>) -> BehaviorTree<'a, W> {
-        BehaviorTree { root: root }
+        BehaviorTree { root }
     }
 
     /// Returns a reference to the root node.
@@ -59,7 +59,7 @@ impl<'a, W> BehaviorTree<'a, W> {
         F: FnMut(&BehaviorTree<'a, W>),
     {
         // Deal with the "special" case of a zero frequency
-        if freq == 0.0f64 {
+        if freq == 0.0_f64 {
             debug!("Zero frequency specified, ticking once");
             let status = self.tick(world);
             if let Some(ref mut f) = hook {
@@ -73,7 +73,7 @@ impl<'a, W> BehaviorTree<'a, W> {
         let cycle_dur_float = freq.recip();
         let cycle_dur = Duration::new(
             cycle_dur_float as u64,
-            (cycle_dur_float.fract() * 1000000000.0f64) as u32,
+            (cycle_dur_float.fract() * 1_000_000_000.0_f64) as u32,
         );
 
         // Now, run at the given frequency
@@ -108,7 +108,7 @@ impl<'a, W> BehaviorTree<'a, W> {
             }
         }
 
-        return status;
+        status
     }
 }
 impl<'a, W> fmt::Display for BehaviorTree<'a, W> {

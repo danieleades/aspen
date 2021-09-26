@@ -2,8 +2,10 @@
 extern crate aspen;
 
 use aspen::{BehaviorTree, Status};
-use std::sync::{Arc, Mutex};
-use std::{thread, time};
+use std::{
+    sync::{Arc, Mutex},
+    thread, time,
+};
 
 const INPUT_A: u32 = 5;
 const INPUT_B: u32 = 7;

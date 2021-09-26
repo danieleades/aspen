@@ -1,5 +1,7 @@
-use crate::node::{Node, Tickable};
-use crate::status::Status;
+use crate::{
+    node::{Node, Tickable},
+    status::Status,
+};
 
 /// A node that repeats its child until the child fails.
 ///
@@ -22,8 +24,8 @@ use crate::status::Status;
 /// # Children
 ///
 /// One, which will be ticked or reset every time the `UntilFail` node is
-/// ticked or reset. The child may also be reset multiple times before the parent
-/// node is reset or completed.
+/// ticked or reset. The child may also be reset multiple times before the
+/// parent node is reset or completed.
 ///
 /// # Examples
 ///
@@ -33,7 +35,7 @@ use crate::status::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
-/// let child = Condition::new(|&d| d < 10 );
+/// let child = Condition::new(|&d| d < 10);
 /// let mut node = UntilFail::new(child);
 ///
 /// for mut x in 0..10 {
@@ -77,20 +79,21 @@ where
     /// Creates a new `UntilFail` node that will keep trying indefinitely.
     pub fn new(child: Node<'a, W>) -> Node<'a, W> {
         let internals = UntilFail {
-            child: child,
+            child,
             attempt_limit: None,
             attempts: 0,
         };
         Node::new(internals)
     }
 
-    /// Creates a new `UntilFail` node that will only retry a specific number of times.
+    /// Creates a new `UntilFail` node that will only retry a specific number of
+    /// times.
     ///
     /// The limit is the number of times the node will run, not the number of
     /// times it will be reset. A limit of zero means instant failure.
     pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W> {
         let internals = UntilFail {
-            child: child,
+            child,
             attempt_limit: Some(limit),
             attempts: 0,
         };
@@ -122,9 +125,8 @@ impl<'a, W> Tickable<W> for UntilFail<'a, W> {
             self.attempts += 1;
             if self.attempts < limit {
                 return Status::Running;
-            } else {
-                return Status::Failed;
             }
+            return Status::Failed;
         }
 
         // We're still running
@@ -156,10 +158,10 @@ impl<'a, W> Tickable<W> for UntilFail<'a, W> {
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// let until_fail = UntilFail!{
+/// let until_fail = UntilFail! {
 ///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
-/// let limited_until_fail = UntilFail!{ 12,
+/// let limited_until_fail = UntilFail! { 12,
 ///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
 /// # }
@@ -178,15 +180,15 @@ macro_rules! UntilFail {
 ///
 /// This node will return that it is running until the child succeeds. It can
 /// potentially have a finite reset limit. If the child ever returns that it
-/// succeeds, this node returns that it *succeeds*. If the limit is reached before
-/// the child succeeds, this node *fails*.
+/// succeeds, this node returns that it *succeeds*. If the limit is reached
+/// before the child succeeds, this node *fails*.
 ///
 /// # State
 ///
 /// **Initialized:** Before being ticked after either being created or reset.
 ///
-/// **Running:** While the child node has yet to succeed and it is below the reset
-/// limit.
+/// **Running:** While the child node has yet to succeed and it is below the
+/// reset limit.
 ///
 /// **Succeeded:** Once the child node succeeds.
 ///
@@ -195,8 +197,8 @@ macro_rules! UntilFail {
 /// # Children
 ///
 /// One, which will be ticked or reset every time the `UntilSuccess` node is
-/// ticked or reset. The child may also be reset multiple times before the parent
-/// node is reset or completed.
+/// ticked or reset. The child may also be reset multiple times before the
+/// parent node is reset or completed.
 ///
 /// # Examples
 ///
@@ -206,7 +208,7 @@ macro_rules! UntilFail {
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
-/// let child = Condition::new(|&d| d == 10 );
+/// let child = Condition::new(|&d| d == 10);
 /// let mut node = UntilSuccess::new(child);
 ///
 /// for mut x in 0..10 {
@@ -216,7 +218,8 @@ macro_rules! UntilFail {
 /// assert_eq!(node.tick(&mut 10), Status::Succeeded);
 /// ```
 ///
-/// An `UntilSuccess` node will fail if the child doesn't succeed within the limit:
+/// An `UntilSuccess` node will fail if the child doesn't succeed within the
+/// limit:
 ///
 /// ```
 /// # use aspen::std_nodes::*;
@@ -250,20 +253,21 @@ where
     /// Creates a new `UntilSuccess` node that will keep trying indefinitely.
     pub fn new(child: Node<'a, W>) -> Node<'a, W> {
         let internals = UntilSuccess {
-            child: child,
+            child,
             attempt_limit: None,
             attempts: 0,
         };
         Node::new(internals)
     }
 
-    /// Creates a new `UntilSuccess` node that will only retry a specific number of times.
+    /// Creates a new `UntilSuccess` node that will only retry a specific number
+    /// of times.
     ///
     /// `limit` is the number of times the node can be *reset*, not the number
     /// of times it can be run. A limit of one means the node can be run twice.
     pub fn with_limit(limit: u32, child: Node<'a, W>) -> Node<'a, W> {
         let internals = UntilSuccess {
-            child: child,
+            child,
             attempt_limit: Some(limit),
             attempts: 0,
         };
@@ -295,9 +299,8 @@ impl<'a, W> Tickable<W> for UntilSuccess<'a, W> {
             self.attempts += 1;
             if self.attempts < limit {
                 return Status::Running;
-            } else {
-                return Status::Failed;
             }
+            return Status::Failed;
         }
 
         // We're still running
@@ -329,10 +332,10 @@ impl<'a, W> Tickable<W> for UntilSuccess<'a, W> {
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// let until_success = UntilSuccess!{
+/// let until_success = UntilSuccess! {
 ///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
-/// let limited_until_success = UntilSuccess!{ 12,
+/// let limited_until_success = UntilSuccess! { 12,
 ///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
 /// # }
@@ -349,9 +352,11 @@ macro_rules! UntilSuccess {
 
 #[cfg(test)]
 mod tests {
-    use crate::node::Tickable;
-    use crate::status::Status;
-    use crate::std_nodes::*;
+    use crate::{
+        node::Tickable,
+        status::Status,
+        std_nodes::{CountedTick, UntilFail, UntilSuccess},
+    };
 
     #[test]
     fn until_fail_infinite() {

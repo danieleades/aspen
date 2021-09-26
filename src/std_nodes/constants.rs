@@ -1,6 +1,8 @@
 //! Nodes that have a constant behavior.
-use crate::node::{Node, Tickable};
-use crate::status::Status;
+use crate::{
+    node::{Node, Tickable},
+    status::Status,
+};
 
 /// Implements a node that always returns that it has failed.
 ///
@@ -112,7 +114,7 @@ impl<'a, W> Tickable<W> for AlwaysFail<'a, W> {
 /// # #[macro_use] extern crate aspen;
 /// # use aspen::node::Node;
 /// # fn main() {
-/// let fail: Node<()>  = AlwaysFail!{};
+/// let fail: Node<()> = AlwaysFail! {};
 /// # }
 /// ```
 ///
@@ -121,7 +123,7 @@ impl<'a, W> Tickable<W> for AlwaysFail<'a, W> {
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// let fail_child = AlwaysFail!{
+/// let fail_child = AlwaysFail! {
 ///     Condition!{ |a: &u32| *a < 12 }
 /// };
 /// # }
@@ -196,12 +198,12 @@ impl<'a, W> AlwaysSucceed<'a, W>
 where
     W: 'a,
 {
-    /// Construct a new AlwaysSucceed node.
+    /// Construct a new [`AlwaysSucceed`] node.
     pub fn new() -> Node<'a, W> {
         Node::new(AlwaysSucceed { child: None })
     }
 
-    /// Construct a new AlwaysSucceed node with a child.
+    /// Construct a new [`AlwaysSucceed`] node with a child.
     pub fn with_child(child: Node<'a, W>) -> Node<'a, W> {
         Node::new(AlwaysSucceed { child: Some(child) })
     }
@@ -247,7 +249,7 @@ impl<'a, W> Tickable<W> for AlwaysSucceed<'a, W> {
 /// # #[macro_use] extern crate aspen;
 /// # use aspen::node::Node;
 /// # fn main() {
-/// let succeed: Node<()>  = AlwaysSucceed!{};
+/// let succeed: Node<()> = AlwaysSucceed! {};
 /// # }
 /// ```
 ///
@@ -256,7 +258,7 @@ impl<'a, W> Tickable<W> for AlwaysSucceed<'a, W> {
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// let succeed_child = AlwaysSucceed!{
+/// let succeed_child = AlwaysSucceed! {
 ///     Condition!{ |a: &u32| *a < 12 }
 /// };
 /// # }
@@ -328,7 +330,7 @@ impl<W> Tickable<W> for AlwaysRunning {
 /// # #[macro_use] extern crate aspen;
 /// # use aspen::node::Node;
 /// # fn main() {
-/// let running: Node<()> = AlwaysRunning!{};
+/// let running: Node<()> = AlwaysRunning! {};
 /// # }
 /// ```
 #[macro_export]
@@ -340,9 +342,11 @@ macro_rules! AlwaysRunning {
 
 #[cfg(test)]
 mod tests {
-    use crate::node::Tickable;
-    use crate::status::Status;
-    use crate::std_nodes::*;
+    use crate::{
+        node::Tickable,
+        status::Status,
+        std_nodes::{AlwaysFail, AlwaysRunning, AlwaysSucceed, YesTick},
+    };
 
     #[test]
     fn always_fail() {

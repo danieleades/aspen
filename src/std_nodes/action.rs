@@ -1,10 +1,12 @@
 //! Nodes that cause the execution of tasks.
-use crate::node::{Node, Tickable};
-use crate::status::Status;
-use std::sync::mpsc;
-use std::sync::mpsc::TryRecvError;
-use std::sync::Arc;
-use std::thread;
+use crate::{
+    node::{Node, Tickable},
+    status::Status,
+};
+use std::{
+    sync::{mpsc, mpsc::TryRecvError, Arc},
+    thread,
+};
 
 /// A node that manages the execution of tasks in a separate thread.
 ///
@@ -45,19 +47,21 @@ use std::thread;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
-/// const  FIRST:  usize = 10;
-/// const  SECOND: usize = 100;
+/// const FIRST: usize = 10;
+/// const SECOND: usize = 100;
 /// let mut result = Arc::new(AtomicUsize::default());
 ///
 /// let mut action = Action::new(|s: Arc<AtomicUsize>| {
 ///     if let Some(val) = SECOND.checked_sub(FIRST) {
 ///         s.store(val, Ordering::SeqCst);
 ///         Status::Succeeded
-///     } else { Status::Failed }
+///     } else {
+///         Status::Failed
+///     }
 /// });
 ///
 /// // Run the node until it completes
-/// while !action.tick(&mut result).is_done() { };
+/// while !action.tick(&mut result).is_done() {}
 /// assert_eq!(action.status().unwrap(), Status::Succeeded);
 /// assert_eq!(result.load(Ordering::SeqCst), 90);
 /// ```
@@ -66,7 +70,7 @@ where
     W: Clone + Send + Sync + 'static,
 {
     /// The task which is to be run.
-    func: Arc<Fn(W) -> Status + Send + Sync>,
+    func: Arc<dyn Fn(W) -> Status + Send + Sync>,
 
     /// Channel on which the task will communicate.
     rx: Option<mpsc::Receiver<Status>>,
@@ -112,7 +116,8 @@ where
     ///
     /// The first time being ticked after being reset (or initialized), it will
     /// clone `world` and use the clone as the argument for the task function,
-    /// which will be run in a separate thread. Usually, this should be an `Arc`.
+    /// which will be run in a separate thread. Usually, this should be an
+    /// `Arc`.
     fn tick(&mut self, world: &mut W) -> Status {
         let (status, reset) = if let Some(ref mut rx) = self.rx {
             match rx.try_recv() {
@@ -139,9 +144,9 @@ where
     /// completed.
     fn reset(&mut self) {
         // I debated what to do here for a while. I could see someone wanting to detach
-        // the thread due to time constraints, but it seems to me that it would be better
-        // to avoid potential bugs that come from a node only looking like its been
-        // fully reset.
+        // the thread due to time constraints, but it seems to me that it would be
+        // better to avoid potential bugs that come from a node only looking
+        // like its been fully reset.
         if let Some(ref mut rx) = self.rx {
             rx.recv().unwrap();
         }
@@ -162,7 +167,7 @@ where
 /// # #[macro_use] extern crate aspen;
 /// # fn foo(_: ()) -> aspen::Status { aspen::Status::Succeeded }
 /// # fn main() {
-/// let mut action = Action!{ |s| foo(s) };
+/// let mut action = Action! { |s| foo(s) };
 /// # }
 /// ```
 #[macro_export]
@@ -207,11 +212,13 @@ macro_rules! Action {
 /// let second = 100u32;
 /// let mut result = 0u32;
 ///
-/// let mut action = InlineAction::new(|r|{
+/// let mut action = InlineAction::new(|r| {
 ///     if let Some(n) = second.checked_sub(first) {
 ///         *r = n;
 ///         Status::Succeeded
-///     } else { Status::Failed }
+///     } else {
+///         Status::Failed
+///     }
 /// });
 ///
 /// assert_eq!(action.tick(&mut result), Status::Succeeded);
@@ -219,7 +226,7 @@ macro_rules! Action {
 /// ```
 pub struct InlineAction<'a, W> {
     /// The task which is to be run.
-    func: Box<FnMut(&mut W) -> Status + 'a>,
+    func: Box<dyn FnMut(&mut W) -> Status + 'a>,
 }
 impl<'a, W> InlineAction<'a, W>
 where
@@ -252,7 +259,7 @@ impl<'a, W> Tickable<W> for InlineAction<'a, W> {
     }
 }
 
-/// Convenience macro for creating InlineAction nodes.
+/// Convenience macro for creating [`InlineAction`] nodes.
 ///
 /// # Examples
 ///
@@ -261,7 +268,7 @@ impl<'a, W> Tickable<W> for InlineAction<'a, W> {
 /// # use aspen::Status;
 /// # fn foo(_: &mut ()) -> Status { Status::Running }
 /// # fn main() {
-/// let mut action = InlineAction!{ |s| foo(s) };
+/// let mut action = InlineAction! { |s| foo(s) };
 /// # }
 /// ```
 #[macro_export]
@@ -273,12 +280,15 @@ macro_rules! InlineAction {
 
 #[cfg(test)]
 mod test {
-    use crate::node::Tickable;
-    use crate::status::Status;
-    use crate::std_nodes::*;
-    use std::sync::{mpsc, Mutex};
-    use std::thread;
-    use std::time;
+    use crate::{
+        node::Tickable,
+        status::Status,
+        std_nodes::{Action, InlineAction},
+    };
+    use std::{
+        sync::{mpsc, Mutex},
+        thread, time,
+    };
 
     #[test]
     fn failure() {

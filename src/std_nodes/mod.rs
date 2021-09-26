@@ -1,34 +1,25 @@
 //! Contains a set of commonly used behavior tree nodes.
 
 mod sequence;
-pub use self::sequence::ActiveSequence;
-pub use self::sequence::Sequence;
+pub use self::sequence::{ActiveSequence, Sequence};
 
 mod selector;
-pub use self::selector::StatefulSelector;
-pub use self::selector::Selector;
+pub use self::selector::{Selector, StatefulSelector};
 
 mod parallel;
 pub use self::parallel::Parallel;
 
 mod decorator;
-pub use self::decorator::Decorator;
-pub use self::decorator::Invert;
-pub use self::decorator::Repeat;
-pub use self::decorator::UntilFail;
-pub use self::decorator::UntilSuccess;
+pub use self::decorator::{Decorator, Invert, Repeat, UntilFail, UntilSuccess};
 
 mod action;
-pub use self::action::Action;
-pub use self::action::InlineAction;
+pub use self::action::{Action, InlineAction};
 
 mod condition;
 pub use self::condition::Condition;
 
 mod constants;
-pub use self::constants::AlwaysFail;
-pub use self::constants::AlwaysRunning;
-pub use self::constants::AlwaysSucceed;
+pub use self::constants::{AlwaysFail, AlwaysRunning, AlwaysSucceed};
 
 #[cfg(test)]
 mod testing;

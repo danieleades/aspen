@@ -1,6 +1,8 @@
 //! Nodes that tick their children in parallel
-use crate::node::{Node, Tickable};
-use crate::status::Status;
+use crate::{
+    node::{Node, Tickable},
+    status::Status,
+};
 
 /// A node that handles "concurrent" behavior.
 ///
@@ -26,7 +28,8 @@ use crate::status::Status;
 /// and the running children could potentially make the successful count cross
 /// the threshold.
 ///
-/// **Succeeded:** The count of successful children is greater than the threshold.
+/// **Succeeded:** The count of successful children is greater than the
+/// threshold.
 ///
 /// **Failed:** The sum of the successful children and the running children is
 /// smaller than the threshold.
@@ -48,13 +51,16 @@ use crate::status::Status;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
 /// let threshold = 3;
-/// let mut node = Parallel::new(threshold, vec![
-///     AlwaysSucceed::new(),
-///     AlwaysSucceed::new(),
-///     AlwaysSucceed::new(),
-///     AlwaysRunning::new(),
-///     AlwaysFail::new()
-/// ]);
+/// let mut node = Parallel::new(
+///     threshold,
+///     vec![
+///         AlwaysSucceed::new(),
+///         AlwaysSucceed::new(),
+///         AlwaysSucceed::new(),
+///         AlwaysRunning::new(),
+///         AlwaysFail::new(),
+///     ],
+/// );
 ///
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
@@ -66,13 +72,16 @@ use crate::status::Status;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
 /// let threshold = 3;
-/// let mut node = Parallel::new(threshold, vec![
-///     AlwaysSucceed::new(),
-///     AlwaysSucceed::new(),
-///     AlwaysRunning::new(),
-///     AlwaysRunning::new(),
-///     AlwaysFail::new()
-/// ]);
+/// let mut node = Parallel::new(
+///     threshold,
+///     vec![
+///         AlwaysSucceed::new(),
+///         AlwaysSucceed::new(),
+///         AlwaysRunning::new(),
+///         AlwaysRunning::new(),
+///         AlwaysFail::new(),
+///     ],
+/// );
 ///
 /// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
@@ -84,13 +93,16 @@ use crate::status::Status;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
 /// let threshold = 4;
-/// let mut node = Parallel::new(threshold, vec![
-///     AlwaysSucceed::new(),
-///     AlwaysSucceed::new(),
-///     AlwaysRunning::new(),
-///     AlwaysFail::new(),
-///     AlwaysFail::new()
-/// ]);
+/// let mut node = Parallel::new(
+///     threshold,
+///     vec![
+///         AlwaysSucceed::new(),
+///         AlwaysSucceed::new(),
+///         AlwaysRunning::new(),
+///         AlwaysFail::new(),
+///         AlwaysFail::new(),
+///     ],
+/// );
 ///
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
@@ -105,11 +117,12 @@ impl<'a, W> Parallel<'a, W>
 where
     W: 'a,
 {
-    /// Creates a `Parallel` node with the given children an required number of successes.
+    /// Creates a `Parallel` node with the given children an required number of
+    /// successes.
     pub fn new(required_successes: usize, children: Vec<Node<'a, W>>) -> Node<'a, W> {
         let internals = Parallel {
-            children: children,
-            required_successes: required_successes,
+            children,
+            required_successes,
         };
         Node::new(internals)
     }
@@ -120,7 +133,7 @@ impl<'a, W> Tickable<W> for Parallel<'a, W> {
         let mut failures = 0;
 
         // Go through all the children to determine success or failure
-        for child in self.children.iter_mut() {
+        for child in &mut self.children {
             // Check if this child has already completed
             let s = match child.status() {
                 Some(Status::Succeeded) => Status::Succeeded,
@@ -153,7 +166,7 @@ impl<'a, W> Tickable<W> for Parallel<'a, W> {
 
     fn reset(&mut self) {
         // Reset all of our children
-        for child in self.children.iter_mut() {
+        for child in &mut self.children {
             child.reset();
         }
     }
@@ -176,7 +189,7 @@ impl<'a, W> Tickable<W> for Parallel<'a, W> {
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
 /// # let (a, b, c, d) = (12, 13, 11, 10);
-/// let parallel = Parallel!{ 3,
+/// let parallel = Parallel! { 3,
 ///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
 ///     Condition!{ |&(_, b)| b == 9 },
 ///     Condition!{ |&(a, b)| a < b }
@@ -193,9 +206,11 @@ macro_rules! Parallel
 
 #[cfg(test)]
 mod tests {
-    use crate::node::Tickable;
-    use crate::status::Status;
-    use crate::std_nodes::*;
+    use crate::{
+        node::Tickable,
+        status::Status,
+        std_nodes::{Parallel, YesTick},
+    };
 
     #[test]
     fn success() {

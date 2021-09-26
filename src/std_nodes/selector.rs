@@ -1,6 +1,9 @@
-//! Nodes that have children and tick them in a sequential order as long as they fail.
-use crate::node::{Node, Tickable};
-use crate::Status;
+//! Nodes that have children and tick them in a sequential order as long as they
+//! fail.
+use crate::{
+    node::{Node, Tickable},
+    Status,
+};
 
 /// A node that ticks its children sequentially as long as they fail.
 ///
@@ -8,10 +11,10 @@ use crate::Status;
 /// either `Status::Running` or `Status::Success`. If none do, this node fails.
 ///
 /// The difference between this node and a normal `Selector` is that this node
-/// begins ticking at its first child every single time: the `Selector` will only
-/// tick a node to completion. That makes the active version of the selector
-/// good for things like monitoring if motors are too hot (which should be
-/// checked every tick) whereas the normal selector is better for simply
+/// begins ticking at its first child every single time: the `Selector` will
+/// only tick a node to completion. That makes the active version of the
+/// selector good for things like monitoring if motors are too hot (which should
+/// be checked every tick) whereas the normal selector is better for simply
 /// completing a sequence of actions.
 ///
 /// Due to the reticking, some nodes that succeeded on previous ticks may fail
@@ -49,7 +52,7 @@ use crate::Status;
 /// let mut node = Selector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysSucceed::new(),
-///     AlwaysRunning::new()
+///     AlwaysRunning::new(),
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
@@ -63,7 +66,7 @@ use crate::Status;
 /// let mut node = Selector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysRunning::new(),
-///     AlwaysSucceed::new()
+///     AlwaysSucceed::new(),
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
@@ -77,7 +80,7 @@ use crate::Status;
 /// let mut node = Selector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysFail::new(),
-///     AlwaysFail::new()
+///     AlwaysFail::new(),
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
@@ -91,7 +94,7 @@ where
 {
     /// Creates a new Selector node from a vector of Nodes.
     pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W> {
-        let internals = Selector { children: children };
+        let internals = Selector { children };
         Node::new(internals)
     }
 }
@@ -99,14 +102,14 @@ impl<'a, W> Tickable<W> for Selector<'a, W> {
     fn tick(&mut self, world: &mut W) -> Status {
         // Tick the children in order
         let mut ret_status = Status::Failed;
-        for child in self.children.iter_mut() {
+        for child in &mut self.children {
             // What we want to do is tick our children until we find one that
             // is either running or successful. If we find either of those, all
             // children after that node need to be reset
-            if ret_status != Status::Failed {
-                child.reset()
-            } else {
+            if ret_status == Status::Failed {
                 ret_status = child.tick(world);
+            } else {
+                child.reset();
             }
         }
 
@@ -116,7 +119,7 @@ impl<'a, W> Tickable<W> for Selector<'a, W> {
 
     fn reset(&mut self) {
         // Reset all of our children
-        for child in self.children.iter_mut() {
+        for child in &mut self.children {
             child.reset();
         }
     }
@@ -138,7 +141,7 @@ impl<'a, W> Tickable<W> for Selector<'a, W> {
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// let active_selector = Selector!{
+/// let active_selector = Selector! {
 ///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
 ///     Condition!{ |&(_, b)| b == 9 },
 ///     Condition!{ |&(a, b)| a < b }
@@ -195,7 +198,7 @@ macro_rules! Selector
 /// let mut node = StatefulSelector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysSucceed::new(),
-///     AlwaysRunning::new()
+///     AlwaysRunning::new(),
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
@@ -209,7 +212,7 @@ macro_rules! Selector
 /// let mut node = StatefulSelector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysRunning::new(),
-///     AlwaysSucceed::new()
+///     AlwaysSucceed::new(),
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
@@ -223,7 +226,7 @@ macro_rules! Selector
 /// let mut node = StatefulSelector::new(vec![
 ///     AlwaysFail::new(),
 ///     AlwaysFail::new(),
-///     AlwaysFail::new()
+///     AlwaysFail::new(),
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
@@ -244,7 +247,7 @@ where
     /// Creates a new StatefulSelector node from a vector of Nodes.
     pub fn new(children: Vec<Node<'a, W>>) -> Node<'a, W> {
         let internals = StatefulSelector {
-            children: children,
+            children,
             next_child: 0,
         };
         Node::new(internals)
@@ -265,12 +268,12 @@ where
             }
         }
 
-        return ret_status;
+        ret_status
     }
 
     fn reset(&mut self) {
         // Reset all of our children
-        for child in self.children.iter_mut() {
+        for child in &mut self.children {
             child.reset();
         }
 
@@ -294,7 +297,7 @@ where
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// let selector = StatefulSelector!{
+/// let selector = StatefulSelector! {
 ///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
 ///     Condition!{ |&(_, b)| b == 9 },
 ///     Condition!{ |&(a, b)| b < a }
@@ -311,9 +314,11 @@ macro_rules! StatefulSelector
 
 #[cfg(test)]
 mod tests {
-    use crate::node::Tickable;
-    use crate::std_nodes::*;
-    use crate::Status;
+    use crate::{
+        node::Tickable,
+        std_nodes::{NoTick, Selector, StatefulSelector, YesTick},
+        Status,
+    };
 
     #[test]
     fn check_running() {

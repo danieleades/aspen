@@ -1,14 +1,16 @@
 //! Nodes which query the state of the world.
-use crate::node::{Node, Tickable};
-use crate::status::Status;
+use crate::{
+    node::{Node, Tickable},
+    status::Status,
+};
 
 /// A node whose status is determined by a function.
 ///
 /// When ticked, this node will run the supplied function to determine its
 /// return value. If the function returns `true`, the node is considered
-/// successful - it is considered failed otherwise. Note that this means the node
-/// will never be in a running state. As such, all supplied functions should be
-/// able to be completed within a single tick's amount of time.
+/// successful - it is considered failed otherwise. Note that this means the
+/// node will never be in a running state. As such, all supplied functions
+/// should be able to be completed within a single tick's amount of time.
 ///
 /// # State
 ///
@@ -36,7 +38,7 @@ use crate::status::Status;
 /// const CHECK_VALUE: u32 = 100;
 /// let mut state = 10u32;
 ///
-/// let mut node = Condition::new(|s| *s > CHECK_VALUE );
+/// let mut node = Condition::new(|s| *s > CHECK_VALUE);
 /// assert_eq!(node.tick(&mut state), Status::Failed);
 /// ```
 pub struct Condition<'a, W> {
@@ -44,7 +46,7 @@ pub struct Condition<'a, W> {
     ///
     /// A return value of `true` means success and a return value of `false`
     /// means failure.
-    func: Box<Fn(&W) -> bool + 'a>,
+    func: Box<dyn Fn(&W) -> bool + 'a>,
 }
 impl<'a, W> Condition<'a, W>
 where
@@ -89,7 +91,7 @@ impl<'a, W> Tickable<W> for Condition<'a, W> {
 /// # #[macro_use] extern crate aspen;
 /// # fn test(_: &()) -> bool { false }
 /// # fn main() {
-/// let condition = Condition!{ |s| test(s) };
+/// let condition = Condition! { |s| test(s) };
 /// # }
 /// ```
 #[macro_export]
@@ -101,9 +103,7 @@ macro_rules! Condition {
 
 #[cfg(test)]
 mod tests {
-    use crate::node::Tickable;
-    use crate::status::Status;
-    use crate::std_nodes::*;
+    use crate::{node::Tickable, status::Status, std_nodes::Condition};
 
     #[test]
     fn failure() {

@@ -1,6 +1,8 @@
 //! Standard nodes used for debugging purposes.
-use crate::node::{Node, Tickable};
-use crate::status::Status;
+use crate::{
+    node::{Node, Tickable},
+    status::Status,
+};
 use std::ops::Drop;
 
 /// Implements a node that will panic upon being ticked.
@@ -38,7 +40,7 @@ impl YesTick {
     /// Create a new `YesTick` that always has the given status
     pub fn new<W>(status: Status) -> Node<'static, W> {
         let internals = YesTick {
-            status: status,
+            status,
             ticked: false,
         };
         Node::new(internals)
@@ -62,7 +64,7 @@ impl<W> Tickable<W> for YesTick {
 impl Drop for YesTick {
     fn drop(&mut self) {
         if !self.ticked {
-            panic!("This node should have been ticked")
+            panic!("This node should have been ticked");
         }
     }
 }
@@ -88,10 +90,10 @@ impl CountedTick {
     /// Creates a new `CountedTick` that always has the given status.
     pub fn new<W>(status: Status, count: u32, exact: bool) -> Node<'static, W> {
         let internals = CountedTick {
-            status: status,
+            status,
             count: 0,
             limit: count,
-            exact: exact,
+            exact,
             resetable: false,
         };
         Node::new(internals)
@@ -100,10 +102,10 @@ impl CountedTick {
     /// Creates a new `CountedTick` that will reset the count upon node reset
     pub fn resetable<W>(status: Status, count: u32, exact: bool) -> Node<'static, W> {
         let internals = CountedTick {
-            status: status,
+            status,
             count: 0,
             limit: count,
-            exact: exact,
+            exact,
             resetable: true,
         };
         Node::new(internals)

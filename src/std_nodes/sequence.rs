@@ -1,18 +1,22 @@
-//! Nodes that have children and tick them in a sequential order as long as they succeed.
-use crate::node::{Node, Tickable};
-use crate::Status;
+//! Nodes that have children and tick them in a sequential order as long as they
+//! succeed.
+use crate::{
+    node::{Node, Tickable},
+    Status,
+};
 
 /// A node that will tick its children in order as long as they succeed.
 ///
 /// This node will tick all of its children in order until one of them returns
-/// either `Status::Running` or `Status::Failed`. If none do, this node succeeds.
+/// either `Status::Running` or `Status::Failed`. If none do, this node
+/// succeeds.
 ///
 /// The difference between this node and the normal `Sequence` is that this
 /// node will always begin ticking from its first child, where as the normal
 /// version will resume ticking with the node that previously returned that it
 /// was running. This makes the active version better for things that must be
-/// checked each tick (e.g., if motors are too hot) and the normal version better
-/// for completing series of actions.
+/// checked each tick (e.g., if motors are too hot) and the normal version
+/// better for completing series of actions.
 ///
 /// Due to the reticking, some nodes that succeeded on previous ticks may fail
 /// on later ticks.
@@ -108,7 +112,7 @@ where
     where
         T: Tickable<W> + 'a,
     {
-        self.children = children.into_iter().map(|x| x.into_node()).collect();
+        self.children = children.into_iter().map(Tickable::into_node).collect();
         self
     }
 }
@@ -116,7 +120,7 @@ impl<'a, W> Tickable<W> for ActiveSequence<'a, W> {
     fn tick(&mut self, world: &mut W) -> Status {
         // Tick all of our children as long as they succeed
         let mut ret_status = Status::Succeeded;
-        for child in self.children.iter_mut() {
+        for child in &mut self.children {
             if ret_status == Status::Succeeded {
                 ret_status = child.tick(world);
             } else {
@@ -130,7 +134,7 @@ impl<'a, W> Tickable<W> for ActiveSequence<'a, W> {
 
     fn reset(&mut self) {
         // Reset all of our children
-        for child in self.children.iter_mut() {
+        for child in &mut self.children {
             child.reset();
         }
     }
@@ -152,7 +156,7 @@ impl<'a, W> Tickable<W> for ActiveSequence<'a, W> {
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// let active_sequence = ActiveSequence!{
+/// let active_sequence = ActiveSequence! {
 ///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
 ///     Condition!{ |&(_, b)| b == 9 },
 ///     Condition!{ |&(a, b)| b < a }
@@ -170,7 +174,8 @@ macro_rules! ActiveSequence
 /// A node that will tick its children in order as long as they succeed.
 ///
 /// This node will tick all of its children in order until one of them returns
-/// either `Status::Running` or `Status::Failed`. If none do, this node succeeds.
+/// either `Status::Running` or `Status::Failed`. If none do, this node
+/// succeeds.
 ///
 /// The difference between this node and an `ActiveSequence` is that this node
 /// will resume ticking at the last running node whereas the active version will
@@ -210,7 +215,7 @@ macro_rules! ActiveSequence
 /// let mut node = Sequence::new(vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),
-///     AlwaysSucceed::new()
+///     AlwaysSucceed::new(),
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Succeeded);
 /// ```
@@ -224,7 +229,7 @@ macro_rules! ActiveSequence
 /// let mut node = Sequence::new(vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysRunning::new(),
-///     AlwaysFail::new()
+///     AlwaysFail::new(),
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Running);
 /// ```
@@ -238,7 +243,7 @@ macro_rules! ActiveSequence
 /// let mut node = Sequence::new(vec![
 ///     AlwaysSucceed::new(),
 ///     AlwaysSucceed::new(),
-///     AlwaysFail::new()
+///     AlwaysFail::new(),
 /// ]);
 /// assert_eq!(node.tick(&mut ()), Status::Failed);
 /// ```
@@ -272,12 +277,12 @@ impl<'a, W> Tickable<W> for Sequence<'a, W> {
             }
         }
 
-        return ret_status;
+        ret_status
     }
 
     fn reset(&mut self) {
         // Reset all of our children
-        for child in self.children.iter_mut() {
+        for child in &mut self.children {
             child.reset();
         }
 
@@ -301,7 +306,7 @@ impl<'a, W> Tickable<W> for Sequence<'a, W> {
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// let selector = Selector!{
+/// let selector = Selector! {
 ///     Condition!{ |&(a, _): &(u32, u32)| a < 12 },
 ///     Condition!{ |&(_, b)| b == 9 },
 ///     Condition!{ |&(a, b)| b < a }
@@ -318,9 +323,11 @@ macro_rules! Sequence
 
 #[cfg(test)]
 mod tests {
-    use crate::node::Tickable;
-    use crate::std_nodes::*;
-    use crate::Status;
+    use crate::{
+        node::Tickable,
+        std_nodes::{ActiveSequence, NoTick, Sequence, YesTick},
+        Status,
+    };
 
     #[test]
     fn check_running() {

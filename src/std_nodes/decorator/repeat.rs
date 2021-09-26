@@ -1,7 +1,10 @@
-use crate::node::{Node, Tickable};
-use crate::status::Status;
+use crate::{
+    node::{Node, Tickable},
+    status::Status,
+};
 
-/// A node that will repeat its child a specific number of times, possibly infinite.
+/// A node that will repeat its child a specific number of times, possibly
+/// infinite.
 ///
 /// A repeat node will report that it is running until its child node has been
 /// run to completion the specified number of times, upon which it will be
@@ -23,7 +26,8 @@ use crate::status::Status;
 /// # Children
 ///
 /// One. It is ticked or reset whenever the repeat node is ticked or reset. It
-/// also may be reset multiple times before the repeat node is reset or completed.
+/// also may be reset multiple times before the repeat node is reset or
+/// completed.
 ///
 /// # Examples
 ///
@@ -67,7 +71,8 @@ where
         Node::new(internals)
     }
 
-    /// Creates a new Repeat node that will only repeat a limited number of times.
+    /// Creates a new Repeat node that will only repeat a limited number of
+    /// times.
     ///
     /// The limit specifies the number of times this node can be run. A limit
     /// of zero means that the node will instantly succeed.
@@ -96,9 +101,8 @@ impl<'a, W> Tickable<W> for Repeat<'a, W> {
             self.attempts += 1;
             if self.attempts < limit {
                 return Status::Running;
-            } else {
-                return Status::Succeeded;
             }
+            return Status::Succeeded;
         }
 
         // We're still running
@@ -130,10 +134,10 @@ impl<'a, W> Tickable<W> for Repeat<'a, W> {
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// let repeat = Repeat!{
+/// let repeat = Repeat! {
 ///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
-/// let limited_repeat = Repeat!{ 12,
+/// let limited_repeat = Repeat! { 12,
 ///     Condition!{ |&(a, b): &(u32, u32)| a < b }
 /// };
 /// # }
@@ -150,9 +154,11 @@ macro_rules! Repeat {
 
 #[cfg(test)]
 mod tests {
-    use crate::node::Tickable;
-    use crate::status::Status;
-    use crate::std_nodes::*;
+    use crate::{
+        node::Tickable,
+        status::Status,
+        std_nodes::{CountedTick, Repeat},
+    };
 
     #[test]
     fn repeat_finite() {

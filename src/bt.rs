@@ -1,9 +1,12 @@
-use std::fmt;
-use std::thread;
-use std::time::{Duration, Instant};
+use std::{
+    fmt, thread,
+    time::{Duration, Instant},
+};
 
-use crate::node::{Node, Tickable};
-use crate::status::Status;
+use crate::{
+    node::{Node, Tickable},
+    status::Status,
+};
 
 /// Main behavior tree struct.
 pub struct BehaviorTree<'a, W> {
@@ -40,20 +43,21 @@ impl<'a, W> BehaviorTree<'a, W> {
     /// Reset the tree to a state identical to before it had ran.
     pub fn reset(&mut self) {
         trace!("Tree reset");
-        self.root.reset()
+        self.root.reset();
     }
 
     /// Run the behavior tree until it either succeeds or fails.
     ///
-    /// This makes no guarantees that it will run at the specified frequency. If a single
-    /// tick takes longer than the alloted tick time, it will log a warning
-    /// unless the specified frequency is infinite.
+    /// This makes no guarantees that it will run at the specified frequency. If
+    /// a single tick takes longer than the alloted tick time, it will log a
+    /// warning unless the specified frequency is infinite.
     ///
-    /// If the hook is supplied, it will be run after every tick. A reference to this
-    /// behavior tree will be supplied as an argument.
+    /// If the hook is supplied, it will be run after every tick. A reference to
+    /// this behavior tree will be supplied as an argument.
     ///
-    /// NOTE: The only time this will return `Status::Running` is if the frequency is zero
-    /// and the behavior tree is running after the first tick.
+    /// NOTE: The only time this will return `Status::Running` is if the
+    /// frequency is zero and the behavior tree is running after the first
+    /// tick.
     pub fn run<F>(&mut self, freq: f64, world: &mut W, mut hook: Option<F>) -> Status
     where
         F: FnMut(&BehaviorTree<'a, W>),

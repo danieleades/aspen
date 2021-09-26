@@ -1,7 +1,10 @@
-use crate::node::{Node, Tickable};
-use crate::status::Status;
+use crate::{
+    node::{Node, Tickable},
+    status::Status,
+};
 
-/// A node whose status is determined by running a function on its child's status.
+/// A node whose status is determined by running a function on its child's
+/// status.
 ///
 /// This node will tick its child and then run the supplied function on the
 /// child's return status.
@@ -30,11 +33,14 @@ use crate::status::Status;
 /// # use aspen::std_nodes::*;
 /// # use aspen::Status;
 /// # use aspen::node::Tickable;
-/// fn invert(s: Status, _: &()) -> Status
-/// {
-///     if s == Status::Succeeded { Status::Failed }
-///     else if s == Status::Failed { Status::Succeeded }
-///     else { s }
+/// fn invert(s: Status, _: &()) -> Status {
+///     if s == Status::Succeeded {
+///         Status::Failed
+///     } else if s == Status::Failed {
+///         Status::Succeeded
+///     } else {
+///         s
+///     }
 /// }
 ///
 /// let child = AlwaysSucceed::new();
@@ -43,7 +49,7 @@ use crate::status::Status;
 /// ```
 pub struct Decorator<'a, W> {
     /// Function that is performed on the child's status.
-    func: Box<Fn(Status, &W) -> Status + 'a>,
+    func: Box<dyn Fn(Status, &W) -> Status + 'a>,
 
     /// Child node.
     child: Node<'a, W>,
@@ -137,7 +143,7 @@ impl<'a, W> Tickable<W> for Invert<'a, W> {
         match self.child.tick(world) {
             Status::Succeeded => Status::Failed,
             Status::Failed => Status::Succeeded,
-            s => s,
+            s @ Status::Running => s,
         }
     }
 
@@ -163,7 +169,7 @@ impl<'a, W> Tickable<W> for Invert<'a, W> {
 /// ```
 /// # #[macro_use] extern crate aspen;
 /// # fn main() {
-/// let invert = Invert!{
+/// let invert = Invert! {
 ///     Condition!{ |&a: &u32| a < 9 }
 /// };
 /// # }
@@ -177,9 +183,11 @@ macro_rules! Invert {
 
 #[cfg(test)]
 mod tests {
-    use crate::node::Tickable;
-    use crate::status::Status;
-    use crate::std_nodes::*;
+    use crate::{
+        node::Tickable,
+        status::Status,
+        std_nodes::{Decorator, Invert, YesTick},
+    };
 
     fn rotate(s: Status, _: &()) -> Status {
         match s {

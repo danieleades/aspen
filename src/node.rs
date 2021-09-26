@@ -7,8 +7,8 @@ use std::fmt;
 ///
 /// The logic of the node is controlled by the supplied `Tickable` object.
 /// Nodes are considered to have been run to completion when they return either
-/// `Status::Succeeded` or `Status::Failed` when ticked. If they are ticked after
-/// completion, they will be reset before the tick logic is executed.
+/// `Status::Succeeded` or `Status::Failed` when ticked. If they are ticked
+/// after completion, they will be reset before the tick logic is executed.
 ///
 /// This class is largely just a wrapper around an `Tickable` object. This is
 /// to enforce some runtime behavior.
@@ -77,7 +77,6 @@ impl<'a, W> Node<'a, W> {
 impl<'a, W> Tickable<W> for Node<'a, W> {
     /// Ticks the node a single time.
     fn tick(&mut self, world: &mut W) -> Status {
-        
         // Tick the internals
         trace!("Ticking node {}", self.name());
         self.status = Some(self.internals.tick(world));

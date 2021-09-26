@@ -15,6 +15,7 @@ impl Status {
     ///
     /// Execution is considered to be done if it is either `Succeeded` or
     /// `Failed`.
+    #[must_use]
     pub fn is_done(&self) -> bool {
         *self == Status::Succeeded || *self == Status::Failed
     }
